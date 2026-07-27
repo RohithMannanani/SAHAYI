@@ -1,0 +1,230 @@
+/* ---- Features Section ---- */
+.features-section {
+  padding: 96px 0;
+  background: var(--clr-surface-2);
+  border-top: 1px solid var(--clr-border);
+}
+
+.features-header {
+  margin-bottom: 48px;
+}
+
+.features-header .section-heading {
+  margin-top: 10px;
+}
+
+/* Bento grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.features-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Base card */
+.feature-card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--clr-primary));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: transparent;
+}
+
+.feature-card--large {
+  flex: 1;
+}
+
+.feature-card--sm {
+  flex: 1;
+}
+
+.feature-card--dark {
+  background: var(--clr-dark-bg);
+  border-color: transparent;
+}
+
+.feature-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feature-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.feature-card__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--clr-text);
+}
+
+.feature-card__desc {
+  font-size: 0.88rem;
+  color: var(--clr-text-muted);
+  line-height: 1.65;
+}
+
+.feature-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--clr-primary);
+  margin-top: 4px;
+  transition: gap var(--transition);
+}
+
+.feature-link:hover {
+  gap: 10px;
+}
+
+/* Mock chart */
+.feature-card__mock {
+  margin-top: 8px;
+  background: var(--clr-surface-2);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mock-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 80px;
+}
+
+.mock-chart__bar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+  animation: barRise 1s ease forwards;
+  opacity: 0.85;
+}
+
+@keyframes barRise {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to   { transform: scaleY(1); transform-origin: bottom; }
+}
+
+.mock-stats-row {
+  display: flex;
+  gap: 20px;
+}
+
+.mock-stat__val {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--clr-text);
+}
+
+.mock-stat__label {
+  font-size: 0.72rem;
+  color: var(--clr-text-light);
+  margin-top: 2px;
+}
+
+/* Mock meeting pill */
+.mock-meeting-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #8b5cf610;
+  border: 1px solid #8b5cf630;
+  color: #8b5cf6;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 100px;
+  margin-top: 6px;
+}
+
+.meeting-dot {
+  width: 7px;
+  height: 7px;
+  background: #8b5cf6;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* Mock loan progress */
+.mock-loan-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.loan-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.loan-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6ab04c, #a8d5a2);
+  border-radius: 100px;
+  animation: fillBar 1.5s ease forwards;
+}
+
+@keyframes fillBar {
+  from { width: 0%; }
+}
+
+.loan-pct {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}

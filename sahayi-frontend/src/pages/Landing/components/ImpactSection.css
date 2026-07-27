@@ -1,0 +1,144 @@
+/* ---- Impact Section ---- */
+.impact-section {
+  padding: 96px 0;
+  background: var(--clr-dark-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.impact-section::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  right: -200px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: rgba(106,176,76,0.08);
+  filter: blur(80px);
+}
+
+.impact-section::after {
+  content: '';
+  position: absolute;
+  bottom: -150px;
+  left: -150px;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: rgba(45,90,39,0.15);
+  filter: blur(80px);
+}
+
+.impact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.impact-tag {
+  background: rgba(255,255,255,0.10);
+  color: var(--clr-accent-muted);
+}
+
+.impact-stats {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-top: 40px;
+}
+
+.impact-stat__val {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #0a0a0a;
+  line-height: 1;
+}
+
+.impact-stat__label {
+  font-size: 0.82rem;
+  color: rgba(11, 11, 11, 0.55);
+  margin-top: 4px;
+}
+
+.impact-divider {
+  width: 1px;
+  height: 56px;
+  background: rgba(255,255,255,0.15);
+}
+
+/* Testimonial */
+.testimonial-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  position: relative;
+  backdrop-filter: blur(8px);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.testimonial-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+}
+
+.testimonial-quote-icon {
+  color: var(--clr-accent);
+  margin-bottom: 16px;
+}
+
+.testimonial-text {
+  font-size: 1rem;
+  color: rgba(0, 0, 0, 0.85);
+  line-height: 1.75;
+  margin-bottom: 28px;
+  font-style: italic;
+}
+
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.author-avatar {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--clr-primary-light), var(--clr-accent));
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #010101;
+}
+
+.author-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #040404;
+}
+
+.author-role {
+  font-size: 0.78rem;
+  color: rgba(9, 9, 9, 0.5);
+  margin-top: 2px;
+}
+
+.testimonial-stars {
+  color: #f59e0b;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+}
+
+@media (max-width: 900px) {
+  .impact-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}

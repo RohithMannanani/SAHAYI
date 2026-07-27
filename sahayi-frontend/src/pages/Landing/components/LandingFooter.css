@@ -1,0 +1,136 @@
+/* ---- Landing Footer ---- */
+.landing-footer {
+  background: var(--clr-text);
+  color: rgba(0, 0, 0, 0.75);
+  padding-top: 72px;
+  padding-bottom: 0;
+}
+
+.footer-top {
+  display: grid;
+  grid-template-columns: 1.8fr repeat(4, 1fr);
+  gap: 40px;
+  padding-bottom: 56px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.footer-logo .logo-mark {
+  width: 30px;
+  height: 30px;
+  font-size: 0.9rem;
+}
+
+.footer-logo .logo-text {
+  color: #054710;
+}
+
+.footer-tagline {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.5);
+  max-width: 240px;
+  margin-bottom: 20px;
+}
+
+.footer-social {
+  display: flex;
+  gap: 8px;
+}
+
+.social-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.6);
+  transition: background var(--transition), color var(--transition);
+}
+
+.social-chip:hover {
+  background: var(--clr-primary);
+  color: #060606;
+}
+
+.footer-col__heading {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  margin-bottom: 18px;
+}
+
+.footer-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-col ul li a {
+  font-size: 0.88rem;
+  color: rgba(0, 0, 0, 0.777);
+  transition: color var(--transition);
+}
+
+.footer-col ul li a:hover {
+  color: #000000;
+}
+
+/* Bottom bar */
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.footer-bottom p {
+  font-size: 0.78rem;
+  color: rgba(0, 0, 0, 0.833);
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-bottom-links a {
+  font-size: 0.78rem;
+  color: rgba(7, 1, 1, 0.786);
+  transition: color var(--transition);
+}
+
+.footer-bottom-links a:hover {
+  color: rgba(18, 1, 1, 0.8);
+}
+
+@media (max-width: 1024px) {
+  .footer-top {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .footer-top {
+    grid-template-columns: 1fr;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

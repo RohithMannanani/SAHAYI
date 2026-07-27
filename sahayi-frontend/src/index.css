@@ -1,0 +1,30 @@
+/* Global base reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color: #1a1a1a;
+  background: #fafaf8;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+img, video { display: block; max-width: 100%; }
+a { text-decoration: none; color: inherit; }
+button { font-family: inherit; }
+input, textarea, select { font-family: inherit; }

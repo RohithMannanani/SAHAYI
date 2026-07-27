@@ -1,0 +1,151 @@
+/* =============================================
+   SAHAYI LANDING PAGE — Global CSS
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap');
+
+/* ---- CSS Variables ---- */
+:root {
+  --clr-primary: #2d5a27;
+  --clr-primary-dark: #1e3d1a;
+  --clr-primary-light: #4a8a40;
+  --clr-accent: #6ab04c;
+  --clr-accent-muted: #a8d5a2;
+  --clr-text: #1a1a1a;
+  --clr-text-muted: #5a5a5a;
+  --clr-text-light: #8a8a8a;
+  --clr-bg: #fafaf8;
+  --clr-surface: #ffffff;
+  --clr-surface-2: #f4f4f0;
+  --clr-surface-3: #efefea;
+  --clr-border: #e0e0d8;
+  --clr-dark-bg: #1c3b18;
+  --clr-dark-surface: #243f20;
+  --clr-gold: #e8a020;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.07);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.10);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.14);
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Playfair Display', serif;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --max-width: 1160px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { display: block; max-width: 100%; }
+
+a { text-decoration: none; color: inherit; }
+
+.landing-root {
+  overflow-x: hidden;
+}
+
+/* ---- Shared utilities ---- */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--clr-primary);
+  color: #fff;
+  padding: 13px 28px;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+  box-shadow: 0 4px 16px rgba(45,90,39,0.30);
+}
+
+.btn-primary:hover {
+  background: var(--clr-primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(45,90,39,0.35);
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--clr-text);
+  padding: 12px 28px;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 600;
+  border: 1.5px solid var(--clr-border);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.btn-outline:hover {
+  border-color: var(--clr-primary);
+  color: var(--clr-primary);
+  transform: translateY(-2px);
+}
+
+.section-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clr-primary);
+  background: rgba(45,90,39,0.08);
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-bottom: 12px;
+}
+
+.section-heading {
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--clr-text);
+}
+
+.section-subheading {
+  font-size: 1rem;
+  color: var(--clr-text-muted);
+  max-width: 580px;
+  line-height: 1.7;
+}
+
+/* ---- Scroll-fade animation ---- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  opacity: 0;
+  animation: fadeUp 0.7s ease forwards;
+}
+
+.fade-up.delay-1 { animation-delay: 0.1s; }
+.fade-up.delay-2 { animation-delay: 0.2s; }
+.fade-up.delay-3 { animation-delay: 0.3s; }
+.fade-up.delay-4 { animation-delay: 0.4s; }
+.fade-up.delay-5 { animation-delay: 0.5s; }

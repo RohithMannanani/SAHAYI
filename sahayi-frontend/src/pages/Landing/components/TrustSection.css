@@ -1,0 +1,75 @@
+/* ---- Trust Section ---- */
+.trust-section {
+  padding: 96px 0;
+  background: var(--clr-surface);
+  border-top: 1px solid var(--clr-border);
+}
+
+.trust-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trust-header {
+  text-align: center;
+  max-width: 660px;
+  margin-bottom: 72px;
+}
+
+.trust-header .section-heading {
+  margin-bottom: 16px;
+}
+
+.trust-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+  width: 100%;
+}
+
+.trust-pillar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.trust-pillar:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--clr-accent-muted);
+}
+
+.trust-pillar__icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(45,90,39,0.10);
+  color: var(--clr-primary);
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+}
+
+.trust-pillar__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--clr-text);
+}
+
+.trust-pillar__desc {
+  font-size: 0.9rem;
+  color: var(--clr-text-muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .trust-pillars {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
