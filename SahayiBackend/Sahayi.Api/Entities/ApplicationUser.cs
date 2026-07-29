@@ -10,18 +10,23 @@ namespace Sahayi.Api.Entities
         public Guid UserId { get; set; } = Guid.NewGuid();
 
         [Required]
-        [StringLength(150)]
+        [Column(TypeName = "varchar(50)")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required]
+        [Column(TypeName = "varchar(150)")]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(15)]
-        public string PhoneNumber { get; set; } = string.Empty; // Primary login key [cite: 6, 54]
+        [Column(TypeName = "varchar(15)")]
+        public string PhoneNumber { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(150)]
+        [Column(TypeName = "varchar(150)")]
         public string HouseName { get; set; } = string.Empty;
 
         [Required]
+        [Column(TypeName = "varchar(max)")]
         public string PasswordHash { get; set; } = string.Empty;
 
         public bool IsPasswordChanged { get; set; } = false; // Forces initial password update [cite: 6, 56]
@@ -30,12 +35,12 @@ namespace Sahayi.Api.Entities
         public int RoleId { get; set; }
 
         [ForeignKey("RoleId")]
-        public UserRole? Role { get; set; }
+        public UserRole? UserRole { get; set; }
 
         public Guid? UnitId { get; set; } // Nullable for CDS Admin [cite: 58]
 
         [ForeignKey("UnitId")]
-        public AyalkoottamUnit? Unit { get; set; }
+        public AyalkoottamUnit? AyalkoottamUnit { get; set; }
 
         public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
 

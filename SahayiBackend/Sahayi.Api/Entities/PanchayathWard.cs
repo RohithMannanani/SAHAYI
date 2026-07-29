@@ -14,7 +14,7 @@ namespace Sahayi.Api.Entities
         public int WardNumber { get; set; }
 
         [Required]
-        [StringLength(100)]
+        [Column(TypeName = "varchar(100)")]
         public string WardName { get; set; } = string.Empty;
 
         // Navigation Properties

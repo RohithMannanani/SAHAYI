@@ -26,6 +26,7 @@ namespace Sahayi.Api.Data
         public DbSet<ChatGroup> ChatGroups { get; set; }
         public DbSet<GroupMessage> GroupMessages { get; set; }
         public DbSet<DirectMessage> DirectMessages { get; set; }
+        public DbSet<UserCredential> UserCredentials { get; set; }
 
         // ==========================================
         // 2. MODEL CONFIGURATIONS & FLUENT API
@@ -37,6 +38,10 @@ namespace Sahayi.Api.Data
             // ------------------------------------------
             // UNIQUE INDEXES
             // ------------------------------------------
+            modelBuilder.Entity<UserCredential>()
+                .HasIndex(u => u.UserName)
+                .IsUnique();
+
             modelBuilder.Entity<UserRole>()
                 .HasIndex(r => r.RoleName)
                 .IsUnique();
@@ -56,6 +61,9 @@ namespace Sahayi.Api.Data
             modelBuilder.Entity<LoanRepayment>()
                 .HasIndex(lr => lr.ReceiptNumber)
                 .IsUnique();
+            modelBuilder.Entity<ApplicationUser>()
+               .HasIndex(u => u.Username)
+               .IsUnique();
 
             // ------------------------------------------
             // FINANCIAL DECIMAL PRECISION (18, 2)
@@ -97,20 +105,20 @@ namespace Sahayi.Api.Data
 
             // 2. ApplicationUser -> Role & Unit
             modelBuilder.Entity<ApplicationUser>()
-                .HasOne(u => u.Role)
+                .HasOne(u => u.UserRole)
                 .WithMany()
                 .HasForeignKey(u => u.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ApplicationUser>()
-                .HasOne(u => u.Unit)
+                .HasOne(u => u.AyalkoottamUnit)
                 .WithMany(unit => unit.Users)
                 .HasForeignKey(u => u.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // 3. Meeting -> Unit & CreatedBy User
             modelBuilder.Entity<Meeting>()
-                .HasOne(m => m.Unit)
+                .HasOne(m => m.AyalkoottamUnit)
                 .WithMany(u => u.Meetings)
                 .HasForeignKey(m => m.UnitId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -142,7 +150,7 @@ namespace Sahayi.Api.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<SavingsTransaction>()
-                .HasOne(st => st.Unit)
+                .HasOne(st => st.AyalkoottamUnit)
                 .WithMany()
                 .HasForeignKey(st => st.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -161,7 +169,7 @@ namespace Sahayi.Api.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<LoanApplication>()
-                .HasOne(la => la.Unit)
+                .HasOne(la => la.AyalkoottamUnit)
                 .WithMany()
                 .HasForeignKey(la => la.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -174,8 +182,8 @@ namespace Sahayi.Api.Data
 
             // 7. LoanRepayment -> LoanApplication & Recorder
             modelBuilder.Entity<LoanRepayment>()
-                .HasOne(lr => lr.Loan)
-                .WithMany(la => la.Repayments)
+                .HasOne(lr => lr.LoanApplication)
+                .WithMany(la => la.LoanRepayments)
                 .HasForeignKey(lr => lr.LoanId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -194,14 +202,14 @@ namespace Sahayi.Api.Data
 
             // 9. ChatGroup -> Unit
             modelBuilder.Entity<ChatGroup>()
-                .HasOne(cg => cg.Unit)
+                .HasOne(cg => cg.AyalkoottamUnit)
                 .WithMany(u => u.ChatGroups)
                 .HasForeignKey(cg => cg.UnitId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // 10. GroupMessage -> ChatGroup & Sender User
             modelBuilder.Entity<GroupMessage>()
-                .HasOne(gm => gm.Group)
+                .HasOne(gm => gm.ChatGroup)
                 .WithMany(g => g.GroupMessages)
                 .HasForeignKey(gm => gm.GroupId)
                 .OnDelete(DeleteBehavior.Cascade);

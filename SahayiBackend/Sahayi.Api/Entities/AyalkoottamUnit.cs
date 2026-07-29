@@ -10,7 +10,7 @@ namespace Sahayi.Api.Entities
         public Guid UnitId { get; set; } = Guid.NewGuid();
 
         [Required]
-        [StringLength(150)]
+        [Column(TypeName = "varchar(150)")]
         public string UnitName { get; set; } = string.Empty;
 
         [Required]
@@ -20,15 +20,15 @@ namespace Sahayi.Api.Entities
         public PanchayathWard? Ward { get; set; }
 
         [Required]
-        [StringLength(50)]
+        [Column(TypeName = "varchar(50)")]
         public string AccountNumber { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(100)]
+        [Column(TypeName = "varchar(100)")]
         public string BankName { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(20)]
+        [Column(TypeName = "varchar(20)")]
         public string IFSCCode { get; set; } = string.Empty;
 
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;

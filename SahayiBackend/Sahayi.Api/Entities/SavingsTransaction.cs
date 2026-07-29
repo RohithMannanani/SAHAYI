@@ -3,39 +3,39 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
 {
-    [Table("SavingsTransactions")]
     public class SavingsTransaction
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int TransactionId { get; set; }
 
         [Required]
         public Guid UserId { get; set; }
 
-        [ForeignKey("UserId")]
-        public ApplicationUser? User { get; set; }
-
         [Required]
         public Guid UnitId { get; set; }
-
-        [ForeignKey("UnitId")]
-        public AyalkoottamUnit? Unit { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
 
+        [Required]
         public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
 
         [Required]
-        [StringLength(50)]
+        [Column(TypeName = "varchar(50)")]
         public string ReceiptNumber { get; set; } = string.Empty;
 
         [Required]
-        public Guid RecordedBy { get; set; } // Treasurer / Secretary [cite: 77, 93]
+        public Guid RecordedBy { get; set; }
+
+        // Navigation Properties
+        [ForeignKey("UserId")]
+        public virtual ApplicationUser? User { get; set; }
+
+        [ForeignKey("UnitId")]
+        public virtual AyalkoottamUnit? AyalkoottamUnit { get; set; }
 
         [ForeignKey("RecordedBy")]
-        public ApplicationUser? Recorder { get; set; }
+        public virtual ApplicationUser? Recorder { get; set; }
     }
 }

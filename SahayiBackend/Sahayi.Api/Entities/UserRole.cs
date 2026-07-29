@@ -9,12 +9,12 @@ namespace Sahayi.Api.Entities
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int RoleId { get; set; }
-
+       
         [Required]
-        [StringLength(50)]
-        public string RoleName { get; set; } = string.Empty; // CDS_Admin, President, Secretary, Treasurer, Member [cite: 6, 39]
+        [Column(TypeName = "varchar(50)")]
+        public string RoleName { get; set; } = string.Empty;
 
-        [StringLength(255)]
+        [Column(TypeName = "varchar(255)")]
         public string? Description { get; set; }
     }
 }
