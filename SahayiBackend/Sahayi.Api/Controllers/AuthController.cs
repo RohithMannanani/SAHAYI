@@ -1,4 +1,4 @@
-﻿using BCrypt.Net;
+using BCrypt.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sahayi.Api.Data;
@@ -85,6 +85,7 @@ namespace Sahayi.Api.Controllers
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
                 RoleName = user.UserRole?.RoleName ?? string.Empty,
+                RoleId = user.RoleId,
                 UnitId = user.UnitId,
                 UnitName = user.AyalkoottamUnit?.UnitName,
                 IsPasswordChanged = user.IsPasswordChanged

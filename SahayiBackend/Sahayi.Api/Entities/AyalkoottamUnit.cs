@@ -14,6 +14,10 @@ namespace Sahayi.Api.Entities
         public string UnitName { get; set; } = string.Empty;
 
         [Required]
+        [Column(TypeName = "varchar(15)")]
+        public string PrimaryContactPhone { get; set; } = string.Empty;
+
+        [Required]
         public int WardId { get; set; }
 
         [ForeignKey("WardId")]
@@ -30,6 +34,9 @@ namespace Sahayi.Api.Entities
         [Required]
         [Column(TypeName = "varchar(20)")]
         public string IFSCCode { get; set; } = string.Empty;
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AccountBalance { get; set; } = 0.00m;
 
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 

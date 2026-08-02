@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Sahayi.Api.DTOs
 {
@@ -19,6 +19,8 @@ namespace Sahayi.Api.DTOs
 
         [Required]
         public string IFSCCode { get; set; } = string.Empty;
+
+        public decimal AccountBalance { get; set; } = 0;
 
         // Default common password assigned to all unit members (e.g. Sahayi@123)
         public string DefaultPassword { get; set; } = "Sahayi@123";

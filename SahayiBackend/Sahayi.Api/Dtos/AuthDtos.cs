@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Sahayi.Api.DTOs
 {
@@ -54,6 +54,7 @@ namespace Sahayi.Api.DTOs
         public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
+        public int RoleId { get; set; }
         public Guid? UnitId { get; set; }
         public string? UnitName { get; set; }
         public bool IsPasswordChanged { get; set; }

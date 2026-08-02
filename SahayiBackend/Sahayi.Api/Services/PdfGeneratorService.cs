@@ -28,40 +28,48 @@ namespace Sahayi.Api.Services
                                  .FontSize(18).Bold().AlignCenter().FontColor(Colors.Blue.Medium);
 
                     page.Content().PaddingVertical(10).Column(col =>
-                    {
-                        col.Item().Text($"Unit Name: {unitName} | Ward Number: {wardNumber}").FontSize(12).Bold();
-                        col.Item().PaddingBottom(10).LineHorizontal(1);
+{
+    col.Item().Text($"Unit Name: {unitName} | Ward Number: {wardNumber}").FontSize(12).Bold();
+    col.Item().PaddingBottom(10).LineHorizontal(1);
 
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
-                            {
-                                columns.RelativeColumn(2);
-                                columns.RelativeColumn(2);
-                                columns.RelativeColumn(1.5f);
-                                columns.RelativeColumn(2);
-                            });
+    col.Item().Table(table =>
+    {
+        table.ColumnsDefinition(columns =>
+        {
+            columns.RelativeColumn(2);
+            columns.RelativeColumn(2);
+            columns.RelativeColumn(1.5f);
+            columns.RelativeColumn(2);
+        });
 
-                            table.Header(header =>
-                            {
-                                header.Cell().Text("Name").Bold();
-                                header.Cell().Text("Phone (Username)").Bold();
-                                header.Cell().Text("Role").Bold();
-                                header.Cell().Text("Temp Password").Bold();
-                            });
+        table.Header(header =>
+        {
+            header.Cell().Text("Name").Bold();
+            header.Cell().Text("Phone_Number").Bold();
+            header.Cell().Text("Role").Bold();
+            header.Cell().Text("Temp Password").Bold();
+        });
 
-                            foreach (var member in members)
-                            {
-                                table.Cell().Text(member.FullName);
-                                table.Cell().Text(member.PhoneNumber);
-                                table.Cell().Text(member.Role);
-                                table.Cell().Text(member.CommonPassword);
-                            }
-                        });
-                    });
+        foreach (var member in members)
+        {
+            table.Cell().Text(member.FullName);
+            table.Cell().Text(member.PhoneNumber);
+            table.Cell().Text(member.Role);
+            table.Cell().Text(member.CommonPassword);
+        }
+    });
 
-                    page.Footer().Text("Note: Members must change their password upon first login.")
-                                 .FontSize(10).Italic().AlignCenter();
+    // --- Added Notes Section ---
+    col.Item().PaddingTop(15).Column(noteCol =>
+    {
+        noteCol.Item().Text("Use phone_number and temp password to login.")
+            .FontSize(10).Italic().AlignCenter();
+            
+        noteCol.Item().Text("Note: Members must change their password upon first login.")
+            .FontSize(10).Italic().AlignCenter();
+    });
+});
+                    
                 });
             });
 

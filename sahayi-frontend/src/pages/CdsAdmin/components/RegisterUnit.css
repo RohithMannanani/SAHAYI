@@ -1,0 +1,245 @@
+/* ── RegisterUnit.css ──────────────────────────────────────────── */
+/* Extracted from RegisterUnitWizard.jsx inline styles              */
+
+/* ── Step 2 validation alert spacing ── */
+.cds-step2-alert {
+  margin-bottom: 16px;
+}
+
+/* ── Bank Details Card header SVG margin ── */
+.cds-bank-header-icon {
+  margin-right: 6px;
+}
+
+/* ── Instruction card sidebar SVG margin ── */
+.cds-instruction-header-icon {
+  margin-right: 6px;
+}
+
+/* ── "New units typically start with ₹0" hint text ── */
+.cds-balance-hint {
+  font-size: 11px;
+  color: #8fa896;
+  margin-top: 2px;
+}
+
+/* ── Bulk Import Box ── */
+.cds-bulk-import-box {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1.5px dashed #adc3b2;
+  border-radius: 8px;
+  background-color: #f8faf9;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Bulk Import Box — top row (title + template link) ── */
+.cds-bulk-import-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ── Bulk Import Box — section heading ── */
+.cds-bulk-import-title {
+  font-size: 14px;
+  color: #1e4731;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Bulk Import Box — subtitle ── */
+.cds-bulk-import-subtitle {
+  font-size: 12px;
+  color: #6b8f72;
+  margin-top: 2px;
+}
+
+/* ── Bulk Import Box — template download button ── */
+.cds-bulk-import-template-btn {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Bulk Import Box — file row ── */
+.cds-bulk-import-file-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Bulk Import Box — file label (acts as button) ── */
+.cds-bulk-import-file-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12.5px;
+}
+
+/* ── Bulk Import Box — progress/status row ── */
+.cds-bulk-import-status {
+  padding: 10px 12px;
+  background: #eef5ef;
+  border: 1px solid #cce2d1;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+/* ── Bulk Import Box — status label ── */
+.cds-bulk-import-status-label {
+  font-size: 13px;
+  color: #2b5f3d;
+  font-weight: 500;
+}
+
+/* ── Bulk Import Box — status action buttons row ── */
+.cds-bulk-import-status-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Bulk Import Box — Skip button ── */
+.cds-bulk-import-skip-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: #ffffff;
+  border: 1px solid #bccfc1;
+  color: #4a6652;
+}
+
+/* ── Bulk Import Box — Cancel button ── */
+.cds-bulk-import-cancel-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: #fcf2f2;
+  border: 1px solid #eec4c4;
+  color: #c25252;
+}
+
+/* ── Add Member button row ── */
+.cds-add-member-btn {
+  margin-top: 16px;
+}
+
+/* ── Members list empty state ── */
+.cds-members-empty {
+  padding: 24px;
+  text-align: center;
+  color: #6b8f72;
+}
+
+/* ── Review section spacing ── */
+.cds-review-section--bank {
+  margin-top: 24px;
+}
+
+.cds-review-section--members {
+  margin-top: 24px;
+}
+
+/* ── Review section — members table wrapper spacing ── */
+.cds-review-members-table {
+  margin-top: 8px;
+}
+
+/* ── Review section — notes paragraph ── */
+.cds-review-notes-wrap {
+  margin-top: 12px;
+}
+
+.cds-review-notes-text {
+  white-space: pre-wrap;
+  color: #4a6652;
+  margin-top: 4px;
+}
+
+/* ── Review section — registration type span ── */
+.cds-review-reg-type {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+/* ── Recent Formations "View History" footer ── */
+.cds-recent-formations-footer {
+  text-align: center;
+  padding: 12px 0;
+  border-top: 1px solid #e2e8e3;
+}
+
+/* ── Success Modal ── */
+.cds-success-modal {
+  text-align: center;
+  padding: 32px;
+}
+
+/* ── Success Modal — icon circle ── */
+.cds-success-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #e8f0e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+/* ── Success Modal — heading ── */
+.cds-success-title {
+  color: #1e4731;
+  margin-bottom: 8px;
+}
+
+/* ── Success Modal — primary description ── */
+.cds-success-desc {
+  color: #4a6652;
+  font-size: 14px;
+}
+
+/* ── Success Modal — secondary description ── */
+.cds-success-sub-desc {
+  font-size: 13px;
+  color: #8fa896;
+  margin-top: 8px;
+}
+
+/* ── Success Modal — action buttons row ── */
+.cds-success-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* ── Success Modal — download receipt button icon ── */
+.cds-download-receipt-icon {
+  margin-right: 6px;
+}
+
+/* ── Members list card body (no padding) ── */
+.cds-members-card-body {
+  padding: 0;
+}
+
+/* ── Remove member button ── */
+.cds-remove-member-btn {
+  color: #c25252;
+}
+
+/* ── Record option card — existing unit badge ── */
+.cds-existing-unit-badge {
+  color: #1e4731;
+  background: #e6f4e8;
+}

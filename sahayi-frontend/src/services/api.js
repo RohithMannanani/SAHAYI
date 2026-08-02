@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Update port to match your ASP.NET Core API endpoint
-const API_BASE_URL = 'https://localhost:7123/api';
+const API_BASE_URL = 'https://localhost:7151/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -23,6 +23,12 @@ export const registerShgUnit = async (data) => {
   });
 };
 
+// Fetch Wards List from DB
+export const fetchWardsList = async () => {
+  return await api.get('/shg/wards');
+};
+
+
 // Login API
 export const loginUser = async (credentials) => {
   return await api.post('/auth/login', credentials);
@@ -31,6 +37,21 @@ export const loginUser = async (credentials) => {
 // Change Password API
 export const updatePassword = async (payload) => {
   return await api.post('/auth/change-password', payload);
+};
+
+// Fetch all Ayalkoottam Units
+export const fetchShgUnits = async () => {
+  return await api.get('/shg');
+};
+
+// Toggle status of an Ayalkoottam Unit
+export const toggleShgUnitStatus = async (id, isActive) => {
+  return await api.post(`/shg/${id}/toggle-status`, { isActive });
+};
+
+// Fetch single Ayalkoottam Unit details
+export const fetchShgUnitDetails = async (id) => {
+  return await api.get(`/shg/${id}`);
 };
 
 export default api;
