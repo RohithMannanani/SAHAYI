@@ -155,6 +155,7 @@ namespace Sahayi.Api.Controllers
                 var units = await _context.AyalkoottamUnits
                     .Include(u => u.Ward)
                     .Include(u => u.Users)
+                        .ThenInclude(u => u.UserRole)
                     .OrderByDescending(u => u.CreatedDate)
                     .Select(u => new
                     {
@@ -165,8 +166,9 @@ namespace Sahayi.Api.Controllers
                         accountNumber = u.AccountNumber,
                         bankName = u.BankName,
                         ifscCode = u.IFSCCode,
-                        accountBalance = (double)u.AccountBalance,
+                        accountBalance = u.AccountBalance,
                         formationDate = u.CreatedDate.ToString("yyyy-MM-dd"),
+                        contact = u.PrimaryContactPhone,
                         members = u.Users.Count,
                         status = u.IsActive ? "Active" : "Inactive",
                         lastAudit = "New Registration",
@@ -174,17 +176,12 @@ namespace Sahayi.Api.Controllers
                         membersList = u.Users.Select(m => new
                         {
                             id = m.UserId,
-                            fullName = m.FullName,
                             name = m.FullName,
                             phone = m.PhoneNumber,
-                            phoneNumber = m.PhoneNumber,
                             houseName = m.HouseName,
                             roleId = m.RoleId,
-                            role = m.RoleId == 2 ? "President" :
-            m.RoleId == 3 ? "Secretary" :
-            m.RoleId == 4 ? "Treasurer" :
-            "Member"
-                        }).ToList()
+                            role = m.UserRole != null ? m.UserRole.RoleName : (m.RoleId == 2 ? "President" : m.RoleId == 3 ? "Secretary" : m.RoleId == 4 ? "Treasurer" : "Member")
+                        })
                     })
                     .ToListAsync();
                 return Ok(units);
@@ -196,56 +193,45 @@ namespace Sahayi.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetUnitDetails(Guid id)
+        public async Task<IActionResult> GetUnitById(Guid id)
         {
             try
             {
                 var unit = await _context.AyalkoottamUnits
                     .Include(u => u.Ward)
                     .Include(u => u.Users)
+                        .ThenInclude(u => u.UserRole)
                     .FirstOrDefaultAsync(u => u.UnitId == id);
 
                 if (unit == null)
-                {
                     return NotFound(new { message = "Ayalkoottam unit not found." });
-                }
 
-                var result = new
+                return Ok(new
                 {
                     id = unit.UnitId,
-                    unitId = unit.UnitId,
                     name = unit.UnitName,
-                    unitName = unit.UnitName,
-                    wardId = unit.WardId,
                     ward = unit.Ward != null ? $"Ward {unit.Ward.WardNumber}, {unit.Ward.WardName}" : string.Empty,
+                    wardId = unit.WardId,
                     accountNumber = unit.AccountNumber,
                     bankName = unit.BankName,
                     ifscCode = unit.IFSCCode,
-                    accountBalance = (double)unit.AccountBalance,
+                    accountBalance = unit.AccountBalance,
                     formationDate = unit.CreatedDate.ToString("yyyy-MM-dd"),
-                    createdAt = unit.CreatedDate,
-                    status = unit.IsActive ? "Active" : "Inactive",
+                    contact = unit.PrimaryContactPhone,
                     members = unit.Users.Count,
+                    status = unit.IsActive ? "Active" : "Inactive",
+                    lastAudit = "New Registration",
+                    savings = (double)(unit.AccountBalance / 100000.0m),
                     membersList = unit.Users.Select(m => new
                     {
                         id = m.UserId,
-                        fullName = m.FullName,
                         name = m.FullName,
                         phone = m.PhoneNumber,
-                        phoneNumber = m.PhoneNumber,
                         houseName = m.HouseName,
                         roleId = m.RoleId,
-                        role = m.RoleId switch
-                        {
-                            2 => "President",
-                            3 => "Secretary",
-                            4 => "Treasurer",
-                            _ => "Member"
-                        }
-                    }).ToList()
-                };
-
-                return Ok(result);
+                        role = m.UserRole != null ? m.UserRole.RoleName : (m.RoleId == 2 ? "President" : m.RoleId == 3 ? "Secretary" : m.RoleId == 4 ? "Treasurer" : "Member")
+                    })
+                });
             }
             catch (Exception ex)
             {

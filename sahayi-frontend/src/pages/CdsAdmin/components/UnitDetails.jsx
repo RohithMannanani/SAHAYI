@@ -20,12 +20,13 @@ const getRoleName = (member) => {
 
 function UnitDetails({ unit, onBack, onStatusChange }) {
   const [unitData, setUnitData] = useState(unit || null);
-  const [isLoading, setIsLoading] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    setUnitData(unit);
     if (unit && unit.id) {
-      const loadRealDbDetails = async () => {
+      const loadFullDetails = async () => {
         setIsLoading(true);
         try {
           const res = await fetchShgUnitDetails(unit.id);
@@ -36,14 +37,12 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
             }));
           }
         } catch (err) {
-          console.warn("Using unit prop data:", err);
+          console.warn("Could not fetch extra unit details from API, using list object:", err);
         } finally {
           setIsLoading(false);
         }
       };
-      loadRealDbDetails();
-    } else {
-      setUnitData(unit);
+      loadFullDetails();
     }
   }, [unit]);
 
@@ -60,7 +59,7 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
     );
   }
 
-  // Normalize dynamic fields from SahayiDb
+  // Normalize dynamic fields from SahayiDb or frontend state
   const unitName = unitData.name || unitData.unitName || unitData.Name || 'Ayalkoottam Unit';
   const unitId = unitData.id || unitData.unitId || unitData.Id || 'N/A';
   const wardDisplay = unitData.ward || unitData.wardName || (unitData.Ward ? `Ward ${unitData.Ward.wardNumber || ''} - ${unitData.Ward.wardName || ''}` : 'N/A');
@@ -91,8 +90,8 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
   const primaryContact = unitData.contact || unitData.contactNumber || unitData.phone || unitData.PhoneNumber || (unitData.unitForm && unitData.unitForm.contact) || 'N/A';
   const notesText = unitData.notes || unitData.remarks || unitData.Notes || (unitData.unitForm && unitData.unitForm.notes) || '';
 
-  // Members list normalization directly from SahayiDb
-  const membersList = Array.isArray(unitData.membersList)
+  // Members list normalization
+  let rawMembers = Array.isArray(unitData.membersList)
     ? unitData.membersList
     : Array.isArray(unitData.members)
       ? unitData.members
@@ -102,6 +101,8 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
           ? unitData.ShgMembers
           : [];
 
+  const membersList = rawMembers;
+
   const filteredMembers = membersList.filter(m => {
     const name = (m.fullName || m.name || '').toLowerCase();
     const role = getRoleName(m).toLowerCase();
@@ -110,23 +111,6 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
     const query = memberSearch.toLowerCase();
 
     return name.includes(query) || role.includes(query) || house.includes(query) || phone.includes(query);
-  });
-
-  const roleRank = { president: 1, secretary: 2, treasurer: 3, member: 4 };
-
-  const sortedMembers = [...filteredMembers].sort((a, b) => {
-    const roleA = getRoleName(a).toLowerCase();
-    const roleB = getRoleName(b).toLowerCase();
-
-    const rankA = roleRank[roleA] ?? 99;
-    const rankB = roleRank[roleB] ?? 99;
-
-    if (rankA !== rankB) {
-      return rankA - rankB;
-    }
-    const nameA = (a.fullName || a.name || '').toLowerCase();
-    const nameB = (b.fullName || b.name || '').toLowerCase();
-    return nameA.localeCompare(nameB);
   });
 
   // Leadership Team Extraction from Members
@@ -352,14 +336,14 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
                           No member records registered for this unit yet.
                         </td>
                       </tr>
-                    ) : sortedMembers.length === 0 ? (
+                    ) : filteredMembers.length === 0 ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#6b8f72' }}>
                           No members match your search query.
                         </td>
                       </tr>
                     ) : (
-                      sortedMembers.map((member, idx) => {
+                      filteredMembers.map((member, idx) => {
                         const name = member.fullName || member.name || 'N/A';
                         const role = getRoleName(member);
                         const age = member.age || '-';

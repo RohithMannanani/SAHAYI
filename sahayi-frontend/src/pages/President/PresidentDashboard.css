@@ -1,5 +1,774 @@
-.dashboard-placeholder {
-  padding: 2rem;
+/* ── President Dashboard Core Layout ── */
+.pres-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f4f6f4;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1a2a1e;
+}
+
+/* ── Sidebar Navigation ── */
+.pres-sidebar {
+  width: 260px;
+  background: #f7f9f7;
+  border-right: 1px solid #e3eae4;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 16px;
+  flex-shrink: 0;
+}
+
+.pres-sidebar__brand {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #1b432c;
+  padding: 0 12px 28px;
+  border-bottom: 1px solid #e3eae4;
+  margin-bottom: 24px;
+}
+
+.pres-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pres-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #556b5a;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pres-nav-item:hover {
+  background: #eaf1eb;
+  color: #1b432c;
+}
+
+.pres-nav-item--active {
+  background: #e2ede4;
+  color: #1b432c;
+  border-left: 4px solid #1b432c;
+  padding-left: 12px;
+}
+
+.pres-sidebar__divider {
+  height: 1px;
+  background: #e3eae4;
+  margin: 20px 0;
+}
+
+.pres-btn-new-record {
+  width: 100%;
+  background: #1b432c;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(27, 67, 44, 0.2);
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.pres-btn-new-record:hover {
+  background: #255b3c;
+  transform: translateY(-1px);
+}
+
+.pres-sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+
+/* ── Main Layout Area ── */
+.pres-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Header Navbar */
+.pres-header {
+  height: 72px;
+  background: #ffffff;
+  border-bottom: 1px solid #e3eae4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+
+.pres-header__title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1c3624;
+}
+
+.pres-header__right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.pres-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f4f6f4;
+  border: 1px solid #e3eae4;
+  border-radius: 20px;
+  padding: 8px 16px;
+  width: 260px;
+}
+
+.pres-search-bar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13.5px;
+  color: #2b3e30;
+  width: 100%;
+}
+
+.pres-header__icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid #e3eae4;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b6350;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.pres-header__icon-btn:hover {
+  background: #f4f6f4;
+}
+
+.pres-header__badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: #d93838;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+.pres-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #1b432c;
+  cursor: pointer;
+}
+
+/* Content Body */
+.pres-content {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Page Top Banner */
+.pres-banner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.pres-banner__title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #173824;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.pres-banner__subtitle {
+  font-size: 14px;
+  color: #647d6b;
+  margin: 6px 0 0 0;
+}
+
+.pres-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pres-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #d4ded6;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #2b4532;
+  cursor: pointer;
+}
+
+.pres-btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #734e2c;
+  border: 1px solid #734e2c;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(115, 78, 44, 0.2);
+  transition: background 0.2s ease;
+}
+
+.pres-btn-export:hover {
+  background: #5d3f23;
+}
+
+/* ── Top Metric Cards Grid ── */
+.pres-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.pres-metric-card {
+  background: #ffffff;
+  border: 1px solid #e3eae4;
+  border-radius: 16px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.pres-metric-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle at top right, rgba(27, 67, 44, 0.06), transparent 70%);
+  border-bottom-left-radius: 60px;
+}
+
+.pres-metric-card--alert::after {
+  background: radial-gradient(circle at top right, rgba(217, 56, 56, 0.08), transparent 70%);
+}
+
+.pres-metric-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+}
+
+.pres-metric-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f0f5f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1b432c;
+}
+
+.pres-metric-icon--alert {
+  background: #fdf2f2;
+  color: #d93838;
+}
+
+.pres-metric-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #556b5a;
+}
+
+.pres-metric-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #173824;
+  margin-top: 14px;
+  letter-spacing: -0.5px;
+}
+
+.pres-metric-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: #728a77;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pres-metric-sub--green {
+  color: #2e8b46;
+  font-weight: 600;
+}
+
+.pres-metric-sub--red {
+  color: #c93434;
+  font-weight: 600;
+}
+
+.pres-progress-bar {
+  height: 6px;
+  background: #e8eee9;
+  border-radius: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.pres-progress-fill {
+  height: 100%;
+  background: #1b432c;
+  border-radius: 4px;
+}
+
+/* ── Middle Row (Chart + Key Members) ── */
+.pres-middle-row {
+  display: grid;
+  grid-template-columns: 2.1fr 1fr;
+  gap: 20px;
+}
+
+/* Card Container */
+.pres-card {
+  background: #ffffff;
+  border: 1px solid #e3eae4;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+}
+
+.pres-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.pres-card__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #173824;
+  margin: 0;
+}
+
+.pres-card__link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #556b5a;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pres-card__link:hover {
+  text-decoration: underline;
+}
+
+/* Chart Legend */
+.pres-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: #647d6b;
+  font-weight: 600;
+}
+
+.pres-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.pres-legend-dot--savings { background: #0c2c1a; }
+.pres-legend-dot--loans { background: #734e2c; }
+
+/* Custom Dual Bar Chart */
+.pres-chart-container {
+  height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.pres-chart-grid {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  border-bottom: 1px solid #e3eae4;
+  padding: 0 10px;
+  position: relative;
+}
+
+.pres-chart-y-axis {
+  position: absolute;
+  left: -24px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #92a897;
+}
+
+.pres-bar-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 100%;
+}
+
+.pres-bar {
+  width: 22px;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  transition: height 0.3s ease;
+}
+
+.pres-bar--savings {
+  background: #0c2c1a;
+}
+
+.pres-bar--loans {
+  background: #734e2c;
+}
+
+.pres-chart-x-axis {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 12px;
+  font-size: 12px;
+  color: #728a77;
+  font-weight: 500;
+}
+
+/* Key Members List */
+.pres-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pres-member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pres-member-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pres-member-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #e8eee9;
+  color: #734e2c;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pres-member-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.pres-member-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #173824;
+}
+
+.pres-member-role {
+  font-size: 12px;
+  color: #728a77;
+}
+
+.pres-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pres-badge--active {
+  background: #e4f2e7;
+  color: #216938;
+}
+
+.pres-badge--pending {
+  background: #fdf3e7;
+  color: #b5681c;
+}
+
+/* ── Bottom Section: Pending Loans Table ── */
+.pres-table-card {
+  background: #ffffff;
+  border: 1px solid #e3eae4;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.pres-table-head {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e3eae4;
+}
+
+.pres-table-head__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #173824;
+  margin: 0;
+}
+
+.pres-table-head__sub {
+  font-size: 12.5px;
+  color: #728a77;
+  margin-top: 2px;
+}
+
+.pres-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pres-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #647d6b;
+  padding: 14px 24px;
+  background: #f9fbf9;
+  border-bottom: 1px solid #e3eae4;
+}
+
+.pres-table td {
+  padding: 18px 24px;
+  border-bottom: 1px solid #edf2ee;
+  font-size: 14px;
+  color: #273d2d;
+  vertical-align: middle;
+}
+
+.pres-applicant-col {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pres-applicant-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #e4ede6;
+  color: #273d2d;
+  font-weight: 700;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pres-applicant-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #173824;
+}
+
+.pres-applicant-sub {
+  font-size: 11.5px;
+  color: #839b88;
+}
+
+.pres-amount-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #173824;
+}
+
+.pres-trust-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pres-trust-bar {
+  width: 80px;
+  height: 5px;
+  background: #e3eae4;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pres-trust-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.pres-trust-score-val {
+  font-weight: 700;
+  font-size: 13px;
+  color: #173824;
+}
+
+.pres-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pres-btn-reject {
+  background: #ffffff;
+  color: #c93434;
+  border: 1px solid #f0b0b0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pres-btn-reject:hover {
+  background: #fdf2f2;
+}
+
+.pres-btn-approve {
+  background: #0c2c1a;
+  color: #ffffff;
+  border: 1px solid #0c2c1a;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pres-btn-approve:hover {
+  background: #18472d;
+}
+
+.pres-table-footer {
+  padding: 14px;
   text-align: center;
-  font-family: sans-serif;
+  background: #f9fbf9;
+}
+
+.pres-table-footer-link {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #173824;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pres-table-footer-link:hover {
+  text-decoration: underline;
+}
+
+/* Floating Action Button */
+.pres-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #0c2c1a;
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(12, 44, 26, 0.35);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  z-index: 100;
+}
+
+.pres-fab:hover {
+  transform: scale(1.08);
+}
+
+/* Page Footer */
+.pres-footer {
+  padding: 20px 32px;
+  background: #e7ebe8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #647d6b;
+  margin-top: 20px;
+}
+
+.pres-footer__links {
+  display: flex;
+  gap: 16px;
+}
+
+.pres-footer__links a {
+  color: #647d6b;
+  text-decoration: none;
+}
+
+.pres-footer__links a:hover {
+  text-decoration: underline;
 }

@@ -328,110 +328,7 @@ function CdsAdminDashboard() {
                   </div>
                 </div>
               </div>
-
-              {/* Ayalkoottam Registry */}
-              <div className="cds-section">
-                <div className="cds-section__header">
-                  <span className="cds-section__title">Ayalkoottam Registry</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <select
-                      value={unitWardFilter}
-                      onChange={e => setUnitWardFilter(e.target.value)}
-                      className="cds-ward-filter-select"
-                    >
-                      <option value="ALL">All Wards</option>
-                      {wardsList.map(w => (
-                        <option key={w.wardId} value={w.wardId}>
-                          Ward {w.wardNumber} - {w.wardName}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div className="cds-section__search">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ab3a0" strokeWidth="2" strokeLinecap="round">
-                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                      </svg>
-                      <input
-                        placeholder="Filter by name, ward, or status..."
-                        value={tableSearch}
-                        onChange={e => setTableSearch(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="cds-table-wrap">
-                  <table className="cds-table">
-                    <thead>
-                      <tr>
-                        <th>Ayalkoottam Name</th>
-                        <th>Ward / Location</th>
-                        <th>Members</th>
-                        <th>Status</th>
-                        <th>Last Audit</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRows.map((row) => (
-                        <tr key={row.id}>
-                          <td>
-                            <div className="cds-ayalkoottam-cell">
-                              <div className={`cds-ayalkoottam-avatar cds-ayalkoottam-avatar--${row.cls}`}>
-                                {row.initials}
-                              </div>
-                              <div>
-                                <div className="cds-ayalkoottam-name">{row.name}</div>
-                                <div className="cds-ayalkoottam-id">ID: {row.id}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>{row.ward}</td>
-                          <td>{row.members} Members</td>
-                          <td>
-                            <span className={`cds-status-badge cds-status-badge--${row.status === 'Active' ? 'active' : row.status === 'Pending Approval' ? 'pending' : 'inactive'
-                              }`}>
-                              <span className="cds-status-badge__dot" />
-                              {row.status}
-                            </span>
-                          </td>
-                          <td style={{ color: row.lastAudit === 'Overdue' ? '#c25252' : undefined, fontWeight: row.lastAudit === 'Overdue' ? 600 : 400 }}>
-                            {row.lastAudit}
-                          </td>
-                          <td>
-                            <div className="cds-table-actions">
-                              <button className="cds-action-btn cds-action-btn--primary" onClick={() => setSelectedUnit(row)}>View</button>
-                              <button className="cds-action-btn">Audit</button>
-                              {row.status === 'Active' || row.status === 'Pending Audit' ? (
-                                <button
-                                  className="cds-action-btn"
-                                  style={{ color: '#c25252', borderColor: '#eec4c4' }}
-                                  onClick={() => handleToggleStatus(row.id, 'Inactive')}
-                                >
-                                  Deactivate
-                                </button>
-                              ) : (
-                                <button
-                                  className="cds-action-btn"
-                                  style={{ color: '#2a6e38', borderColor: '#b8d9bc' }}
-                                  onClick={() => handleToggleStatus(row.id, 'Active')}
-                                >
-                                  Activate
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="cds-pagination">
-                  <span className="cds-pagination__info">Showing 1–{filteredRows.length} of {ayalkoottamList.length} groups</span>
-                </div>
-              </div>
-
+              
               {/* Bottom Row */}
               <div className="cds-bottom-row">
                 {/* Ward Selector Panel */}
@@ -674,7 +571,12 @@ function CdsAdminDashboard() {
                 ) : (
                   <div className="cds-unit-grid">
                     {filteredRows.map((row) => (
-                      <div key={row.id} className={`cds-unit-card ${row.status !== 'Active' ? 'cds-unit-card--inactive' : ''}`}>
+                      <div 
+                        key={row.id} 
+                        className={`cds-unit-card ${row.status !== 'Active' ? 'cds-unit-card--inactive' : ''}`}
+                        onClick={() => setSelectedUnit(row)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         {/* Card top glow bar */}
                         <div className={`cds-unit-card__bar cds-unit-card__bar--${row.cls}`} />
 
@@ -720,13 +622,15 @@ function CdsAdminDashboard() {
                         <div className="cds-unit-card__divider" />
 
                         {/* Actions */}
-                        <div className="cds-unit-card__actions">
+                        <div className="cds-unit-card__actions" onClick={(e) => e.stopPropagation()}>
                           <button 
-                            className="cds-action-btn cds-action-btn--primary" 
-                            style={{ flex: 1, minWidth: '110px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '7px 12px', fontSize: '12px' }} 
-                            onClick={() => setSelectedUnit(row)}
+                            className="cds-unit-card__view-btn" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedUnit(row);
+                            }}
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
                             View Details
@@ -734,18 +638,21 @@ function CdsAdminDashboard() {
 
                           <button
                             className={`cds-unit-toggle-btn ${row.status === 'Active' ? 'cds-unit-toggle-btn--deactivate' : 'cds-unit-toggle-btn--activate'}`}
-                            onClick={() => handleToggleStatus(row.id, row.status === 'Active' ? 'Inactive' : 'Active')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStatus(row.id, row.status === 'Active' ? 'Inactive' : 'Active');
+                            }}
                           >
                             {row.status === 'Active' ? (
                               <>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>
                                 </svg>
                                 Deactivate
                               </>
                             ) : (
                               <>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
                                 </svg>
                                 Activate

@@ -436,7 +436,7 @@
   background: #ffffff;
   border: 1px solid #e2e8e3;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .cds-section__header {
@@ -1969,9 +1969,10 @@
 /* Card Grid container */
 .cds-unit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 2fr));
   gap: 18px;
-  padding: 20px;
+  padding: 10px;
+  align-items: stretch;
 }
 
 /* Individual Unit Card */
@@ -1979,11 +1980,12 @@
   background: #ffffff;
   border: 1px solid #e2e8e3;
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.22s ease, transform 0.18s ease, border-color 0.2s ease;
   position: relative;
+  height: 100%;
 }
 
 .cds-unit-card:hover {
@@ -2089,19 +2091,48 @@
 .cds-unit-card__actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 18px 14px;
+  gap: 10px;
+  padding: 14px 18px 16px;
   flex-wrap: wrap;
+  background: #fafcfb;
+  border-top: 1px solid #e8ede9;
+  margin-top: auto;
+}
+
+/* View Details Button inside Card */
+.cds-unit-card__view-btn {
+  flex: 1;
+  min-width: 110px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #1e4731;
+  color: #ffffff;
+  border: 1px solid #1e4731;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.cds-unit-card__view-btn:hover {
+  background: #2a5a40;
+  border-color: #2a5a40;
+  box-shadow: 0 3px 10px rgba(30, 71, 49, 0.2);
 }
 
 /* Toggle buttons */
 .cds-unit-toggle-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 7px;
-  font-size: 12px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   border: 1.5px solid transparent;
