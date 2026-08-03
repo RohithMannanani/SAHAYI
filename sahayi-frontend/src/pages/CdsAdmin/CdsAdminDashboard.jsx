@@ -114,8 +114,11 @@ function CdsAdminDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    localStorage.clear();
     sessionStorage.clear();
     navigate('/login', { replace: true });
+    window.location.replace('/login');
   };
 
   const [unitWardFilter, setUnitWardFilter] = useState('ALL');

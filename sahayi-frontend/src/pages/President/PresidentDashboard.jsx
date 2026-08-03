@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './PresidentDashboard.css';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
@@ -9,7 +10,18 @@ const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidt
 );
 
 function PresidentDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/login', { replace: true });
+    window.location.replace('/login');
+  };
   const [pendingLoans, setPendingLoans] = useState([
     {
       id: 1,
@@ -105,7 +117,7 @@ function PresidentDashboard() {
             <span>Settings</span>
           </div>
 
-          <div className="pres-nav-item" onClick={() => window.location.href = '/'}>
+          <div className="pres-nav-item" onClick={handleLogout}>
             <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={17} />
             <span>Logout</span>
           </div>
