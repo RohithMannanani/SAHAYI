@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { loginUser } from '../../services/api';
+import ForgotPasswordModal from '../../components/Auth/ForgotPasswordModal';
 import './Login.css';
 
 // Role → route map (mirrors the switch in handleSubmit)
@@ -19,6 +20,7 @@ function Login() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   // If already logged in, redirect immediately to the correct dashboard
   const token = localStorage.getItem('token');
@@ -146,7 +148,15 @@ function Login() {
             <div className="login-field">
               <div className="login-field__label-row">
                 <label htmlFor="login-password" className="login-field__label">Password</label>
-                <a href="#" id="forgot-password-link" className="login-field__forgot">Forgot Password?</a>
+                <button
+                  type="button"
+                  id="forgot-password-link"
+                  className="login-field__forgot"
+                  onClick={() => setIsForgotModalOpen(true)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  Forgot Password?
+                </button>
               </div>
               <div className="login-field__input-wrap">
                 <span className="login-field__icon" aria-hidden="true">
@@ -223,6 +233,15 @@ function Login() {
           © 2026 Ayalkoottam Management System. Empowering local communities.
         </footer>
       </main>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+        onPasswordResetSuccess={(resetPhone) => {
+          setUsername(resetPhone);
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -30,7 +30,15 @@ function SecretaryDashboard() {
   const navigate = useNavigate();
 
   // Navigation & View state
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('secretary_active_tab') || 'dashboard';
+  });
+
+  useEffect(() => {
+    if (activeTab) {
+      sessionStorage.setItem('secretary_active_tab', activeTab);
+    }
+  }, [activeTab]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals state

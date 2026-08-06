@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MemberDashboard.css';
 
@@ -11,7 +11,15 @@ const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidt
 
 function MemberDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('member_active_tab') || 'dashboard';
+  });
+
+  useEffect(() => {
+    if (activeTab) {
+      sessionStorage.setItem('member_active_tab', activeTab);
+    }
+  }, [activeTab]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

@@ -14,7 +14,16 @@ import { fetchShgUnits, toggleShgUnitStatus, fetchWardsList } from '../../servic
 function CdsAdminDashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeNav, setActiveNav] = useState('dashboard');
+  const [activeNav, setActiveNav] = useState(() => {
+    return sessionStorage.getItem('cds_admin_active_nav') || 'dashboard';
+  });
+
+  useEffect(() => {
+    if (activeNav) {
+      sessionStorage.setItem('cds_admin_active_nav', activeNav);
+    }
+  }, [activeNav]);
+
   const [tableSearch, setTableSearch] = useState('');
   const [selectedWard, setSelectedWard] = useState('');
   const [wardDropdownOpen, setWardDropdownOpen] = useState(false);

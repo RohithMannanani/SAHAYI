@@ -13,6 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // 2. Register Custom Services for Dependency Injection
 builder.Services.AddScoped<ITokenService, TokenService>(); // 👈 Added TokenService registration
+builder.Services.AddScoped<ISmsService, SmsService>();     // 👈 Added SmsService registration for OTP
 
 // 3. Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "4hW5PbvO3ONDf2MWStoY/zUqUkIV060l1fhe37e3Lvc=";

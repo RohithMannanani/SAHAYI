@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TreasurerDashboard.css';
 
@@ -18,7 +18,15 @@ const transactions = [
 
 function TreasurerDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('financials');
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('treasurer_active_tab') || 'financials';
+  });
+
+  useEffect(() => {
+    if (activeTab) {
+      sessionStorage.setItem('treasurer_active_tab', activeTab);
+    }
+  }, [activeTab]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

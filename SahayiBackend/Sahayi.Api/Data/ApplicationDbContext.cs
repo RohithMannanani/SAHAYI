@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Sahayi.Api.Entities;
 
 namespace Sahayi.Api.Data
@@ -27,6 +27,7 @@ namespace Sahayi.Api.Data
         public DbSet<GroupMessage> GroupMessages { get; set; }
         public DbSet<DirectMessage> DirectMessages { get; set; }
         public DbSet<UserCredential> UserCredentials { get; set; }
+        public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
 
         // ==========================================
         // 2. MODEL CONFIGURATIONS & FLUENT API

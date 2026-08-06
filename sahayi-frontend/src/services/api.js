@@ -54,4 +54,23 @@ export const fetchShgUnitDetails = async (id) => {
   return await api.get(`/shg/${id}`);
 };
 
+// ========================================================
+// FORGOT PASSWORD VIA MOBILE OTP APIs
+// ========================================================
+
+// 1. Request OTP for mobile number (checks if in database)
+export const sendForgotPasswordOtp = async (phoneNumber) => {
+  return await api.post('/auth/forgot-password/send-otp', { phoneNumber });
+};
+
+// 2. Verify 6-digit OTP code
+export const verifyForgotPasswordOtp = async (data) => {
+  return await api.post('/auth/forgot-password/verify-otp', data);
+};
+
+// 3. Reset password using resetToken
+export const resetForgotPassword = async (data) => {
+  return await api.post('/auth/forgot-password/reset-password', data);
+};
+
 export default api;
