@@ -4,16 +4,16 @@
 .tr-container {
   display: flex;
   min-height: 100vh;
-  background-color: #f4f6f4;
+  background-color: #f5f5f5;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #1a2a1e;
+  color: #1a1a1a;
 }
 
 /* ── Sidebar ── */
 .tr-sidebar {
   width: 200px;
-  background: #f7f9f7;
-  border-right: 1px solid #e3eae4;
+  background: #1a1a1a;
+  border-right: 1px solid #2e2e2e;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -23,14 +23,14 @@
 
 .tr-sidebar__brand {
   padding: 0 10px 24px;
-  border-bottom: 1px solid #e3eae4;
+  border-bottom: 1px solid #2e2e2e;
   margin-bottom: 20px;
 }
 
 .tr-brand-title {
   font-size: 22px;
   font-weight: 800;
-  color: #1b432c;
+  color: #ffffff;
   line-height: 1.15;
   letter-spacing: 0.5px;
 }
@@ -56,35 +56,39 @@
   border-radius: 9px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #556b5a;
+  color: #aaa;
   cursor: pointer;
   transition: all 0.18s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
 }
 
 .tr-nav-item:hover {
-  background: #eaf1eb;
-  color: #1b432c;
+  background: #2a2a2a;
+  color: #fff;
 }
 
 .tr-nav-item--active {
-  background: #e2ede4;
-  color: #1b432c;
-  border-left: 4px solid #1b432c;
+  background: #2d2d2d;
+  color: #fff;
+  border-left: 4px solid #ffd600;
   padding-left: 10px;
 }
 
 .tr-sidebar__divider {
   height: 1px;
-  background: #e3eae4;
+  background: #2e2e2e;
   margin: 18px 0;
 }
 
 .tr-btn-new-record {
   width: 100%;
-  background: #1b432c;
-  color: #ffffff;
+  background: #ffd600;
+  color: #1a1a1a;
   border: none;
-  border-radius: 10px;
+  border-radius: 9px;
   padding: 12px;
   font-size: 13.5px;
   font-weight: 700;
@@ -93,13 +97,14 @@
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(27, 67, 44, 0.2);
-  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 4px 14px rgba(255, 214, 0, 0.35);
+  transition: background 0.15s ease, transform 0.12s ease;
 }
 
 .tr-btn-new-record:hover {
-  background: #255b3c;
+  background: #f0c800;
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 214, 0, 0.45);
 }
 
 .tr-sidebar__footer {
@@ -119,20 +124,24 @@
 
 /* ── Header ── */
 .tr-header {
-  height: 66px;
+  height: 56px;
   background: #ffffff;
-  border-bottom: 1px solid #e3eae4;
+  border-bottom: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 28px;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .tr-header__title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: #1c3624;
+  color: #1a1a1a;
 }
 
 .tr-header__right {
@@ -186,7 +195,7 @@
   right: 6px;
   width: 7px;
   height: 7px;
-  background: #d93838;
+  background: #ffd600;
   border-radius: 50%;
   border: 2px solid #ffffff;
 }
@@ -195,9 +204,17 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
+  background: #ffd600;
+  color: #1a1a1a;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   object-fit: cover;
-  border: 2px solid #1b432c;
+  border: 2px solid #e8e8e8;
   cursor: pointer;
+  transition: border-color 0.15s;
 }
 
 /* ── Content Body ── */
@@ -247,16 +264,16 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: #f0f5f1;
+  background: #fffde7;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1b432c;
+  color: #1a1a1a;
 }
 
 .tr-fin-icon--loan {
-  background: #fff4ec;
-  color: #734e2c;
+  background: #fef3c7;
+  color: #b45309;
 }
 
 .tr-total-fund-badge {
@@ -370,12 +387,12 @@
 }
 
 .tr-fin-card--dark {
-  background: #0c2c1a;
-  border-color: #0c2c1a;
+  background: #1a1a1a;
+  border-color: #1a1a1a;
 }
 
 .tr-fin-card--dark:hover {
-  background: #163d26;
+  background: #2a2a2a;
 }
 
 .tr-cta-icon {

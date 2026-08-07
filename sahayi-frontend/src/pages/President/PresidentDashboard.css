@@ -1,100 +1,128 @@
-/* ── President Dashboard Core Layout ── */
+/* ── President Dashboard — Yellow/Dark Theme ── */
+
 .pres-container {
   display: flex;
   min-height: 100vh;
-  background-color: #f4f6f4;
+  background-color: #f5f5f5;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #1a2a1e;
+  color: #1a1a1a;
 }
 
 /* ── Sidebar Navigation ── */
 .pres-sidebar {
-  width: 260px;
-  background: #f7f9f7;
-  border-right: 1px solid #e3eae4;
+  width: 220px;
+  background: #1a1a1a;
+  border-right: 1px solid #2e2e2e;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 24px 16px;
+  padding: 20px 12px;
   flex-shrink: 0;
 }
 
 .pres-sidebar__brand {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: 1px;
-  color: #1b432c;
-  padding: 0 12px 28px;
-  border-bottom: 1px solid #e3eae4;
-  margin-bottom: 24px;
+  letter-spacing: 1.5px;
+  color: #fff;
+  padding: 0 10px 24px;
+  border-bottom: 1px solid #2e2e2e;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pres-sidebar__brand-dot {
+  width: 28px;
+  height: 28px;
+  background: #ffd600;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1a1a1a;
+  flex-shrink: 0;
 }
 
 .pres-sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .pres-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: #556b5a;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #aaa;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
 }
 
 .pres-nav-item:hover {
-  background: #eaf1eb;
-  color: #1b432c;
+  background: #2a2a2a;
+  color: #fff;
 }
 
 .pres-nav-item--active {
-  background: #e2ede4;
-  color: #1b432c;
-  border-left: 4px solid #1b432c;
-  padding-left: 12px;
+  background: #2d2d2d;
+  color: #fff;
+  font-weight: 600;
+}
+
+.pres-nav-item--active svg {
+  color: #ffd600;
 }
 
 .pres-sidebar__divider {
   height: 1px;
-  background: #e3eae4;
-  margin: 20px 0;
+  background: #2e2e2e;
+  margin: 16px 0;
 }
 
 .pres-btn-new-record {
   width: 100%;
-  background: #1b432c;
-  color: #ffffff;
+  background: #ffd600;
+  color: #1a1a1a;
   border: none;
-  border-radius: 10px;
-  padding: 13px;
-  font-size: 14px;
+  border-radius: 9px;
+  padding: 12px;
+  font-size: 13.5px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(27, 67, 44, 0.2);
-  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 4px 14px rgba(255, 214, 0, 0.35);
+  transition: background 0.15s ease, transform 0.12s ease;
 }
 
 .pres-btn-new-record:hover {
-  background: #255b3c;
+  background: #f0c800;
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 214, 0, 0.45);
 }
 
 .pres-sidebar__footer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #2e2e2e;
 }
 
 /* ── Main Layout Area ── */
@@ -107,170 +135,210 @@
 
 /* Header Navbar */
 .pres-header {
-  height: 72px;
+  height: 56px;
   background: #ffffff;
-  border-bottom: 1px solid #e3eae4;
+  border-bottom: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .pres-header__title {
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 700;
-  color: #1c3624;
+  color: #1a1a1a;
 }
 
 .pres-header__right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
 }
 
 .pres-search-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #f4f6f4;
-  border: 1px solid #e3eae4;
-  border-radius: 20px;
-  padding: 8px 16px;
-  width: 260px;
+  gap: 8px;
+  background: #f8f8f8;
+  border: 1px solid #e8e8e8;
+  border-radius: 9px;
+  padding: 7px 14px;
+  width: 220px;
+  transition: border-color 0.15s;
+}
+
+.pres-search-bar:focus-within {
+  border-color: #ffd600;
 }
 
 .pres-search-bar input {
   border: none;
   background: transparent;
   outline: none;
-  font-size: 13.5px;
-  color: #2b3e30;
+  font-size: 13px;
+  color: #1a1a1a;
   width: 100%;
 }
 
 .pres-header__icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid #e3eae4;
-  background: #ffffff;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  background: #fafafa;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4b6350;
+  color: #555;
   cursor: pointer;
   position: relative;
-  transition: background 0.15s ease;
+  transition: background 0.12s ease;
 }
 
 .pres-header__icon-btn:hover {
-  background: #f4f6f4;
+  background: #fffde7;
+  border-color: #ffd600;
 }
 
 .pres-header__badge {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 8px;
-  height: 8px;
-  background: #d93838;
+  width: 7px;
+  height: 7px;
+  background: #ffd600;
   border-radius: 50%;
   border: 2px solid #ffffff;
 }
 
 .pres-user-avatar {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
+  background: #ffd600;
+  color: #1a1a1a;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   object-fit: cover;
-  border: 2px solid #1b432c;
+  border: 2px solid #e8e8e8;
   cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.pres-user-avatar:hover {
+  border-color: #ffd600;
 }
 
 /* Content Body */
 .pres-content {
-  padding: 32px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
+  overflow-y: auto;
 }
 
-/* Page Top Banner */
+/* Page Banner */
 .pres-banner {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .pres-banner__title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 800;
-  color: #173824;
+  color: #1a1a1a;
   margin: 0;
   letter-spacing: -0.5px;
 }
 
 .pres-banner__subtitle {
-  font-size: 14px;
-  color: #647d6b;
-  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #888;
+  margin: 4px 0 0 0;
 }
 
 .pres-banner__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pres-btn-outline {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  border: 1px solid #d4ded6;
+  gap: 7px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
   border-radius: 8px;
-  padding: 9px 16px;
-  font-size: 13.5px;
+  padding: 8px 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #2b4532;
+  color: #555;
   cursor: pointer;
+  transition: all 0.12s;
+}
+
+.pres-btn-outline:hover {
+  border-color: #ffd600;
+  color: #1a1a1a;
+  background: #fffde7;
 }
 
 .pres-btn-export {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: #734e2c;
-  border: 1px solid #734e2c;
+  gap: 7px;
+  background: #ffd600;
+  border: 1px solid #ffd600;
   border-radius: 8px;
-  padding: 9px 18px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #ffffff;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a1a;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(115, 78, 44, 0.2);
-  transition: background 0.2s ease;
+  box-shadow: 0 3px 10px rgba(255, 214, 0, 0.3);
+  transition: background 0.15s ease, box-shadow 0.15s;
 }
 
 .pres-btn-export:hover {
-  background: #5d3f23;
+  background: #f0c800;
+  box-shadow: 0 4px 14px rgba(255, 214, 0, 0.45);
 }
 
 /* ── Top Metric Cards Grid ── */
 .pres-metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .pres-metric-card {
   background: #ffffff;
-  border: 1px solid #e3eae4;
-  border-radius: 16px;
-  padding: 20px 22px;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
+  padding: 18px 20px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+.pres-metric-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
 }
 
 .pres-metric-card::after {
@@ -280,55 +348,55 @@
   right: 0;
   width: 60px;
   height: 60px;
-  background: radial-gradient(circle at top right, rgba(27, 67, 44, 0.06), transparent 70%);
+  background: radial-gradient(circle at top right, rgba(255, 214, 0, 0.1), transparent 70%);
   border-bottom-left-radius: 60px;
 }
 
 .pres-metric-card--alert::after {
-  background: radial-gradient(circle at top right, rgba(217, 56, 56, 0.08), transparent 70%);
+  background: radial-gradient(circle at top right, rgba(239, 68, 68, 0.08), transparent 70%);
 }
 
 .pres-metric-card__head {
   display: flex;
   align-items: center;
   gap: 10px;
-
 }
 
 .pres-metric-icon {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #f0f5f1;
+  background: #fffde7;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1b432c;
+  color: #1a1a1a;
 }
 
 .pres-metric-icon--alert {
-  background: #fdf2f2;
-  color: #d93838;
+  background: #fee2e2;
+  color: #ef4444;
 }
 
 .pres-metric-label {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #556b5a;
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
 }
 
 .pres-metric-val {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
-  color: #173824;
-  margin-top: 14px;
+  color: #1a1a1a;
+  margin-top: 12px;
   letter-spacing: -0.5px;
+  line-height: 1;
 }
 
 .pres-metric-sub {
   font-size: 12px;
   font-weight: 500;
-  color: #728a77;
+  color: #888;
   margin-top: 6px;
   display: flex;
   align-items: center;
@@ -336,18 +404,18 @@
 }
 
 .pres-metric-sub--green {
-  color: #2e8b46;
+  color: #16a34a;
   font-weight: 600;
 }
 
 .pres-metric-sub--red {
-  color: #c93434;
+  color: #dc2626;
   font-weight: 600;
 }
 
 .pres-progress-bar {
-  height: 6px;
-  background: #e8eee9;
+  height: 5px;
+  background: #f0f0f0;
   border-radius: 4px;
   margin-top: 10px;
   overflow: hidden;
@@ -355,24 +423,24 @@
 
 .pres-progress-fill {
   height: 100%;
-  background: #1b432c;
+  background: #ffd600;
   border-radius: 4px;
 }
 
-/* ── Middle Row (Chart + Key Members) ── */
+/* ── Middle Row ── */
 .pres-middle-row {
   display: grid;
   grid-template-columns: 2.1fr 1fr;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* Card Container */
 .pres-card {
   background: #ffffff;
-  border: 1px solid #e3eae4;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
 }
@@ -381,25 +449,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .pres-card__title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: #173824;
+  color: #1a1a1a;
   margin: 0;
 }
 
 .pres-card__link {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #556b5a;
+  color: #888;
   text-decoration: none;
   cursor: pointer;
+  transition: color 0.12s;
 }
 
 .pres-card__link:hover {
+  color: #1a1a1a;
   text-decoration: underline;
 }
 
@@ -409,7 +479,7 @@
   align-items: center;
   gap: 16px;
   font-size: 12px;
-  color: #647d6b;
+  color: #888;
   font-weight: 600;
 }
 
@@ -421,10 +491,10 @@
   margin-right: 4px;
 }
 
-.pres-legend-dot--savings { background: #0c2c1a; }
-.pres-legend-dot--loans { background: #734e2c; }
+.pres-legend-dot--savings { background: #1a1a1a; }
+.pres-legend-dot--loans { background: #ffd600; }
 
-/* Custom Dual Bar Chart */
+/* Bar Chart */
 .pres-chart-container {
   height: 240px;
   display: flex;
@@ -438,7 +508,7 @@
   align-items: flex-end;
   justify-content: space-around;
   height: 200px;
-  border-bottom: 1px solid #e3eae4;
+  border-bottom: 1px solid #f0f0f0;
   padding: 0 10px;
   position: relative;
 }
@@ -452,7 +522,7 @@
   flex-direction: column;
   justify-content: space-between;
   font-size: 10px;
-  color: #92a897;
+  color: #aaa;
 }
 
 .pres-bar-group {
@@ -464,25 +534,25 @@
 
 .pres-bar {
   width: 22px;
-  border-top-left-radius: 3px;
-  border-top-right-radius: 3px;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
   transition: height 0.3s ease;
 }
 
 .pres-bar--savings {
-  background: #0c2c1a;
+  background: #1a1a1a;
 }
 
 .pres-bar--loans {
-  background: #734e2c;
+  background: #ffd600;
 }
 
 .pres-chart-x-axis {
   display: flex;
   justify-content: space-around;
-  padding-top: 12px;
-  font-size: 12px;
-  color: #728a77;
+  padding-top: 10px;
+  font-size: 11.5px;
+  color: #888;
   font-weight: 500;
 }
 
@@ -490,7 +560,7 @@
 .pres-members-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .pres-member-item {
@@ -502,20 +572,21 @@
 .pres-member-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pres-member-avatar {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: #e8eee9;
-  color: #734e2c;
-  font-size: 13.5px;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2px solid #e8e8e8;
 }
 
 .pres-member-info {
@@ -524,62 +595,62 @@
 }
 
 .pres-member-name {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #173824;
+  color: #1a1a1a;
 }
 
 .pres-member-role {
-  font-size: 12px;
-  color: #728a77;
+  font-size: 11.5px;
+  color: #888;
 }
 
 .pres-badge {
   font-size: 10px;
   font-weight: 700;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .pres-badge--active {
-  background: #e4f2e7;
-  color: #216938;
+  background: #dcfce7;
+  color: #16a34a;
 }
 
 .pres-badge--pending {
-  background: #fdf3e7;
-  color: #b5681c;
+  background: #fef3c7;
+  color: #b45309;
 }
 
-/* ── Bottom Section: Pending Loans Table ── */
+/* ── Bottom Section Table ── */
 .pres-table-card {
   background: #ffffff;
-  border: 1px solid #e3eae4;
-  border-radius: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .pres-table-head {
-  padding: 20px 24px;
+  padding: 18px 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e3eae4;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .pres-table-head__title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: #173824;
+  color: #1a1a1a;
   margin: 0;
 }
 
 .pres-table-head__sub {
-  font-size: 12.5px;
-  color: #728a77;
+  font-size: 12px;
+  color: #888;
   margin-top: 2px;
 }
 
@@ -590,56 +661,67 @@
 
 .pres-table th {
   text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: #647d6b;
-  padding: 14px 24px;
-  background: #f9fbf9;
-  border-bottom: 1px solid #e3eae4;
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  padding: 11px 22px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .pres-table td {
-  padding: 18px 24px;
-  border-bottom: 1px solid #edf2ee;
-  font-size: 14px;
-  color: #273d2d;
+  padding: 16px 22px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 13.5px;
+  color: #1a1a1a;
   vertical-align: middle;
+}
+
+.pres-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pres-table tbody tr:hover td {
+  background: #fafafa;
 }
 
 .pres-applicant-col {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pres-applicant-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #e4ede6;
-  color: #273d2d;
+  background: #f5f5f5;
+  color: #1a1a1a;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2px solid #e8e8e8;
 }
 
 .pres-applicant-name {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #173824;
+  color: #1a1a1a;
 }
 
 .pres-applicant-sub {
   font-size: 11.5px;
-  color: #839b88;
+  color: #888;
 }
 
 .pres-amount-val {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
-  color: #173824;
+  color: #1a1a1a;
 }
 
 .pres-trust-score {
@@ -651,7 +733,7 @@
 .pres-trust-bar {
   width: 80px;
   height: 5px;
-  background: #e3eae4;
+  background: #f0f0f0;
   border-radius: 3px;
   overflow: hidden;
 }
@@ -664,62 +746,69 @@
 .pres-trust-score-val {
   font-weight: 700;
   font-size: 13px;
-  color: #173824;
+  color: #1a1a1a;
 }
 
 .pres-action-btns {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .pres-btn-reject {
-  background: #ffffff;
-  color: #c93434;
-  border: 1px solid #f0b0b0;
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-size: 12.5px;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
+  font-family: inherit;
 }
 
 .pres-btn-reject:hover {
-  background: #fdf2f2;
+  background: #fee2e2;
 }
 
 .pres-btn-approve {
-  background: #0c2c1a;
-  color: #ffffff;
-  border: 1px solid #0c2c1a;
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
+  background: #ffd600;
+  color: #1a1a1a;
+  border: 1px solid #ffd600;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(255,214,0,0.3);
 }
 
 .pres-btn-approve:hover {
-  background: #18472d;
+  background: #f0c800;
+  box-shadow: 0 4px 12px rgba(255,214,0,0.4);
 }
 
 .pres-table-footer {
   padding: 14px;
   text-align: center;
-  background: #f9fbf9;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
 }
 
 .pres-table-footer-link {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: #173824;
+  color: #555;
   text-decoration: none;
   cursor: pointer;
+  transition: color 0.12s;
 }
 
 .pres-table-footer-link:hover {
+  color: #1a1a1a;
   text-decoration: underline;
 }
 
@@ -731,32 +820,33 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #0c2c1a;
-  color: #ffffff;
+  background: #ffd600;
+  color: #1a1a1a;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 20px rgba(12, 44, 26, 0.35);
+  box-shadow: 0 6px 20px rgba(255, 214, 0, 0.45);
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s;
   z-index: 100;
 }
 
 .pres-fab:hover {
   transform: scale(1.08);
+  box-shadow: 0 8px 24px rgba(255, 214, 0, 0.55);
 }
 
 /* Page Footer */
 .pres-footer {
-  padding: 20px 32px;
-  background: #e7ebe8;
+  padding: 16px 24px;
+  background: #fff;
+  border-top: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: #647d6b;
-  margin-top: 20px;
+  color: #888;
 }
 
 .pres-footer__links {
@@ -765,10 +855,11 @@
 }
 
 .pres-footer__links a {
-  color: #647d6b;
+  color: #888;
   text-decoration: none;
+  transition: color 0.12s;
 }
 
 .pres-footer__links a:hover {
-  text-decoration: underline;
+  color: #1a1a1a;
 }

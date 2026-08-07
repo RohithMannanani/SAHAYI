@@ -1,8 +1,65 @@
+/* ============================================================
+   SAHAYI — Global CSS Variables & Theme
+   Yellow #ffd600 accent, dark sidebar, clean white content
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 /* Global base reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* ── CSS Design Tokens ── */
+:root {
+  /* Brand */
+  --color-brand-yellow: #ffd600;
+  --color-brand-yellow-hover: #f0c800;
+  --color-brand-yellow-light: #fffde7;
+  --color-brand-yellow-border: #f5d000;
+
+  /* Sidebar (dark) */
+  --color-sidebar-bg: #1a1a1a;
+  --color-sidebar-hover: #2a2a2a;
+  --color-sidebar-active: #2d2d2d;
+  --color-sidebar-border: #2e2e2e;
+  --color-sidebar-text: #aaa;
+  --color-sidebar-text-active: #fff;
+
+  /* Content area */
+  --color-bg: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-border: #e8e8e8;
+  --color-border-subtle: #f0f0f0;
+
+  /* Text */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #555;
+  --color-text-muted: #888;
+  --color-text-placeholder: #aaa;
+
+  /* Status */
+  --color-success-bg: #dcfce7;
+  --color-success-text: #16a34a;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #b45309;
+  --color-error-bg: #fee2e2;
+  --color-error-text: #991b1b;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
+  --shadow-yellow: 0 4px 16px rgba(255,214,0,0.35);
 }
 
 html {
@@ -15,8 +72,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  color: #1a1a1a;
-  background: #fafaf8;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
 }
 
 #root {

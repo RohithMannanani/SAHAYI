@@ -15,7 +15,7 @@ function SystemOverview({
   recentActivities
 }) {
   const selectedWardObj = wardsList.find(w => `Ward ${w.wardNumber}` === selectedWard);
-  const wardUnits = selectedWardObj 
+  const wardUnits = selectedWardObj
     ? ayalkoottamList.filter(u => u.wardId === selectedWardObj.wardId)
     : [];
 
@@ -94,7 +94,7 @@ function SystemOverview({
           </div>
         </div>
       </div>
-      
+
       {/* Bottom Row */}
       <div className="cds-bottom-row">
         {/* Ward Selector Panel */}
@@ -205,9 +205,8 @@ function SystemOverview({
                     <td>{unit.members}</td>
                     <td>₹{unit.savings.toFixed(2)}L</td>
                     <td>
-                      <span className={`cds-status-badge cds-status-badge--${
-                        unit.status === 'Active' ? 'active' : unit.status === 'Pending Audit' ? 'pending' : 'inactive'
-                      }`}>
+                      <span className={`cds-status-badge cds-status-badge--${unit.status === 'Active' ? 'active' : unit.status === 'Pending Audit' ? 'pending' : 'inactive'
+                        }`}>
                         <span className="cds-status-badge__dot" />
                         {unit.status}
                       </span>

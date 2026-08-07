@@ -61,7 +61,7 @@ function CdsAdminDashboard() {
       ]);
 
       setWardsList(wardsRes.data);
-      
+
       // Set default selected ward to first ward in database if any
       if (wardsRes.data && wardsRes.data.length > 0) {
         const firstWard = wardsRes.data[0];
@@ -130,8 +130,8 @@ function CdsAdminDashboard() {
   const filteredRows = ayalkoottamList.filter(a => {
     const matchesSearch = a.name.toLowerCase().includes(tableSearch.toLowerCase()) ||
       a.ward.toLowerCase().includes(tableSearch.toLowerCase());
-    
-    const matchesWard = unitWardFilter === 'ALL' || 
+
+    const matchesWard = unitWardFilter === 'ALL' ||
       String(a.wardId) === String(unitWardFilter) ||
       a.ward.toLowerCase().includes(`ward ${unitWardFilter}`.toLowerCase());
 

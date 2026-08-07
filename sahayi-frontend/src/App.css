@@ -1,76 +1,439 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* ============================================================
+   SAHAYI — Global Theme Override
+   Applies yellow (#ffd600) / dark (#1a1a1a) theme across all pages.
+   Import this AFTER all page-specific CSS files via App.css or main.jsx
+   ============================================================ */
+
+/* ── Secretary Dashboard Theme Override ── */
+:root {
+  --sec-primary: #1a1a1a;
+  --sec-primary-hover: #2a2a2a;
+  --sec-accent-bronze: #b8860b;
+  --sec-accent-bronze-hover: #997a0a;
+  --sec-bg-main: #f5f5f5;
+  --sec-bg-sidebar: #1a1a1a;
+  --sec-bg-card: #ffffff;
+  --sec-border: #e8e8e8;
+  --sec-border-subtle: #f0f0f0;
+  --sec-text-dark: #1a1a1a;
+  --sec-text-body: #333;
+  --sec-text-muted: #888;
+  --sec-status-paid-bg: #dcfce7;
+  --sec-status-paid-text: #16a34a;
+  --sec-status-pending-bg: #fef3c7;
+  --sec-status-pending-text: #b45309;
 }
 
-body {
-  background-color: #f4f6f9;
-  color: #333;
+/* ── Global page backgrounds ── */
+.pres-container,
+.mem-container,
+.tr-container,
+.sec-dashboard-layout {
+  background-color: #f5f5f5 !important;
 }
 
-.container {
-  max-width: 900px;
-  margin: 30px auto;
-  background: white;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+/* ════════════════════════════════════════
+   SECRETARY DASHBOARD
+   ════════════════════════════════════════ */
+
+/* Sidebar — dark */
+.sec-sidebar {
+  background-color: #1a1a1a !important;
+  border-right-color: #2e2e2e !important;
 }
 
-.form-group {
-  margin-bottom: 15px;
+.sec-sidebar__title {
+  color: #fff !important;
 }
 
-label {
-  display: block;
-  margin-bottom: 5px;
+.sec-sidebar__subtitle {
+  color: #888 !important;
+}
+
+.sec-sidebar__divider {
+  background-color: #2e2e2e !important;
+}
+
+.sec-nav-item {
+  color: #aaa !important;
+}
+
+.sec-nav-item:hover {
+  background-color: #2a2a2a !important;
+  color: #fff !important;
+}
+
+.sec-nav-item--active {
+  background-color: #2d2d2d !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.sec-nav-item--active::after {
+  background-color: #ffd600 !important;
+}
+
+.sec-nav-item--logout {
+  color: #f87171 !important;
+}
+
+.sec-nav-item--logout:hover {
+  background-color: rgba(239,68,68,0.12) !important;
+  color: #ef4444 !important;
+}
+
+/* Navbar */
+.sec-navbar {
+  background-color: #fff !important;
+  border-bottom-color: #e8e8e8 !important;
+}
+
+.sec-navbar__brand {
+  color: #1a1a1a !important;
+  font-weight: 800;
+}
+
+.sec-navbar__search-input {
+  background-color: #f8f8f8 !important;
+}
+
+.sec-navbar__search-input:focus {
+  border-color: #ffd600 !important;
+  box-shadow: 0 0 0 3px rgba(255, 214, 0, 0.15) !important;
+}
+
+.sec-navbar__badge-dot {
+  background-color: #ffd600 !important;
+}
+
+.sec-navbar__avatar {
+  border-color: #e8e8e8 !important;
+  background: #ffd600;
+}
+
+/* Action Buttons */
+.sec-action-btn--primary {
+  background-color: #ffd600 !important;
+  color: #1a1a1a !important;
+  border: none !important;
+  font-weight: 700;
+}
+
+.sec-action-btn--primary:hover {
+  background-color: #f0c800 !important;
+  box-shadow: 0 4px 14px rgba(255, 214, 0, 0.4) !important;
+}
+
+.sec-action-btn--secondary {
+  border-color: #e8e8e8 !important;
+  color: #1a1a1a !important;
+}
+
+.sec-action-btn--secondary:hover {
+  background-color: #f8f8f8 !important;
+  border-color: #ffd600 !important;
+}
+
+.sec-action-btn--tertiary {
+  border-color: #e8e8e8 !important;
+  color: #555 !important;
+}
+
+.sec-action-btn--tertiary:hover {
+  border-color: #ffd600 !important;
+  color: #1a1a1a !important;
+  background-color: #fffde7 !important;
+}
+
+/* Tables */
+.sec-savings-table th {
+  background-color: #fafafa !important;
+  color: #888 !important;
+}
+
+.sec-card__link-btn:hover {
+  color: #1a1a1a !important;
+}
+
+/* Toast */
+.sec-toast--success {
+  background-color: #1a1a1a !important;
+}
+
+/* ════════════════════════════════════════
+   MEMBER DASHBOARD
+   ════════════════════════════════════════ */
+
+/* Sidebar — dark */
+.mem-sidebar {
+  background: #1a1a1a !important;
+  border-right-color: #2e2e2e !important;
+}
+
+.mem-sidebar__brand {
+  color: #fff !important;
+  border-bottom-color: #2e2e2e !important;
+}
+
+.mem-sidebar__divider {
+  background: #2e2e2e !important;
+}
+
+.mem-nav-item {
+  color: #aaa !important;
+}
+
+.mem-nav-item:hover {
+  background: #2a2a2a !important;
+  color: #fff !important;
+}
+
+.mem-nav-item--active {
+  background: #2d2d2d !important;
+  color: #fff !important;
+  border-left-color: #ffd600 !important;
   font-weight: 600;
 }
 
-input,
-select,
-button {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 14px;
+/* Header */
+.mem-header {
+  background: #fff !important;
+  border-bottom-color: #e8e8e8 !important;
 }
 
-button {
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
+.mem-header__brand {
+  color: #1a1a1a !important;
 }
 
-button:hover {
-  background-color: #1d4ed8;
+.mem-header__nav-link {
+  color: #888 !important;
 }
 
-.member-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 12px;
+.mem-header__nav-link:hover {
+  color: #1a1a1a !important;
 }
 
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #1e293b;
-  color: white;
-  padding: 15px 30px;
+.mem-header__nav-link--active {
+  color: #1a1a1a !important;
+  border-bottom-color: #ffd600 !important;
 }
 
-.navbar a {
-  color: white;
-  text-decoration: none;
-  margin-left: 15px;
+.mem-header__icon-btn:hover {
+  background: #fffde7 !important;
+  border-color: #ffd600 !important;
+}
+
+.mem-header__badge {
+  background: #ffd600 !important;
+}
+
+.mem-user-avatar {
+  border-color: #ffd600 !important;
+}
+
+/* Buttons */
+.mem-btn-primary {
+  background: #ffd600 !important;
+  border-color: #ffd600 !important;
+  color: #1a1a1a !important;
+  box-shadow: 0 3px 10px rgba(255, 214, 0, 0.3) !important;
+}
+
+.mem-btn-primary:hover {
+  background: #f0c800 !important;
+}
+
+.mem-btn-outline:hover {
+  background: #fffde7 !important;
+  border-color: #ffd600 !important;
+}
+
+/* Progress bars */
+.mem-progress-fill {
+  background: #ffd600 !important;
+}
+
+.mem-savings-card__badge {
+  background: #fffde7 !important;
+  border-color: #ffd600 !important;
+  color: #1a1a1a !important;
+}
+
+.mem-savings-card__progress-pct {
+  color: #1a1a1a !important;
+}
+
+/* ════════════════════════════════════════
+   TREASURER DASHBOARD
+   ════════════════════════════════════════ */
+
+/* Sidebar — dark */
+.tr-sidebar {
+  background: #1a1a1a !important;
+  border-right-color: #2e2e2e !important;
+}
+
+.tr-brand-title {
+  color: #fff !important;
+}
+
+.tr-brand-sub {
+  color: #888 !important;
+}
+
+.tr-sidebar__divider {
+  background: #2e2e2e !important;
+}
+
+.tr-nav-item {
+  color: #aaa !important;
+}
+
+.tr-nav-item:hover {
+  background: #2a2a2a !important;
+  color: #fff !important;
+}
+
+.tr-nav-item--active {
+  background: #2d2d2d !important;
+  color: #fff !important;
+  border-left-color: #ffd600 !important;
+  font-weight: 600;
+}
+
+.tr-btn-new-record {
+  background: #ffd600 !important;
+  color: #1a1a1a !important;
+  border-color: #ffd600 !important;
+  box-shadow: 0 4px 14px rgba(255, 214, 0, 0.35) !important;
+}
+
+.tr-btn-new-record:hover {
+  background: #f0c800 !important;
+}
+
+/* Header */
+.tr-header {
+  background: #fff !important;
+  border-bottom-color: #e8e8e8 !important;
+}
+
+.tr-header__title {
+  color: #1a1a1a !important;
+}
+
+.tr-search-bar {
+  background: #f8f8f8 !important;
+  border-color: #e8e8e8 !important;
+  border-radius: 9px !important;
+}
+
+.tr-header__icon-btn:hover {
+  background: #fffde7 !important;
+  border-color: #ffd600 !important;
+}
+
+.tr-header__badge {
+  background: #ffd600 !important;
+}
+
+.tr-user-avatar {
+  border-color: #ffd600 !important;
+}
+
+/* Cards */
+.tr-fin-card--dark {
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+}
+
+.tr-fin-card--dark:hover {
+  background: #2a2a2a !important;
+}
+
+.tr-fin-icon {
+  background: #fffde7 !important;
+  color: #1a1a1a !important;
+}
+
+.tr-fin-icon--loan {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
+.tr-total-fund-badge {
+  color: #1a1a1a !important;
+  background: #fffde7 !important;
+  border-color: #ffd600 !important;
+}
+
+.tr-fin-card__trend {
+  color: #16a34a !important;
+}
+
+.tr-loans-progress-fill {
+  background: linear-gradient(90deg, #1a1a1a, #ffd600) !important;
+}
+
+.tr-loans-link {
+  color: #1a1a1a !important;
+}
+
+/* CDS Admin — update sidebar (user reverted to sidebar layout) */
+.cds-sidebar {
+  background: #1a1a1a !important;
+  border-right-color: #2e2e2e !important;
+}
+
+.cds-sidebar__brand {
+  border-bottom-color: #2e2e2e !important;
+}
+
+.cds-sidebar__logo {
+  background: #ffd600 !important;
+  color: #1a1a1a !important;
+}
+
+.cds-sidebar__role {
+  color: #fff !important;
+}
+
+.cds-sidebar__subrole {
+  color: #888 !important;
+}
+
+.cds-nav-item {
+  color: #aaa !important;
+}
+
+.cds-nav-item:hover {
+  background: #2a2a2a !important;
+  color: #fff !important;
+}
+
+.cds-nav-item.active {
+  background: #2d2d2d !important;
+  color: #fff !important;
+}
+
+.cds-sidebar__new-btn {
+  background: #ffd600 !important;
+  color: #1a1a1a !important;
+  box-shadow: 0 4px 14px rgba(255, 214, 0, 0.35) !important;
+}
+
+.cds-sidebar__new-btn:hover {
+  background: #f0c800 !important;
+}
+
+.cds-sidebar__bottom {
+  border-top-color: #2e2e2e !important;
+}
+
+/* ════════════════════════════════════════
+   LANDING PAGE
+   ════════════════════════════════════════ */
+.landing-root,
+.landing-hero {
+  background: #f5f5f5 !important;
 }
