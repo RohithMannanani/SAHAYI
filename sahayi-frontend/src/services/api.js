@@ -57,6 +57,8 @@ export const fetchShgUnitDetails = async (id) => {
 // ========================================================
 // FORGOT PASSWORD VIA MOBILE OTP APIs
 // ========================================================
+// FORGOT PASSWORD VIA MOBILE OTP APIs (unauthenticated)
+// ========================================================
 
 // 1. Request OTP for mobile number (checks if in database)
 export const sendForgotPasswordOtp = async (phoneNumber) => {
@@ -73,4 +75,19 @@ export const resetForgotPassword = async (data) => {
   return await api.post('/auth/forgot-password/reset-password', data);
 };
 
-export default api;
+// ========================================================
+// FORCE CHANGE PASSWORD OTP APIs (authenticated — uses JWT)
+// Used when isPasswordChanged === 0 right after login
+// ========================================================
+
+// 1. Request OTP sent to the authenticated user's registered phone
+export const sendForceChangeOtp = async () => {
+  return await api.post('/auth/change-password/send-otp');
+};
+
+// 2. Verify the 6-digit OTP for the authenticated user
+export const verifyForceChangeOtp = async (otp) => {
+  return await api.post('/auth/change-password/verify-otp', { otp });
+};
+
+export default api;

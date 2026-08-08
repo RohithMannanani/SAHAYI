@@ -43,11 +43,11 @@ function ImpactSection() {
         <div className="impact-grid">
           {/* Left */}
           <div className="impact-left" ref={members.ref}>
-            <span className="section-tag impact-tag">OUR IMPACT</span>
-            <h2 className="section-heading" style={{ color: '#020202' }}>
+            <span style={{ color: 'rgba(255, 255, 255, 1)',fontSize: '18px'}}className="section-tag impact-tag">OUR IMPACT</span>
+            <h2 className="section-heading" style={{ color: '#ffffffff' }}>
               Scale your impact beyond the neighborhood.
             </h2>
-            <p style={{ color: 'rgba(9, 9, 9, 0.7)', fontSize: '0.95rem', lineHeight: 1.75, marginTop: 12 }}>
+            <p style={{ color: 'rgba(255, 255, 255, 1)', fontSize: '0.95rem', lineHeight: 1.75, marginTop: 12 }}>
               Join over 1,000+ communities across the region that have transformed to digital stewardship.
               Increased savings rates by 40% on average in the first year.
             </p>

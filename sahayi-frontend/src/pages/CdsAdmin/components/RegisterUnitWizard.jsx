@@ -75,21 +75,21 @@ function RegisterUnitWizard({
       }
     }
 
-if (!fields.phone || !fields.phone.trim()) {
-  errs.memberPhone = "Phone is required";
-} else if (!/^(?:\+?91[\s-]?)?[6-9]\d{9}$/.test(fields.phone.trim())) {
-  errs.memberPhone = "Invalid phone number";
-} else {
-  // Extract pure 10 digits
-  const digits = fields.phone.trim().replace(/\D/g, "").slice(-10);
-  
-  // Check if any digit appears 8 or more times (e.g. 9999999997, 9888888888)
-  const isFake = [...new Set(digits)].some(d => digits.split(d).length - 1 >= 8);
-  
-  if (isFake) {
-    errs.memberPhone = "Please enter a valid phone number";
-  }
-}
+    if (!fields.phone || !fields.phone.trim()) {
+      errs.memberPhone = "Phone is required";
+    } else if (!/^(?:\+?91[\s-]?)?[6-9]\d{9}$/.test(fields.phone.trim())) {
+      errs.memberPhone = "Invalid phone number";
+    } else {
+      // Extract pure 10 digits
+      const digits = fields.phone.trim().replace(/\D/g, "").slice(-10);
+
+      // Check if any digit appears 8 or more times (e.g. 9999999997, 9888888888)
+      const isFake = [...new Set(digits)].some(d => digits.split(d).length - 1 >= 8);
+
+      if (isFake) {
+        errs.memberPhone = "Please enter a valid phone number";
+      }
+    }
 
     if (!fields.houseName || !fields.houseName.trim()) {
       errs.memberHouseName = "House Name is required";
@@ -114,13 +114,22 @@ if (!fields.phone || !fields.phone.trim()) {
 
   const getStep1Errors = (form) => {
     const errs = {};
-    if (!form.name || !form.name.trim()) {
+    const nameTrimmed = form.name ? form.name.trim() : "";
+
+    if (!nameTrimmed) {
       errs.name = "Unit Name is required";
-    }else if(!/^(?=.{5,50}$)(?!.*\s{2})[A-Za-z]+(?:\s[A-Za-z]+)*$/.test(form.name)){
-             errs.name = "Random patterns are not allowed";
-    } 
-    else if (form.name.trim().length < 3) {
-      errs.name = "Unit Name must be at least 3 characters";
+    } else if (nameTrimmed.length < 6 || nameTrimmed.length > 50) {
+      errs.name = "Unit Name must be between 3 and 50 characters";
+    } else if (/\s{2,}/.test(form.name)) {
+      errs.name = "Multiple consecutive spaces are not allowed";
+    } else if (/([A-Za-z0-9])\1{2,}/.test(nameTrimmed)) {
+      // ❌ Blocks 3+ identical consecutive characters (e.g., "aaa", "111")
+      errs.name = "Repeating identical characters are not allowed";
+    } else if (/^([A-Za-z0-9]{2,4})\1+$/.test(nameTrimmed)) {
+      // ❌ Blocks exact repetitive loops (e.g., "abab", "abcabc", "xyzxyz")
+      errs.name = "Repeating letter patterns are not allowed";
+    } else if (!/^[A-Za-z0-9][A-Za-z0-9\s.\-()]*$/.test(nameTrimmed)) {
+      errs.name = "Unit Name can only contain letters, numbers, spaces, dots, hyphens, and brackets";
     }
 
     if (!form.ward) {
@@ -196,7 +205,7 @@ if (!fields.phone || !fields.phone.trim()) {
 
   // Download Sample CSV template
   const downloadTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8," 
+    const csvContent = "data:text/csv;charset=utf-8,"
       + "Name,Age,Phone,House Name,Role\n"
       + "Jane Doe,34,9876543210,Hillview House,Member\n"
       + "Mary Smith,45,9876543211,Green Villa,President\n";
@@ -231,7 +240,7 @@ if (!fields.phone || !fields.phone.trim()) {
         // Map column headers case-insensitively
         const parsed = rows.map(row => {
           const findVal = (patterns) => {
-            const matchedKey = Object.keys(row).find(key => 
+            const matchedKey = Object.keys(row).find(key =>
               patterns.some(p => key.toLowerCase().replace(/[\s_-]/g, '').includes(p.toLowerCase().replace(/[\s_-]/g, '')))
             );
             return matchedKey ? String(row[matchedKey]).trim() : "";
@@ -454,12 +463,12 @@ if (!fields.phone || !fields.phone.trim()) {
     const hasPresident = members.some(m => m.role === 'President');
     const hasSecretary = members.some(m => m.role === 'Secretary');
     const hasTreasurer = members.some(m => m.role === 'Treasurer');
-    
+
     const missingRoles = [];
     if (!hasPresident) missingRoles.push('President');
     if (!hasSecretary) missingRoles.push('Secretary');
     if (!hasTreasurer) missingRoles.push('Treasurer');
-    
+
     if (missingRoles.length > 0) {
       errs.step2Roles = `Please designate a ${missingRoles.join(', ')} before proceeding.`;
     }
@@ -554,24 +563,24 @@ if (!fields.phone || !fields.phone.trim()) {
     } else {
       // Offline fallback text file receipt
       const content = `AYALKOOTTAM REGISTRATION RECEIPT\n` +
-                      `================================\n\n` +
-                      `Registration Type: ${registrationType === 'existing' ? 'Existing Unit' : 'New Unit'}\n` +
-                      `Unit Name: ${unitForm.name}\n` +
-                      `Ward/Location: ${wardDisplay}\n` +
-                      `Formation Date: ${unitForm.formationDate}\n` +
-                      `Primary Contact: ${unitForm.contact}\n` +
-                      `Total Members: ${members.length}\n` +
-                      `Status: Active\n\n` +
-                      `Bank Details:\n` +
-                      `--------------\n` +
-                      `Bank Name: ${unitForm.bankName}\n` +
-                      `Account Number: ${unitForm.accountNumber}\n` +
-                      `IFSC Code: ${unitForm.ifscCode}\n` +
-                      `Account Balance: ₹${parseFloat(unitForm.accountBalance || 0).toLocaleString('en-IN')}\n\n` +
-                      `Members List:\n` +
-                      `--------------\n` +
-                      members.map((m, idx) => `${idx + 1}. ${m.name} (${m.role}, Age: ${m.age}, Phone: ${m.phone}, House: ${m.houseName})`).join('\n') +
-                      `\n\nGenerated on: ${new Date().toLocaleString()}\n`;
+        `================================\n\n` +
+        `Registration Type: ${registrationType === 'existing' ? 'Existing Unit' : 'New Unit'}\n` +
+        `Unit Name: ${unitForm.name}\n` +
+        `Ward/Location: ${wardDisplay}\n` +
+        `Formation Date: ${unitForm.formationDate}\n` +
+        `Primary Contact: ${unitForm.contact}\n` +
+        `Total Members: ${members.length}\n` +
+        `Status: Active\n\n` +
+        `Bank Details:\n` +
+        `--------------\n` +
+        `Bank Name: ${unitForm.bankName}\n` +
+        `Account Number: ${unitForm.accountNumber}\n` +
+        `IFSC Code: ${unitForm.ifscCode}\n` +
+        `Account Balance: ₹${parseFloat(unitForm.accountBalance || 0).toLocaleString('en-IN')}\n\n` +
+        `Members List:\n` +
+        `--------------\n` +
+        members.map((m, idx) => `${idx + 1}. ${m.name} (${m.role}, Age: ${m.age}, Phone: ${m.phone}, House: ${m.houseName})`).join('\n') +
+        `\n\nGenerated on: ${new Date().toLocaleString()}\n`;
       const blob = new Blob([content], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -796,19 +805,19 @@ if (!fields.phone || !fields.phone.trim()) {
                       <div className="cds-bulk-import-header">
                         <div>
                           <h3 className="cds-bulk-import-title">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                             Bulk Import members via Excel / CSV
                           </h3>
                           <p className="cds-bulk-import-subtitle">
                             Upload Excel or CSV file to add members faster.
                           </p>
                         </div>
-                        <button 
+                        <button
                           type="button"
                           onClick={downloadTemplate}
                           className="cds-text-link-btn cds-bulk-import-template-btn"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                           Template.csv
                         </button>
                       </div>
@@ -821,11 +830,11 @@ if (!fields.phone || !fields.phone.trim()) {
                           style={{ display: 'none' }}
                           id="cds-member-file-upload"
                         />
-                        <label 
+                        <label
                           htmlFor="cds-member-file-upload"
                           className="cds-action-btn cds-action-btn--secondary cds-bulk-import-file-label"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
                           Select Excel / CSV File
                         </label>
                       </div>
@@ -836,14 +845,14 @@ if (!fields.phone || !fields.phone.trim()) {
                             Loaded {importedMembers.length} members. Processing {currentImportIndex + 1} of {importedMembers.length}.
                           </span>
                           <div className="cds-bulk-import-status-actions">
-                            <button 
+                            <button
                               type="button"
                               onClick={handleSkipImportedMember}
                               className="cds-action-btn cds-bulk-import-skip-btn"
                             >
                               Skip
                             </button>
-                            <button 
+                            <button
                               type="button"
                               onClick={handleCancelImport}
                               className="cds-action-btn cds-bulk-import-cancel-btn"
@@ -1056,8 +1065,8 @@ if (!fields.phone || !fields.phone.trim()) {
 
                   <div className="cds-wizard-actions">
                     <button className="cds-wizard-btn cds-wizard-btn--secondary" onClick={() => setCurrentStep(2)}>&larr; Back: Members</button>
-                    <button 
-                      className="cds-wizard-btn cds-wizard-btn--primary" 
+                    <button
+                      className="cds-wizard-btn cds-wizard-btn--primary"
                       onClick={handleRegisterSubmit}
                       disabled={isSubmitting}
                     >
@@ -1141,7 +1150,7 @@ if (!fields.phone || !fields.phone.trim()) {
               <h2>Create New Record</h2>
               <p>Select the type of unit registration you would like to proceed with.</p>
             </div>
-            
+
             <div className="cds-modal-body">
               <div className="cds-record-options">
                 <div className="cds-record-option-card" onClick={() => {
@@ -1164,7 +1173,7 @@ if (!fields.phone || !fields.phone.trim()) {
                   setCurrentStep(1);
                 }}>
                   <div className="cds-record-option-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2a6e38" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2a6e38" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                   </div>
                   <h3>Existing Unit</h3>
                   <p>Register and migrate an already active group to this CDS admin zone.</p>
@@ -1191,7 +1200,7 @@ if (!fields.phone || !fields.phone.trim()) {
                   setCurrentStep(1);
                 }}>
                   <div className="cds-record-option-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
                   </div>
                   <h3>New Unit</h3>
                   <p>Establish and register a brand new Ayalkoottam unit with step-by-step guidance.</p>
@@ -1217,7 +1226,7 @@ if (!fields.phone || !fields.phone.trim()) {
             <p className="cds-success-sub-desc">
               The registration code is generated and ready for retrieval.
             </p>
-            
+
             <div className="cds-success-actions">
               <button className="cds-action-btn cds-action-btn--primary" onClick={downloadReceipt}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="cds-download-receipt-icon"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>

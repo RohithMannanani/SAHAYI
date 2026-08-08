@@ -1,7 +1,7 @@
 /* ---- Landing Footer ---- */
 .landing-footer {
   background: var(--clr-text);
-  color: rgba(0, 0, 0, 0.75);
+  color: rgba(255, 255, 255, 0.75);
   padding-top: 72px;
   padding-bottom: 0;
 }
@@ -34,7 +34,7 @@
 .footer-tagline {
   font-size: 0.85rem;
   line-height: 1.65;
-  color: rgba(255,255,255,0.5);
+  color: rgb(255, 255, 255);
   max-width: 240px;
   margin-bottom: 20px;
 }
@@ -53,13 +53,13 @@
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 700;
-  color: rgba(0, 0, 0, 0.6);
+  color: rgb(255, 255, 255);
   transition: background var(--transition), color var(--transition);
 }
 
 .social-chip:hover {
   background: var(--clr-primary);
-  color: #060606;
+  color: #ffffff;
 }
 
 .footer-col__heading {
@@ -67,7 +67,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #0a0a0a;
+  color: #ffffff;
   margin-bottom: 18px;
 }
 
@@ -80,12 +80,12 @@
 
 .footer-col ul li a {
   font-size: 0.88rem;
-  color: rgba(0, 0, 0, 0.777);
+  color: rgb(255, 255, 255);
   transition: color var(--transition);
 }
 
 .footer-col ul li a:hover {
-  color: #000000;
+  color: #ffffff;
 }
 
 /* Bottom bar */
@@ -100,7 +100,7 @@
 
 .footer-bottom p {
   font-size: 0.78rem;
-  color: rgba(0, 0, 0, 0.833);
+  color: rgb(255, 255, 255);
 }
 
 .footer-bottom-links {
@@ -110,12 +110,12 @@
 
 .footer-bottom-links a {
   font-size: 0.78rem;
-  color: rgba(7, 1, 1, 0.786);
+  color: rgb(255, 255, 255);
   transition: color var(--transition);
 }
 
 .footer-bottom-links a:hover {
-  color: rgba(18, 1, 1, 0.8);
+  color: rgb(255, 255, 255);
 }
 
 @media (max-width: 1024px) {

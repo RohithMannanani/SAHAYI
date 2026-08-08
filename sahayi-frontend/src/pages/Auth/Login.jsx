@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { loginUser } from '../../services/api';
 import ForgotPasswordModal from '../../components/Auth/ForgotPasswordModal';
+import ForceChangePasswordModal from '../../components/Auth/ForceChangePasswordModal';
 import './Login.css';
 
 // Role → route map (mirrors the switch in handleSubmit)
@@ -21,14 +22,22 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  // Holds the login response data when a forced password change is needed
+  const [forceChangeData, setForceChangeData] = useState(null);
 
-  // If already logged in, redirect immediately to the correct dashboard
+  // If already logged in, redirect immediately to the correct dashboard.
+  // Skip this if the user hasn't changed their default password yet —
+  // the ForceChangePasswordModal must be shown first.
   const token = localStorage.getItem('token');
   if (token) {
     try {
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const route = ROLE_ROUTES[storedUser.roleId];
-      if (route) return <Navigate to={route} replace />;
+      const passwordChanged = storedUser.isPasswordChanged;
+      // Only redirect if password has already been changed (non-zero / truthy)
+      if (passwordChanged != null && passwordChanged != 0) {
+        const route = ROLE_ROUTES[storedUser.roleId];
+        if (route) return <Navigate to={route} replace />;
+      }
     } catch {
       // corrupted storage — fall through to show the login form
     }
@@ -57,12 +66,14 @@ function Login() {
         isPasswordChanged: data.isPasswordChanged
       }));
 
+      // ── Force password change check ──────────────────────────────
+      // Use loose == so it handles 0 (number), false (boolean), or "0" (string)
+      if (data.isPasswordChanged == 0) {
+        setForceChangeData(data);
+        return; // do NOT navigate — modal handles routing after change
+      }
+
       // Route based on RoleId:
-      // RoleId = 1 -> CDS_Admin
-      // RoleId = 2 -> President
-      // RoleId = 3 -> Secretary
-      // RoleId = 4 -> Treasurer
-      // RoleId = 5 -> Member
       switch (data.roleId) {
         case 1:
           navigate('/cds-admin/dashboard');
@@ -241,6 +252,12 @@ function Login() {
         onPasswordResetSuccess={(resetPhone) => {
           setUsername(resetPhone);
         }}
+      />
+
+      {/* Force Change Password Modal — shown when isPasswordChanged === 0 */}
+      <ForceChangePasswordModal
+        isOpen={forceChangeData !== null}
+        userData={forceChangeData}
       />
     </div>
   );

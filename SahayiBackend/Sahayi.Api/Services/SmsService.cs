@@ -13,15 +13,16 @@ namespace Sahayi.Api.Services
             _logger = logger;
         }
 
-        public Task<bool> SendOtpAsync(string phoneNumber, string otpCode)
+        public Task<bool> SendOtpAsync(string phoneNumber, string FullName,string otpCode)
         {
             // Log OTP to server output console for easy testing / debugging
             string message = $"\n========================================\n" +
-                             $"[SMS SERVICE - OTP NOTIFICATION]\n" +
-                             $"Recipient Mobile : {phoneNumber}\n" +
-                             $"Your Sahayi OTP  : {otpCode}\n" +
-                             $"Valid For        : 10 minutes\n" +
-                             $"========================================\n";
+                 $"[SAHAYI - PASSWORD RESET OTP]\n\n" +
+                 $"Dear {FullName},\n" +
+                 $"Your password reset OTP is: {otpCode}\n" +
+                 $"Valid For: 10 minutes\n\n" +
+                 $"For security, do not share this code.\n" +
+                 $"========================================\n";
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(message);

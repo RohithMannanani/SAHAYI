@@ -120,6 +120,8 @@ namespace Sahayi.Api.Controllers
                 return BadRequest(new { message = "Account associated with this phone number is deactivated. Please contact your administrator." });
             }
 
+            string cleanFullName = user.FullName.Trim();
+
             // 2. Generate a 6-digit random OTP
             string otpCode = Random.Shared.Next(100000, 999999).ToString();
 
@@ -146,7 +148,7 @@ namespace Sahayi.Api.Controllers
             await _context.SaveChangesAsync();
 
             // 5. Send OTP via SMS service (Logs to Console)
-            await _smsService.SendOtpAsync(cleanPhone, otpCode);
+            await _smsService.SendOtpAsync(cleanPhone, cleanFullName, otpCode);
 
             return Ok(new { message = "OTP sent successfully to your registered mobile number." });
         }

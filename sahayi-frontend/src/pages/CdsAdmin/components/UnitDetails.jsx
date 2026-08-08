@@ -103,7 +103,15 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
 
   const membersList = rawMembers;
 
-  const filteredMembers = membersList.filter(m => {
+  // Role sort order: President → Secretary → Treasurer → Member
+  const rolePriority = { president: 0, secretary: 1, treasurer: 2, member: 3 };
+  const sortedMembers = [...membersList].sort((a, b) => {
+    const ra = (getRoleName(a) || 'member').toLowerCase();
+    const rb = (getRoleName(b) || 'member').toLowerCase();
+    return (rolePriority[ra] ?? 99) - (rolePriority[rb] ?? 99);
+  });
+
+  const filteredMembers = sortedMembers.filter(m => {
     const name = (m.fullName || m.name || '').toLowerCase();
     const role = getRoleName(m).toLowerCase();
     const house = (m.houseName || m.house || '').toLowerCase();
@@ -160,17 +168,17 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
             <h1>{unitName}</h1>
             <div className="cds-unit-banner-meta">
               <div className="cds-unit-banner-meta-item">
-                <Icon d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" size={14} stroke="#d2e4d6" />
+                <Icon d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" size={14} stroke="#78716c" />
                 <span>ID: {unitId}</span>
               </div>
               <span>•</span>
               <div className="cds-unit-banner-meta-item">
-                <Icon d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" size={14} stroke="#d2e4d6" />
+                <Icon d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" size={14} stroke="#78716c" />
                 <span>{wardDisplay}</span>
               </div>
               <span>•</span>
               <div className="cds-unit-banner-meta-item">
-                <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={14} stroke="#d2e4d6" />
+                <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={14} stroke="#78716c" />
                 <span>Formed: {formationDate}</span>
               </div>
             </div>
@@ -316,59 +324,68 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
               </div>
             </div>
 
-            <div className="cds-details-card__body" style={{ padding: 0 }}>
-              <div className="cds-table-wrap">
-                <table className="cds-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Member Name</th>
-                      <th>Designation / Role</th>
-                      <th>Age</th>
-                      <th>Phone Number</th>
-                      <th>House Name</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {membersList.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#6b8f72' }}>
-                          No member records registered for this unit yet.
-                        </td>
-                      </tr>
-                    ) : filteredMembers.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#6b8f72' }}>
-                          No members match your search query.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredMembers.map((member, idx) => {
-                        const name = member.fullName || member.name || 'N/A';
-                        const role = getRoleName(member);
-                        const age = member.age || '-';
-                        const phone = member.phoneNumber || member.phone || 'N/A';
-                        const house = member.houseName || member.house || 'N/A';
+            <div className="cds-details-card__body">
+              {membersList.length === 0 ? (
+                <div className="cds-members-empty">
+                  <Icon d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z" size={32} stroke="#9ab3a0" />
+                  <p>No member records registered for this unit yet.</p>
+                </div>
+              ) : filteredMembers.length === 0 ? (
+                <div className="cds-members-empty">
+                  <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" size={32} stroke="#9ab3a0" />
+                  <p>No members match your search query.</p>
+                </div>
+              ) : (
+                <div className="cds-members-card-grid">
+                  {filteredMembers.map((member, idx) => {
+                    const name = member.fullName || member.name || 'N/A';
+                    const role = getRoleName(member);
+                    const age = member.age || null;
+                    const phone = member.phoneNumber || member.phone || null;
+                    const house = member.houseName || member.house || null;
+                    const avatarInitial = name.charAt(0).toUpperCase();
+                    const isLeader = ['president','secretary','treasurer'].includes(role.toLowerCase());
 
-                        return (
-                          <tr key={member.id || member.memberId || idx}>
-                            <td>{idx + 1}</td>
-                            <td><strong>{name}</strong></td>
-                            <td>
-                              <span className={`cds-role-pill cds-role-pill--${role.toLowerCase()}`}>
-                                {role}
-                              </span>
-                            </td>
-                            <td>{age}</td>
-                            <td>{phone}</td>
-                            <td>{house}</td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    return (
+                      <div
+                        key={member.id || member.memberId || idx}
+                        className={`cds-member-card cds-member-card--${role.toLowerCase()}${isLeader ? ' cds-member-card--leader' : ''}`}
+                      >
+                        <div className="cds-member-card__avatar">
+                          {avatarInitial}
+                        </div>
+                        <div className="cds-member-card__body">
+                          <div className="cds-member-card__top">
+                            <span className="cds-member-card__name">{name}</span>
+                            <span className={`cds-role-pill cds-role-pill--${role.toLowerCase()}`}>{role}</span>
+                          </div>
+                          <div className="cds-member-card__details">
+                            {phone && (
+                              <div className="cds-member-card__detail-item">
+                                <Icon d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" size={12} stroke="#6b8f72" />
+                                <span>{phone}</span>
+                              </div>
+                            )}
+                            {house && (
+                              <div className="cds-member-card__detail-item">
+                                <Icon d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10" size={12} stroke="#6b8f72" />
+                                <span>{house}</span>
+                              </div>
+                            )}
+                            {age && (
+                              <div className="cds-member-card__detail-item">
+                                <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={12} stroke="#6b8f72" />
+                                <span>Age: {age}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {isLeader && <div className="cds-member-card__leader-badge" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

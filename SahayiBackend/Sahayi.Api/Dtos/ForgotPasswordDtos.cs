@@ -8,6 +8,8 @@ namespace Sahayi.Api.DTOs
         [Required(ErrorMessage = "Mobile number is required.")]
         [Phone(ErrorMessage = "Invalid phone number format.")]
         public string PhoneNumber { get; set; } = string.Empty;
+
+   
     }
 
     // Request DTO to verify OTP
