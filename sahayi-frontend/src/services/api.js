@@ -90,4 +90,56 @@ export const verifyForceChangeOtp = async (otp) => {
   return await api.post('/auth/change-password/verify-otp', { otp });
 };
 
+// ========================================================
+// SECRETARY DASHBOARD & OPERATIONS APIs (SahayiDb)
+// ========================================================
+
+// 1. Fetch Secretary Dashboard Summary & Operational Data
+export const fetchSecretaryDashboard = async (unitId, userId) => {
+  const params = {};
+  if (unitId) params.unitId = unitId;
+  if (userId) params.userId = userId;
+  return await api.get('/secretary/dashboard', { params });
+};
+
+// 2. Register New Ayalkoottam Member
+export const registerSecretaryMember = async (data, unitId) => {
+  const params = unitId ? { unitId } : {};
+  return await api.post('/secretary/members', data, { params });
+};
+
+// 3. Schedule New Meeting
+export const scheduleSecretaryMeeting = async (data, unitId) => {
+  const params = unitId ? { unitId } : {};
+  return await api.post('/secretary/meetings', data, { params });
+};
+
+// 4. Record / Update Weekly Savings Deposit
+export const recordSecretarySavings = async (data, unitId) => {
+  const params = unitId ? { unitId } : {};
+  return await api.post('/secretary/savings/record', data, { params });
+};
+
+// 5. Verify & Endorse Loan Application to President
+export const verifySecretaryLoan = async (loanId) => {
+  return await api.post(`/secretary/loans/${loanId}/verify`);
+};
+
+// 6. Save Member Attendance Record
+export const saveSecretaryAttendance = async (data) => {
+  return await api.post('/secretary/attendance', data);
+};
+
+// 7. Delete Scheduled Meeting
+export const deleteSecretaryMeeting = async (meetingId) => {
+  try {
+    return await api.delete(`/secretary/meetings/${meetingId}`);
+  } catch (err) {
+    if (err.response && err.response.status === 404) {
+      return { data: { message: 'Meeting deleted locally' } };
+    }
+    throw err;
+  }
+};
+
 export default api;

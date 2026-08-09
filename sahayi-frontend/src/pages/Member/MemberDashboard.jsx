@@ -21,6 +21,16 @@ function MemberDashboard() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      if (activeTab !== 'dashboard') {
+        setActiveTab('dashboard');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

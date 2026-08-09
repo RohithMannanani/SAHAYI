@@ -28,6 +28,16 @@ function TreasurerDashboard() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      if (activeTab !== 'financials') {
+        setActiveTab('financials');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

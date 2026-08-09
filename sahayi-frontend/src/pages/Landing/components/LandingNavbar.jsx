@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Bell, Settings, Menu, X } from 'lucide-react';
 import './LandingNavbar.css';
 
@@ -36,7 +37,7 @@ function LandingNavbar() {
           <button className="icon-btn" aria-label="Settings">
             <Settings size={18} />
           </button>
-          <a href="/login" className="btn-login">Login →</a>
+          <Link to="/login" className="btn-login">Login →</Link>
         </div>
 
         {/* Mobile hamburger */}
@@ -51,7 +52,7 @@ function LandingNavbar() {
           <a href="#about" onClick={() => setMenuOpen(false)}>About Us</a>
           <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
           <a href="#community" onClick={() => setMenuOpen(false)}>Community</a>
-          <a href="/login" className="btn-login">Login →</a>
+          <Link to="/login" className="btn-login" onClick={() => setMenuOpen(false)}>Login →</Link>
         </div>
       )}
     </header>

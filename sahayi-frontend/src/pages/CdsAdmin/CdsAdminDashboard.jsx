@@ -29,6 +29,26 @@ function CdsAdminDashboard() {
   const [wardDropdownOpen, setWardDropdownOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
 
+  // Synchronize browser history popstate event for dynamic back navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      if (selectedUnit) {
+        setSelectedUnit(null);
+      } else if (activeNav !== 'dashboard') {
+        setActiveNav('dashboard');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedUnit, activeNav]);
+
+  const handleSelectUnitWithHistory = (unit) => {
+    if (unit) {
+      window.history.pushState({ subview: 'unit-detail' }, '');
+    }
+    setSelectedUnit(unit);
+  };
+
   // Lists state
   const [ayalkoottamList, setAyalkoottamList] = useState([]);
   const [wardsList, setWardsList] = useState([]);
@@ -227,7 +247,7 @@ function CdsAdminDashboard() {
                   setTableSearch={setTableSearch}
                   isLoading={isLoading}
                   filteredRows={filteredRows}
-                  setSelectedUnit={setSelectedUnit}
+                  setSelectedUnit={handleSelectUnitWithHistory}
                   handleToggleStatus={handleToggleStatus}
                 />
               )}

@@ -36,14 +36,12 @@ function Login() {
       // Only redirect if password has already been changed (non-zero / truthy)
       if (passwordChanged != null && passwordChanged != 0) {
         const route = ROLE_ROUTES[storedUser.roleId];
-        if (route) return <Navigate to={route} replace />;
+        if (route) return <Navigate to={route} replace={false} />;
       }
     } catch {
       // corrupted storage — fall through to show the login form
     }
   }
-
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,26 +71,12 @@ function Login() {
         return; // do NOT navigate — modal handles routing after change
       }
 
-      // Route based on RoleId:
-      switch (data.roleId) {
-        case 1:
-          navigate('/cds-admin/dashboard');
-          break;
-        case 2:
-          navigate('/president/dashboard');
-          break;
-        case 3:
-          navigate('/secretary/dashboard');
-          break;
-        case 4:
-          navigate('/treasurer/dashboard');
-          break;
-        case 5:
-          navigate('/member/dashboard');
-          break;
-        default:
-          setError('Unknown user role. Contact administrator.');
-          break;
+      // Route based on RoleId (use replace: true so /login is replaced by dashboard in history stack):
+      const targetRoute = ROLE_ROUTES[data.roleId];
+      if (targetRoute) {
+        navigate(targetRoute, { replace: true });
+      } else {
+        setError('Unknown user role. Contact administrator.');
       }
     } catch (err) {
       console.error(err);

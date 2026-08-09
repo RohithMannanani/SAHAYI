@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './UnitDetails.css';
 import { fetchShgUnitDetails } from '../../../services/api';
+import { handleDynamicBack } from '../../../utils/navigation';
 
 // ── Icon helper ──────────────────────────────────────────────
 const Icon = ({ d, size = 16, stroke = 'currentColor', fill = 'none', strokeWidth = 2 }) => (
@@ -19,9 +21,18 @@ const getRoleName = (member) => {
 };
 
 function UnitDetails({ unit, onBack, onStatusChange }) {
+  const navigate = useNavigate();
   const [unitData, setUnitData] = useState(unit || null);
   const [memberSearch, setMemberSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      handleDynamicBack(navigate, '/cds-admin/dashboard');
+    }
+  };
 
   useEffect(() => {
     setUnitData(unit);
@@ -49,7 +60,7 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
   if (!unitData) {
     return (
       <div className="cds-unit-details-container">
-        <button className="cds-back-btn" onClick={onBack}>
+        <button className="cds-back-btn" onClick={handleBackClick}>
           &larr; Back to Dashboard
         </button>
         <div style={{ padding: 48, textAlign: 'center', color: '#6b8f72' }}>
@@ -134,7 +145,7 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
     <div className="cds-unit-details-container">
       {/* Navigation & Action Header */}
       <div className="cds-unit-details-nav">
-        <button className="cds-back-btn" onClick={onBack}>
+        <button className="cds-back-btn" onClick={handleBackClick}>
           <Icon d="M19 12H5M12 19l-7-7 7-7" size={16} stroke="#1e4731" />
           Back to Dashboard
         </button>

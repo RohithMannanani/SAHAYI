@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Play, TrendingUp } from 'lucide-react';
 import './HeroSection.css';
 
@@ -24,10 +25,10 @@ function HeroSection() {
           </p>
 
           <div className="hero__cta fade-up delay-3">
-            <a href="/login" className="btn-primary">
+            <Link to="/login" className="btn-primary">
               Get Started Today
               <ArrowRight size={16} />
-            </a>
+            </Link>
             <button className="btn-outline">
               <span className="play-icon">
                 <Play size={13} fill="currentColor" />
