@@ -97,26 +97,26 @@ export const verifyForceChangeOtp = async (otp) => {
 // 1. Fetch Secretary Dashboard Summary & Operational Data
 export const fetchSecretaryDashboard = async (unitId, userId) => {
   const params = {};
-  if (unitId) params.unitId = unitId;
-  if (userId) params.userId = userId;
+  if (unitId && !isNaN(Number(unitId))) params.unitId = Number(unitId);
+  if (userId && !isNaN(Number(userId))) params.userId = Number(userId);
   return await api.get('/secretary/dashboard', { params });
 };
 
 // 2. Register New Ayalkoottam Member
 export const registerSecretaryMember = async (data, unitId) => {
-  const params = unitId ? { unitId } : {};
+  const params = (unitId && !isNaN(Number(unitId))) ? { unitId: Number(unitId) } : {};
   return await api.post('/secretary/members', data, { params });
 };
 
 // 3. Schedule New Meeting
 export const scheduleSecretaryMeeting = async (data, unitId) => {
-  const params = unitId ? { unitId } : {};
+  const params = (unitId && !isNaN(Number(unitId))) ? { unitId: Number(unitId) } : {};
   return await api.post('/secretary/meetings', data, { params });
 };
 
 // 4. Record / Update Weekly Savings Deposit
 export const recordSecretarySavings = async (data, unitId) => {
-  const params = unitId ? { unitId } : {};
+  const params = (unitId && !isNaN(Number(unitId))) ? { unitId: Number(unitId) } : {};
   return await api.post('/secretary/savings/record', data, { params });
 };
 

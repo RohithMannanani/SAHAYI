@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Sahayi.Api.DTOs
 {
@@ -6,27 +6,27 @@ namespace Sahayi.Api.DTOs
     public class RecordSavingsDto
     {
         [Required]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
 
         [Required]
-        public Guid UnitId { get; set; }
+        public int UnitId { get; set; }
 
         [Required]
         [Range(1, 100000, ErrorMessage = "Amount must be greater than 0.")]
         public decimal Amount { get; set; }
 
         [Required]
-        public Guid RecordedBy { get; set; }
+        public int RecordedBy { get; set; }
     }
 
     // Submit Loan Application
     public class ApplyLoanDto
     {
         [Required]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
 
         [Required]
-        public Guid UnitId { get; set; }
+        public int UnitId { get; set; }
 
         [Required]
         [Range(100, 500000)]
@@ -51,7 +51,7 @@ namespace Sahayi.Api.DTOs
         public int LoanId { get; set; }
 
         [Required]
-        public Guid ApprovedBy { get; set; }
+        public int ApprovedBy { get; set; }
 
         [Required]
         public bool IsApproved { get; set; }
@@ -73,6 +73,6 @@ namespace Sahayi.Api.DTOs
         public decimal InterestComponent { get; set; }
 
         [Required]
-        public Guid RecordedBy { get; set; }
+        public int RecordedBy { get; set; }
     }
 }

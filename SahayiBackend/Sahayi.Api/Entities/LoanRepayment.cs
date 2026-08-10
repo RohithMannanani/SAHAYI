@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -31,7 +31,7 @@ namespace Sahayi.Api.Entities
         public string ReceiptNumber { get; set; } = string.Empty;
 
         [Required]
-        public Guid RecordedBy { get; set; }
+        public int RecordedBy { get; set; }
 
         // Navigation Properties
         [ForeignKey("LoanId")]

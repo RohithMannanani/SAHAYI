@@ -36,7 +36,7 @@ namespace Sahayi.Api.DTOs
     public class ChangePasswordDto
     {
         [Required]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
 
         [Required]
         public string OldPassword { get; set; } = string.Empty;
@@ -50,12 +50,12 @@ namespace Sahayi.Api.DTOs
     public class AuthResponseDto
     {
         public string Token { get; set; } = string.Empty;
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
         public int RoleId { get; set; }
-        public Guid? UnitId { get; set; }
+        public int? UnitId { get; set; }
         public string? UnitName { get; set; }
         public bool IsPasswordChanged { get; set; }
     }

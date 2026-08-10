@@ -12,8 +12,8 @@ using Sahayi.Api.Data;
 namespace Sahayi.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260727093122_ChangeNvarcharToVarchar")]
-    partial class ChangeNvarcharToVarchar
+    [Migration("20260810041317_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,19 +27,19 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.ApplicationUser", b =>
                 {
-                    b.Property<Guid>("UserId")
+                    b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<string>("HouseName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -52,18 +52,21 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("varchar(max)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
+                        .HasColumnType("varchar(15)");
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("UnitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("UserId");
 
@@ -73,6 +76,9 @@ namespace Sahayi.Api.Migrations
                     b.HasIndex("RoleId");
 
                     b.HasIndex("UnitId");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
 
                     b.ToTable("ApplicationUsers");
                 });
@@ -94,8 +100,8 @@ namespace Sahayi.Api.Migrations
                     b.Property<int>("MeetingId")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("AttendanceId");
 
@@ -108,35 +114,40 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.AyalkoottamUnit", b =>
                 {
-                    b.Property<Guid>("UnitId")
+                    b.Property<int>("UnitId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UnitId"));
+
+                    b.Property<decimal>("AccountBalance")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("AccountNumber")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("BankName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("IFSCCode")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<string>("PrimaryContactPhone")
+                        .IsRequired()
+                        .HasColumnType("varchar(15)");
+
                     b.Property<string>("UnitName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<int>("WardId")
                         .HasColumnType("int");
@@ -161,11 +172,10 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("GroupName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
                     b.HasKey("GroupId");
 
@@ -187,13 +197,13 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("MessageText")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("varchar(max)");
 
-                    b.Property<Guid>("ReceiverId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ReceiverId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
@@ -223,10 +233,10 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("MessageText")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("varchar(max)");
 
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
@@ -255,8 +265,8 @@ namespace Sahayi.Api.Migrations
                     b.Property<DateTime>("AppliedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("ApprovedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("ApprovedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DisbursedDate")
                         .HasColumnType("datetime2");
@@ -267,22 +277,20 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("Purpose")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<int>("TenureMonths")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("LoanId");
 
@@ -320,11 +328,10 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("ReceiptNumber")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
-                    b.Property<Guid>("RecordedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RecordedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("RepaymentDate")
                         .HasColumnType("datetime2");
@@ -349,22 +356,21 @@ namespace Sahayi.Api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MeetingId"));
 
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("MeetingDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("MinutesOfMeeting")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("varchar(max)");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Venue")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("MeetingId");
 
@@ -391,16 +397,14 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("Message")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("NotificationId");
 
@@ -419,8 +423,7 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("WardName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("WardNumber")
                         .HasColumnType("int");
@@ -431,6 +434,42 @@ namespace Sahayi.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("PanchayathWards");
+                });
+
+            modelBuilder.Entity("Sahayi.Api.Entities.PasswordResetOtp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiryTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ResetToken")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PasswordResetOtps");
                 });
 
             modelBuilder.Entity("Sahayi.Api.Entities.SavingsTransaction", b =>
@@ -447,20 +486,19 @@ namespace Sahayi.Api.Migrations
 
                     b.Property<string>("ReceiptNumber")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
-                    b.Property<Guid>("RecordedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RecordedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("TransactionId");
 
@@ -476,6 +514,44 @@ namespace Sahayi.Api.Migrations
                     b.ToTable("SavingsTransactions");
                 });
 
+            modelBuilder.Entity("Sahayi.Api.Entities.UserCredential", b =>
+                {
+                    b.Property<int>("LoginId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LoginId"));
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPasswordChanged")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("varchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("LoginId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserName")
+                        .IsUnique();
+
+                    b.ToTable("UserCredentials");
+                });
+
             modelBuilder.Entity("Sahayi.Api.Entities.UserRole", b =>
                 {
                     b.Property<int>("RoleId")
@@ -485,13 +561,11 @@ namespace Sahayi.Api.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
 
                     b.Property<string>("Description")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("RoleName")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("RoleId");
 
@@ -535,20 +609,20 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.ApplicationUser", b =>
                 {
-                    b.HasOne("Sahayi.Api.Entities.UserRole", "Role")
+                    b.HasOne("Sahayi.Api.Entities.UserRole", "UserRole")
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "Unit")
+                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "AyalkoottamUnit")
                         .WithMany("Users")
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("Role");
+                    b.Navigation("AyalkoottamUnit");
 
-                    b.Navigation("Unit");
+                    b.Navigation("UserRole");
                 });
 
             modelBuilder.Entity("Sahayi.Api.Entities.Attendance", b =>
@@ -583,13 +657,13 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.ChatGroup", b =>
                 {
-                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "Unit")
+                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "AyalkoottamUnit")
                         .WithMany("ChatGroups")
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Unit");
+                    b.Navigation("AyalkoottamUnit");
                 });
 
             modelBuilder.Entity("Sahayi.Api.Entities.DirectMessage", b =>
@@ -613,7 +687,7 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.GroupMessage", b =>
                 {
-                    b.HasOne("Sahayi.Api.Entities.ChatGroup", "Group")
+                    b.HasOne("Sahayi.Api.Entities.ChatGroup", "ChatGroup")
                         .WithMany("GroupMessages")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -625,7 +699,7 @@ namespace Sahayi.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Group");
+                    b.Navigation("ChatGroup");
 
                     b.Navigation("Sender");
                 });
@@ -637,7 +711,7 @@ namespace Sahayi.Api.Migrations
                         .HasForeignKey("ApprovedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "Unit")
+                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "AyalkoottamUnit")
                         .WithMany()
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -651,15 +725,15 @@ namespace Sahayi.Api.Migrations
 
                     b.Navigation("Approver");
 
-                    b.Navigation("Unit");
+                    b.Navigation("AyalkoottamUnit");
 
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("Sahayi.Api.Entities.LoanRepayment", b =>
                 {
-                    b.HasOne("Sahayi.Api.Entities.LoanApplication", "Loan")
-                        .WithMany("Repayments")
+                    b.HasOne("Sahayi.Api.Entities.LoanApplication", "LoanApplication")
+                        .WithMany("LoanRepayments")
                         .HasForeignKey("LoanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -670,7 +744,7 @@ namespace Sahayi.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Loan");
+                    b.Navigation("LoanApplication");
 
                     b.Navigation("Recorder");
                 });
@@ -683,15 +757,15 @@ namespace Sahayi.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "Unit")
+                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "AyalkoottamUnit")
                         .WithMany("Meetings")
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Creator");
+                    b.Navigation("AyalkoottamUnit");
 
-                    b.Navigation("Unit");
+                    b.Navigation("Creator");
                 });
 
             modelBuilder.Entity("Sahayi.Api.Entities.Notification", b =>
@@ -713,7 +787,7 @@ namespace Sahayi.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "Unit")
+                    b.HasOne("Sahayi.Api.Entities.AyalkoottamUnit", "AyalkoottamUnit")
                         .WithMany()
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -725,11 +799,22 @@ namespace Sahayi.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("AyalkoottamUnit");
+
                     b.Navigation("Recorder");
 
-                    b.Navigation("Unit");
-
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Sahayi.Api.Entities.UserCredential", b =>
+                {
+                    b.HasOne("Sahayi.Api.Entities.ApplicationUser", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
                 });
 
             modelBuilder.Entity("Sahayi.Api.Entities.AyalkoottamUnit", b =>
@@ -748,7 +833,7 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.LoanApplication", b =>
                 {
-                    b.Navigation("Repayments");
+                    b.Navigation("LoanRepayments");
                 });
 
             modelBuilder.Entity("Sahayi.Api.Entities.Meeting", b =>

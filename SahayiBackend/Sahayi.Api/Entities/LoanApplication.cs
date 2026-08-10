@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -9,10 +9,10 @@ namespace Sahayi.Api.Entities
         public int LoanId { get; set; }
 
         [Required]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
 
         [Required]
-        public Guid UnitId { get; set; }
+        public int UnitId { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
@@ -36,7 +36,7 @@ namespace Sahayi.Api.Entities
         [Required]
         public DateTime AppliedDate { get; set; } = DateTime.UtcNow;
 
-        public Guid? ApprovedBy { get; set; }
+        public int? ApprovedBy { get; set; }
 
         public DateTime? DisbursedDate { get; set; }
 

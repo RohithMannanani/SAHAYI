@@ -20,11 +20,29 @@ namespace Sahayi.Api.Migrations
                     WardId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     WardNumber = table.Column<int>(type: "int", nullable: false),
-                    WardName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    WardName = table.Column<string>(type: "varchar(100)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PanchayathWards", x => x.WardId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PasswordResetOtps",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    OtpCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    ResetToken = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsUsed = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PasswordResetOtps", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -33,8 +51,8 @@ namespace Sahayi.Api.Migrations
                 {
                     RoleId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
+                    RoleName = table.Column<string>(type: "varchar(50)", nullable: false),
+                    Description = table.Column<string>(type: "varchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -45,12 +63,15 @@ namespace Sahayi.Api.Migrations
                 name: "AyalkoottamUnits",
                 columns: table => new
                 {
-                    UnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UnitName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    UnitId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UnitName = table.Column<string>(type: "varchar(150)", nullable: false),
+                    PrimaryContactPhone = table.Column<string>(type: "varchar(15)", nullable: false),
                     WardId = table.Column<int>(type: "int", nullable: false),
-                    AccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    BankName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    IFSCCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    AccountNumber = table.Column<string>(type: "varchar(50)", nullable: false),
+                    BankName = table.Column<string>(type: "varchar(100)", nullable: false),
+                    IFSCCode = table.Column<string>(type: "varchar(20)", nullable: false),
+                    AccountBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -69,14 +90,16 @@ namespace Sahayi.Api.Migrations
                 name: "ApplicationUsers",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FullName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
-                    HouseName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Username = table.Column<string>(type: "varchar(50)", nullable: false),
+                    FullName = table.Column<string>(type: "varchar(150)", nullable: false),
+                    PhoneNumber = table.Column<string>(type: "varchar(15)", nullable: false),
+                    HouseName = table.Column<string>(type: "varchar(150)", nullable: false),
+                    PasswordHash = table.Column<string>(type: "varchar(max)", nullable: false),
                     IsPasswordChanged = table.Column<bool>(type: "bit", nullable: false),
                     RoleId = table.Column<int>(type: "int", nullable: false),
-                    UnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    UnitId = table.Column<int>(type: "int", nullable: true),
                     JoinedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -103,8 +126,8 @@ namespace Sahayi.Api.Migrations
                 {
                     GroupId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GroupName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    UnitId = table.Column<int>(type: "int", nullable: false),
+                    GroupName = table.Column<string>(type: "varchar(100)", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -124,9 +147,9 @@ namespace Sahayi.Api.Migrations
                 {
                     DirectMessageId = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    SenderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ReceiverId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MessageText = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SenderId = table.Column<int>(type: "int", nullable: false),
+                    ReceiverId = table.Column<int>(type: "int", nullable: false),
+                    MessageText = table.Column<string>(type: "varchar(max)", nullable: false),
                     SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsRead = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -153,15 +176,15 @@ namespace Sahayi.Api.Migrations
                 {
                     LoanId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UnitId = table.Column<int>(type: "int", nullable: false),
                     AmountRequested = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    Purpose = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Purpose = table.Column<string>(type: "varchar(500)", nullable: false),
                     TenureMonths = table.Column<int>(type: "int", nullable: false),
                     InterestRate = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "varchar(20)", nullable: false),
                     AppliedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ApprovedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ApprovedBy = table.Column<int>(type: "int", nullable: true),
                     DisbursedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -193,11 +216,11 @@ namespace Sahayi.Api.Migrations
                 {
                     MeetingId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UnitId = table.Column<int>(type: "int", nullable: false),
                     MeetingDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Venue = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    MinutesOfMeeting = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    Venue = table.Column<string>(type: "varchar(200)", nullable: false),
+                    MinutesOfMeeting = table.Column<string>(type: "varchar(max)", nullable: true),
+                    CreatedBy = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -222,9 +245,9 @@ namespace Sahayi.Api.Migrations
                 {
                     NotificationId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Message = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "varchar(100)", nullable: false),
+                    Message = table.Column<string>(type: "varchar(500)", nullable: false),
                     IsRead = table.Column<bool>(type: "bit", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -245,12 +268,12 @@ namespace Sahayi.Api.Migrations
                 {
                     TransactionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UnitId = table.Column<int>(type: "int", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     TransactionDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ReceiptNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    RecordedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    ReceiptNumber = table.Column<string>(type: "varchar(50)", nullable: false),
+                    RecordedBy = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -276,14 +299,38 @@ namespace Sahayi.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserCredentials",
+                columns: table => new
+                {
+                    LoginId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UserName = table.Column<string>(type: "varchar(50)", nullable: false),
+                    PasswordHash = table.Column<string>(type: "varchar(max)", nullable: false),
+                    IsPasswordChanged = table.Column<bool>(type: "bit", nullable: false),
+                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsLocked = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserCredentials", x => x.LoginId);
+                    table.ForeignKey(
+                        name: "FK_UserCredentials_ApplicationUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "ApplicationUsers",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "GroupMessages",
                 columns: table => new
                 {
                     GroupMessageId = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     GroupId = table.Column<int>(type: "int", nullable: false),
-                    SenderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MessageText = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SenderId = table.Column<int>(type: "int", nullable: false),
+                    MessageText = table.Column<string>(type: "varchar(max)", nullable: false),
                     SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -315,8 +362,8 @@ namespace Sahayi.Api.Migrations
                     PrincipalComponent = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     InterestComponent = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     RepaymentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ReceiptNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    RecordedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    ReceiptNumber = table.Column<string>(type: "varchar(50)", nullable: false),
+                    RecordedBy = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -342,7 +389,7 @@ namespace Sahayi.Api.Migrations
                     AttendanceId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     MeetingId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
                     IsPresent = table.Column<bool>(type: "bit", nullable: false),
                     MarkedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -390,6 +437,12 @@ namespace Sahayi.Api.Migrations
                 name: "IX_ApplicationUsers_UnitId",
                 table: "ApplicationUsers",
                 column: "UnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationUsers_Username",
+                table: "ApplicationUsers",
+                column: "Username",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Attendances_MeetingId",
@@ -505,6 +558,17 @@ namespace Sahayi.Api.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserCredentials_UserId",
+                table: "UserCredentials",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserCredentials_UserName",
+                table: "UserCredentials",
+                column: "UserName",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_RoleName",
                 table: "UserRoles",
                 column: "RoleName",
@@ -530,7 +594,13 @@ namespace Sahayi.Api.Migrations
                 name: "Notifications");
 
             migrationBuilder.DropTable(
+                name: "PasswordResetOtps");
+
+            migrationBuilder.DropTable(
                 name: "SavingsTransactions");
+
+            migrationBuilder.DropTable(
+                name: "UserCredentials");
 
             migrationBuilder.DropTable(
                 name: "Meetings");

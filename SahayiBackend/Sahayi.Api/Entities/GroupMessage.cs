@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -12,7 +12,7 @@ namespace Sahayi.Api.Entities
         public int GroupId { get; set; }
 
         [Required]
-        public Guid SenderId { get; set; }
+        public int SenderId { get; set; }
 
         [Required]
         [Column(TypeName = "varchar(max)")]

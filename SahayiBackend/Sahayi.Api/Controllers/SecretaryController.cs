@@ -23,18 +23,18 @@ namespace Sahayi.Api.Controllers
 
         // GET: api/secretary/dashboard?unitId={unitId}&userId={userId}
         [HttpGet("dashboard")]
-        public async Task<IActionResult> GetDashboardData([FromQuery] Guid? unitId, [FromQuery] Guid? userId)
+        public async Task<IActionResult> GetDashboardData([FromQuery] int? unitId, [FromQuery] int? userId)
         {
             try
             {
                 // 1. Resolve unitId
-                Guid targetUnitId = Guid.Empty;
+                int targetUnitId = 0;
 
-                if (unitId.HasValue && unitId.Value != Guid.Empty)
+                if (unitId.HasValue && unitId.Value != 0)
                 {
                     targetUnitId = unitId.Value;
                 }
-                else if (userId.HasValue && userId.Value != Guid.Empty)
+                else if (userId.HasValue && userId.Value != 0)
                 {
                     var user = await _context.ApplicationUsers.FindAsync(userId.Value);
                     if (user?.UnitId != null)
@@ -44,7 +44,7 @@ namespace Sahayi.Api.Controllers
                 }
 
                 // If unitId is still empty, pick first active unit from DB
-                if (targetUnitId == Guid.Empty)
+                if (targetUnitId == 0)
                 {
                     var firstUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive);
                     if (firstUnit != null)
@@ -200,7 +200,7 @@ namespace Sahayi.Api.Controllers
 
         // POST: api/secretary/members
         [HttpPost("members")]
-        public async Task<IActionResult> RegisterMember([FromBody] CreateSecretaryMemberDto dto, [FromQuery] Guid? unitId)
+        public async Task<IActionResult> RegisterMember([FromBody] CreateSecretaryMemberDto dto, [FromQuery] int? unitId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -208,8 +208,8 @@ namespace Sahayi.Api.Controllers
             try
             {
                 // Resolve unitId
-                Guid targetUnitId = unitId ?? Guid.Empty;
-                if (targetUnitId == Guid.Empty)
+                int targetUnitId = unitId ?? 0;
+                if (targetUnitId == 0)
                 {
                     var unit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive);
                     if (unit == null)
@@ -227,7 +227,6 @@ namespace Sahayi.Api.Controllers
 
                 var newUser = new ApplicationUser
                 {
-                    UserId = Guid.NewGuid(),
                     Username = phone,
                     FullName = dto.Name,
                     PhoneNumber = phone,
@@ -241,6 +240,7 @@ namespace Sahayi.Api.Controllers
                 };
 
                 _context.ApplicationUsers.Add(newUser);
+                await _context.SaveChangesAsync();
 
                 // Add initial savings transaction if savings amount provided
                 if (dto.Savings > 0)
@@ -280,15 +280,15 @@ namespace Sahayi.Api.Controllers
 
         // POST: api/secretary/meetings
         [HttpPost("meetings")]
-        public async Task<IActionResult> ScheduleMeeting([FromBody] CreateSecretaryMeetingDto dto, [FromQuery] Guid? unitId)
+        public async Task<IActionResult> ScheduleMeeting([FromBody] CreateSecretaryMeetingDto dto, [FromQuery] int? unitId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                Guid targetUnitId = unitId ?? Guid.Empty;
-                if (targetUnitId == Guid.Empty)
+                int targetUnitId = unitId ?? 0;
+                if (targetUnitId == 0)
                 {
                     var unit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive);
                     if (unit == null) return BadRequest(new { message = "No active unit found." });
@@ -304,7 +304,7 @@ namespace Sahayi.Api.Controllers
                     MeetingDate = DateTime.TryParse(dto.Date, out var parsedDate) ? parsedDate : DateTime.UtcNow.AddDays(7),
                     Venue = dto.Location,
                     MinutesOfMeeting = dto.Title,
-                    CreatedBy = secretary?.UserId ?? Guid.NewGuid()
+                    CreatedBy = secretary?.UserId ?? 0
                 };
 
                 _context.Meetings.Add(meeting);
@@ -352,12 +352,12 @@ namespace Sahayi.Api.Controllers
 
         // POST: api/secretary/savings/record
         [HttpPost("savings/record")]
-        public async Task<IActionResult> RecordSavings([FromBody] RecordSecretarySavingsDto dto, [FromQuery] Guid? unitId)
+        public async Task<IActionResult> RecordSavings([FromBody] RecordSecretarySavingsDto dto, [FromQuery] int? unitId)
         {
             try
             {
-                Guid targetUnitId = unitId ?? Guid.Empty;
-                if (targetUnitId == Guid.Empty)
+                int targetUnitId = unitId ?? 0;
+                if (targetUnitId == 0)
                 {
                     var user = await _context.ApplicationUsers.FindAsync(dto.UserId);
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;

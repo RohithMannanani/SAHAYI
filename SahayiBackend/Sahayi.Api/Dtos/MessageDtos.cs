@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Sahayi.Api.DTOs
 {
@@ -8,7 +8,7 @@ namespace Sahayi.Api.DTOs
         public int GroupId { get; set; }
 
         [Required]
-        public Guid SenderId { get; set; }
+        public int SenderId { get; set; }
 
         [Required]
         public string MessageText { get; set; } = string.Empty;
@@ -17,10 +17,10 @@ namespace Sahayi.Api.DTOs
     public class SendDirectMessageDto
     {
         [Required]
-        public Guid SenderId { get; set; }
+        public int SenderId { get; set; }
 
         [Required]
-        public Guid ReceiverId { get; set; }
+        public int ReceiverId { get; set; }
 
         [Required]
         public string MessageText { get; set; } = string.Empty;

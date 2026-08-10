@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -9,7 +9,7 @@ namespace Sahayi.Api.Entities
         public int GroupId { get; set; }
 
         [Required]
-        public Guid UnitId { get; set; }
+        public int UnitId { get; set; }
 
         [Required]
         [Column(TypeName = "varchar(100)")]

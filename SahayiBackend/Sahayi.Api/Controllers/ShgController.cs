@@ -72,7 +72,6 @@ namespace Sahayi.Api.Controllers
                 // 4. Create and add the Unit entity
                 var unit = new AyalkoottamUnit
                 {
-                    UnitId = Guid.NewGuid(),
                     UnitName = dto.UnitName,
                     WardId = dto.WardId,
                     AccountNumber = dto.AccountNumber,
@@ -83,6 +82,7 @@ namespace Sahayi.Api.Controllers
                 };
 
                 _context.AyalkoottamUnits.Add(unit);
+                await _context.SaveChangesAsync();
 
                 // 5. Create members & credentials
                 var createdUsers = new List<ApplicationUser>();
@@ -98,7 +98,6 @@ namespace Sahayi.Api.Controllers
 
                     var user = new ApplicationUser
                     {
-                        UserId = Guid.NewGuid(),
                         Username = mDto.PhoneNumber,
                         FullName = mDto.FullName,
                         PhoneNumber = mDto.PhoneNumber,
@@ -193,7 +192,7 @@ namespace Sahayi.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetUnitById(Guid id)
+        public async Task<IActionResult> GetUnitById(int id)
         {
             try
             {
@@ -240,7 +239,7 @@ namespace Sahayi.Api.Controllers
         }
 
         [HttpPost("{id}/toggle-status")]
-        public async Task<IActionResult> ToggleStatus(Guid id, [FromBody] ToggleStatusDto dto)
+        public async Task<IActionResult> ToggleStatus(int id, [FromBody] ToggleStatusDto dto)
         {
             try
             {

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -9,7 +9,7 @@ namespace Sahayi.Api.Entities
         public int MeetingId { get; set; }
 
         [Required]
-        public Guid UnitId { get; set; }
+        public int UnitId { get; set; }
 
         [Required]
         public DateTime MeetingDate { get; set; }
@@ -22,7 +22,7 @@ namespace Sahayi.Api.Entities
         public string? MinutesOfMeeting { get; set; }
 
         [Required]
-        public Guid CreatedBy { get; set; }
+        public int CreatedBy { get; set; }
 
         // Navigation Properties
         [ForeignKey("UnitId")]

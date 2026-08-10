@@ -24,9 +24,11 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.ApplicationUser", b =>
                 {
-                    b.Property<Guid>("UserId")
+                    b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -56,8 +58,8 @@ namespace Sahayi.Api.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("UnitId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -95,8 +97,8 @@ namespace Sahayi.Api.Migrations
                     b.Property<int>("MeetingId")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("AttendanceId");
 
@@ -109,9 +111,11 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.AyalkoottamUnit", b =>
                 {
-                    b.Property<Guid>("UnitId")
+                    b.Property<int>("UnitId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UnitId"));
 
                     b.Property<decimal>("AccountBalance")
                         .HasColumnType("decimal(18,2)");
@@ -167,8 +171,8 @@ namespace Sahayi.Api.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(100)");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
                     b.HasKey("GroupId");
 
@@ -192,11 +196,11 @@ namespace Sahayi.Api.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(max)");
 
-                    b.Property<Guid>("ReceiverId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("ReceiverId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
@@ -228,8 +232,8 @@ namespace Sahayi.Api.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(max)");
 
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
@@ -258,8 +262,8 @@ namespace Sahayi.Api.Migrations
                     b.Property<DateTime>("AppliedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("ApprovedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("ApprovedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DisbursedDate")
                         .HasColumnType("datetime2");
@@ -279,11 +283,11 @@ namespace Sahayi.Api.Migrations
                     b.Property<int>("TenureMonths")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("LoanId");
 
@@ -323,8 +327,8 @@ namespace Sahayi.Api.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(50)");
 
-                    b.Property<Guid>("RecordedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RecordedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("RepaymentDate")
                         .HasColumnType("datetime2");
@@ -349,8 +353,8 @@ namespace Sahayi.Api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MeetingId"));
 
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("MeetingDate")
                         .HasColumnType("datetime2");
@@ -358,8 +362,8 @@ namespace Sahayi.Api.Migrations
                     b.Property<string>("MinutesOfMeeting")
                         .HasColumnType("varchar(max)");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Venue")
                         .IsRequired()
@@ -396,8 +400,8 @@ namespace Sahayi.Api.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(100)");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("NotificationId");
 
@@ -431,9 +435,11 @@ namespace Sahayi.Api.Migrations
 
             modelBuilder.Entity("Sahayi.Api.Entities.PasswordResetOtp", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -479,17 +485,17 @@ namespace Sahayi.Api.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(50)");
 
-                    b.Property<Guid>("RecordedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RecordedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("TransactionId");
 
@@ -526,8 +532,8 @@ namespace Sahayi.Api.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(max)");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("UserName")
                         .IsRequired()

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -9,10 +9,10 @@ namespace Sahayi.Api.Entities
         public long DirectMessageId { get; set; }
 
         [Required]
-        public Guid SenderId { get; set; }
+        public int SenderId { get; set; }
 
         [Required]
-        public Guid ReceiverId { get; set; }
+        public int ReceiverId { get; set; }
 
         [Required]
         [Column(TypeName = "varchar(max)")]

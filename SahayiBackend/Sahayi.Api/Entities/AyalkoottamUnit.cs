@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -7,7 +7,8 @@ namespace Sahayi.Api.Entities
     public class AyalkoottamUnit
     {
         [Key]
-        public Guid UnitId { get; set; } = Guid.NewGuid();
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int UnitId { get; set; }
 
         [Required]
         [Column(TypeName = "varchar(150)")]

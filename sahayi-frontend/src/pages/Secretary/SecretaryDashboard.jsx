@@ -127,7 +127,7 @@ function SecretaryDashboard() {
       if (rawUser) {
         const u = JSON.parse(rawUser);
         return {
-          unitId: u?.unitId || null,
+          unitId: u?.unitId && !isNaN(Number(u.unitId)) ? Number(u.unitId) : null,
           unitName: u?.unitName || '',
           secretaryName: u?.fullName || '',
           secretaryPhone: u?.phoneNumber || ''

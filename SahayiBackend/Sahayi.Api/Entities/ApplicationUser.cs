@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -7,7 +7,8 @@ namespace Sahayi.Api.Entities
     public class ApplicationUser
     {
         [Key]
-        public Guid UserId { get; set; } = Guid.NewGuid();
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int UserId { get; set; }
 
         [Required]
         [Column(TypeName = "varchar(50)")]
@@ -37,7 +38,7 @@ namespace Sahayi.Api.Entities
         [ForeignKey("RoleId")]
         public UserRole? UserRole { get; set; }
 
-        public Guid? UnitId { get; set; } // Nullable for CDS Admin [cite: 58]
+        public int? UnitId { get; set; } // Nullable for CDS Admin [cite: 58]
 
         [ForeignKey("UnitId")]
         public AyalkoottamUnit? AyalkoottamUnit { get; set; }

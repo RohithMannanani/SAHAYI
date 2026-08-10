@@ -37,7 +37,6 @@ namespace Sahayi.Api.Controllers
 
             var adminUser = new ApplicationUser
             {
-                UserId = Guid.NewGuid(),
                 Username = dto.Username,
                 FullName = dto.FullName,
                 PhoneNumber = dto.PhoneNumber,

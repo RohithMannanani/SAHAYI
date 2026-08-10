@@ -37,7 +37,7 @@ namespace Sahayi.Api.DTOs
     public class RecordSecretarySavingsDto
     {
         [Required]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
 
         public decimal Amount { get; set; } = 100;
     }
@@ -45,7 +45,7 @@ namespace Sahayi.Api.DTOs
     public class RecordAttendanceItemDto
     {
         [Required]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
 
         public bool IsPresent { get; set; }
     }
@@ -60,7 +60,7 @@ namespace Sahayi.Api.DTOs
     public class SecretarySavingsItemDto
     {
         public int Id { get; set; }
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string MemberId { get; set; } = string.Empty;
         public string Amount { get; set; } = "0.00";
@@ -81,7 +81,7 @@ namespace Sahayi.Api.DTOs
     public class SecretaryLoanItemDto
     {
         public int Id { get; set; }
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Amount { get; set; } = string.Empty;
         public string Purpose { get; set; } = string.Empty;
@@ -96,7 +96,7 @@ namespace Sahayi.Api.DTOs
     public class SecretaryMemberItemDto
     {
         public int Id { get; set; }
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string MemberId { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
@@ -107,7 +107,7 @@ namespace Sahayi.Api.DTOs
 
     public class SecretaryDashboardDto
     {
-        public Guid UnitId { get; set; }
+        public int UnitId { get; set; }
         public string UnitName { get; set; } = string.Empty;
         public string SecretaryName { get; set; } = string.Empty;
         public string SecretaryPhone { get; set; } = string.Empty;

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sahayi.Api.Entities
@@ -9,10 +9,10 @@ namespace Sahayi.Api.Entities
         public int TransactionId { get; set; }
 
         [Required]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
 
         [Required]
-        public Guid UnitId { get; set; }
+        public int UnitId { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
@@ -26,7 +26,7 @@ namespace Sahayi.Api.Entities
         public string ReceiptNumber { get; set; } = string.Empty;
 
         [Required]
-        public Guid RecordedBy { get; set; }
+        public int RecordedBy { get; set; }
 
         // Navigation Properties
         [ForeignKey("UserId")]
