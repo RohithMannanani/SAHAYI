@@ -16,7 +16,9 @@ import {
 import { formatTimeTo12Hr } from '../../utils/formatTime';
 
 function OperationalOverview({
+  currentUser,
   unitInfo,
+  unitBankAccount,
   isLoading,
   filteredSavings,
   meetings,
@@ -28,11 +30,27 @@ function OperationalOverview({
   onShowHistoryModal,
   onShowCalendarModal,
   onRecordSavings,
+  onDepositCashToBank,
+  onDepositAllCashToBank,
+  onPayNow,
   onEditSavings,
   onVerifyAndForward,
   onSelectLoanDetail,
   onDeleteMeeting
 }) {
+  const onlineAndDepositedTotalFromLogs = filteredSavings
+    .filter(s => s.status === 'Paid' && (
+      (s.paymentMode || '').toLowerCase().includes('online') ||
+      (s.paymentMode || '').toLowerCase().includes('bank deposited') ||
+      (s.paymentMode || '').toLowerCase().includes('in bank')
+    ))
+    .reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+
+  const effectiveBankBalance = Math.max(
+    parseFloat(unitBankAccount?.balance || 0),
+    onlineAndDepositedTotalFromLogs
+  );
+
   return (
     <div className="sec-dashboard-view">
       {/* Operational Overview Header */}
@@ -78,6 +96,88 @@ function OperationalOverview({
         </button>
       </div>
 
+      {/* Unit Bank Account & Cash Collection Overview Banner */}
+      <div className="sec-bank-card" style={{
+        background: 'linear-gradient(135deg, #0C382E 0%, #155e4b 100%)',
+        color: '#ffffff',
+        borderRadius: '16px',
+        padding: '1.25rem 1.5rem',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: '0 8px 24px rgba(12, 56, 46, 0.18)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#34d399'
+          }}>
+            <Landmark size={26} />
+          </div>
+          <div>
+            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8, fontWeight: 600 }}>
+              Official Unit Bank Account Balance
+            </span>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '2px 0 4px 0', color: '#ffffff' }}>
+              ₹{effectiveBankBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </h3>
+            <p style={{ fontSize: '0.8rem', margin: 0, opacity: 0.85 }}>
+              {unitBankAccount?.bankName || 'Sahayi Co-operative Bank'} &bull; A/C: {unitBankAccount?.accountNumber || `SB-UNIT-${unitInfo?.unitId || '0001'}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Pending Cash Collection Summary & Bulk Deposit Button */}
+        {(() => {
+          const undepositedCashList = filteredSavings.filter(s =>
+            s.status === 'Paid' && (s.paymentMode === 'Cash' || (!s.paymentMode || s.paymentMode === '-'))
+          );
+          const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255, 255, 255, 0.1)', padding: '0.6rem 1rem', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', opacity: 0.8, display: 'block', textTransform: 'uppercase' }}>Cash Collected In Hand</span>
+                <strong style={{ fontSize: '1rem', color: '#fbbf24' }}>₹{undepositedTotal.toFixed(2)}</strong>
+              </div>
+              {undepositedCashList.length > 0 && onDepositAllCashToBank && (
+                <button
+                  type="button"
+                  onClick={() => onDepositAllCashToBank(undepositedCashList)}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '0.45rem 0.9rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <Landmark size={14} />
+                  <span>Deposit Cash to Bank</span>
+                </button>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+
       {/* Middle Grid: Savings Log (Left) & Upcoming Meetings (Right) */}
       <div className="sec-middle-grid">
         {/* Weekly Savings Log */}
@@ -102,11 +202,11 @@ function OperationalOverview({
               <thead>
                 <tr>
                   <th>Member Name</th>
-                  <th>ID</th>
                   <th>Month</th>
                   <th>Week</th>
                   <th>Amount</th>
                   <th>Status</th>
+                  <th>Payment Mode</th>
                   <th className="sec-text-right">Action</th>
                 </tr>
               </thead>
@@ -138,10 +238,32 @@ function OperationalOverview({
                     };
                     const { month: logMonth, week: logWeek } = getDetails(item);
 
+                    // Check if row belongs to current logged in member
+                    const isCurrentMember = () => {
+                      if (!item) return false;
+                      if (currentUser?.userId && item.userId && String(currentUser.userId).toLowerCase() === String(item.userId).toLowerCase()) {
+                        return true;
+                      }
+                      if (currentUser?.memberId && item.memberId && String(currentUser.memberId).toLowerCase() === String(item.memberId).toLowerCase()) {
+                        return true;
+                      }
+                      const itemName = (item.name || '').trim().toLowerCase();
+                      const userName = (currentUser?.fullName || currentUser?.name || unitInfo?.secretaryName || '').trim().toLowerCase();
+                      if (itemName && userName && (itemName === userName || itemName.includes(userName) || userName.includes(itemName))) {
+                        return true;
+                      }
+                      return false;
+                    };
+
+                    const isSelf = isCurrentMember();
+                    const mode = item.paymentMode || item.paymentMethod || (item.status === 'Paid' ? 'Cash' : '-');
+                    const isOnline = mode.toLowerCase().includes('online');
+                    const isBankDeposited = mode.toLowerCase().includes('bank deposited') || mode.toLowerCase().includes('in bank');
+                    const isUndepositedCash = item.status === 'Paid' && (mode === 'Cash' || mode === 'cash' || mode === '-');
+
                     return (
                       <tr key={item.id}>
                         <td className="sec-font-medium">{item.name}</td>
-                        <td className="sec-text-muted">{item.memberId}</td>
                         <td>{logMonth}</td>
                         <td>
                           <span className="sec-week-pill">{logWeek}</span>
@@ -152,14 +274,34 @@ function OperationalOverview({
                             {item.status}
                           </span>
                         </td>
+                        <td className="sec-font-medium">
+                          {isOnline ? (
+                            <span style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckCircle2 size={13} /> Online
+                            </span>
+                          ) : isBankDeposited ? (
+                            <span style={{ color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckCircle2 size={13} /> Cash (In Bank)
+                            </span>
+                          ) : isUndepositedCash ? (
+                            <span style={{ color: '#d97706', fontWeight: 600 }}>
+                              Cash 
+                            </span>
+                          ) : (
+                            mode
+                          )}
+                        </td>
                         <td className="sec-text-right">
                           {item.status === 'Paid' ? (
+                            <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.825rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckCircle2 size={14} /> Paid
+                            </span>
+                          ) : isSelf ? (
                             <button
-                              className="sec-icon-action-btn"
-                              title="Edit record"
-                              onClick={() => onEditSavings(item)}
+                              className="sec-table-btn-pay"
+                              onClick={() => (onPayNow ? onPayNow(item) : onRecordSavings(item))}
                             >
-                              <Pencil size={16} />
+                              Pay Now
                             </button>
                           ) : (
                             <button

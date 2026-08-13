@@ -84,6 +84,18 @@ namespace Sahayi.Api.Controllers
                 _context.AyalkoottamUnits.Add(unit);
                 await _context.SaveChangesAsync();
 
+                // Create associated UnitBankAccount record with real bank details
+                var unitBankAccount = new UnitBankAccount
+                {
+                    UnitId = unit.UnitId,
+                    AccountNumber = unit.AccountNumber,
+                    BankName = unit.BankName,
+                    IFSCCode = unit.IFSCCode,
+                    Balance = 0.00m,
+                    LastUpdated = DateTime.UtcNow
+                };
+                _context.UnitBankAccounts.Add(unitBankAccount);
+
                 // 5. Create members & credentials
                 var createdUsers = new List<ApplicationUser>();
                 var pdfMembers = new List<MemberCredentialInfo>();
@@ -134,15 +146,86 @@ namespace Sahayi.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // 7. Generate Credentials PDF Blob
+                // 7. Generate Credentials PDF Blob & store in folder
                 var pdfBytes = _pdfService.GenerateCredentialsPdf(dto.UnitName, ward.WardNumber, pdfMembers);
 
-                return File(pdfBytes, "application/pdf", $"{dto.UnitName.Replace(" ", "_")}_credentials.pdf");
+                try
+                {
+                    var receiptsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "receipts");
+                    if (!Directory.Exists(receiptsFolder))
+                    {
+                        Directory.CreateDirectory(receiptsFolder);
+                    }
+                    var filePath = Path.Combine(receiptsFolder, $"unit_{unit.UnitId}_receipt.pdf");
+                    await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
+                }
+                catch (Exception saveEx)
+                {
+                    Console.WriteLine($"Warning: Could not save receipt PDF to disk: {saveEx.Message}");
+                }
+
+                return File(pdfBytes, "application/pdf", $"{dto.UnitName.Replace(" ", "_")}_receipt.pdf");
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 return StatusCode(500, new { message = "Error saving unit to database.", details = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/receipt")]
+        public async Task<IActionResult> GetUnitReceipt(int id)
+        {
+            try
+            {
+                var unit = await _context.AyalkoottamUnits
+                    .Include(u => u.Ward)
+                    .Include(u => u.Users)
+                        .ThenInclude(u => u.UserRole)
+                    .FirstOrDefaultAsync(u => u.UnitId == id);
+
+                if (unit == null)
+                    return NotFound(new { message = "Ayalkoottam unit not found." });
+
+                var receiptsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "receipts");
+                if (!Directory.Exists(receiptsFolder))
+                {
+                    Directory.CreateDirectory(receiptsFolder);
+                }
+
+                var fileName = $"unit_{id}_receipt.pdf";
+                var filePath = Path.Combine(receiptsFolder, fileName);
+
+                byte[] pdfBytes;
+
+                if (System.IO.File.Exists(filePath))
+                {
+                    pdfBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                }
+                else
+                {
+                    // Dynamically generate PDF if not already present in folder
+                    var pdfMembers = unit.Users.Select(m => new MemberCredentialInfo
+                    {
+                        FullName = m.FullName,
+                        PhoneNumber = m.PhoneNumber,
+                        Role = m.UserRole != null ? m.UserRole.RoleName : (m.RoleId == 2 ? "President" : m.RoleId == 3 ? "Secretary" : m.RoleId == 4 ? "Treasurer" : "Member"),
+                        CommonPassword = "Set on Registration"
+                    }).ToList();
+
+                    int wardNum = unit.Ward != null ? unit.Ward.WardNumber : 1;
+                    pdfBytes = _pdfService.GenerateCredentialsPdf(unit.UnitName, wardNum, pdfMembers);
+
+                    // Save to folder for future requests
+                    await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
+                }
+
+                var downloadFileName = $"{unit.UnitName.Replace(" ", "_")}_receipt.pdf";
+                return File(pdfBytes, "application/pdf", downloadFileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving unit receipt.", details = ex.Message });
             }
         }
 

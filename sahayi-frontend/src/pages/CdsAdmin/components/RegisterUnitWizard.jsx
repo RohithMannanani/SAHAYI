@@ -534,8 +534,22 @@ function RegisterUnitWizard({
       const response = await registerShgUnit(registrationData);
       const blob = new Blob([response.data], { type: 'application/pdf' });
       setRegisteredPdfBlob(blob);
+
+      // Store PDF receipt in localStorage for fast local preview/download
+      try {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          const base64data = reader.result;
+          const receiptKey = `sahayi_unit_receipt_${newUnit.name.toLowerCase().replace(/\s+/g, '_')}`;
+          localStorage.setItem(receiptKey, base64data);
+        };
+      } catch (e) {
+        console.warn("Could not cache receipt locally:", e);
+      }
+
       setIsSuccessModalOpen(true);
-      if (onRegisterSuccess) onRegisterSuccess(newUnit);
+      if (onRegisterSuccess) onRegisterSuccess({ ...newUnit, hasReceipt: true });
       localStorage.removeItem('cds_shg_draft'); // Clean up draft
     } catch (err) {
       console.warn("Backend API unavailable or error occurred, using local fallback:", err);

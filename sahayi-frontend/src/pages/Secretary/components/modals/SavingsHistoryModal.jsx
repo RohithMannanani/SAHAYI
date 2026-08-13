@@ -1,7 +1,7 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Landmark, CheckCircle2 } from 'lucide-react';
 
-function SavingsHistoryModal({ savingsLogs, onClose }) {
+function SavingsHistoryModal({ savingsLogs, onDepositCashToBank, onClose }) {
   return (
     <div className="sec-modal-overlay" onClick={onClose}>
       <div className="sec-modal sec-modal--wide" onClick={e => e.stopPropagation()}>
@@ -20,9 +20,10 @@ function SavingsHistoryModal({ savingsLogs, onClose }) {
                 <th>Month</th>
                 <th>Week</th>
                 <th>Member</th>
-                <th>ID</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Payment Mode</th>
+                <th className="sec-text-right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -39,18 +40,48 @@ function SavingsHistoryModal({ savingsLogs, onClose }) {
                 };
                 const { month: logMonth, week: logWeek } = getDetails(item);
 
+                const mode = item.paymentMode || item.paymentMethod || (item.status === 'Paid' ? 'Cash' : '-');
+                const isOnline = mode.toLowerCase().includes('online');
+                const isBankDeposited = mode.toLowerCase().includes('bank deposited') || mode.toLowerCase().includes('in bank');
+                const isUndepositedCash = item.status === 'Paid' && (mode === 'Cash' || mode === 'cash' || mode === '-');
+
                 return (
                   <tr key={item.id}>
                     <td>{item.date || new Date().toISOString().split('T')[0]}</td>
                     <td>{logMonth}</td>
                     <td><span className="sec-week-pill">{logWeek}</span></td>
                     <td className="sec-font-medium">{item.name}</td>
-                    <td>{item.memberId}</td>
-                    <td>₹{item.amount}</td>
+                    <td className="sec-font-semibold">₹{item.amount}</td>
                     <td>
                       <span className={`sec-status-badge sec-status-badge--${item.status.toLowerCase()}`}>
                         {item.status}
                       </span>
+                    </td>
+                    <td className="sec-font-medium">
+                      {isOnline ? (
+                        <span style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle2 size={13} /> Online (In Bank)
+                        </span>
+                      ) : isBankDeposited ? (
+                        <span style={{ color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle2 size={13} /> Cash (In Bank)
+                        </span>
+                      ) : isUndepositedCash ? (
+                        <span style={{ color: '#d97706', fontWeight: 600 }}>
+                          Cash (In Hand)
+                        </span>
+                      ) : (
+                        mode
+                      )}
+                    </td>
+                    <td className="sec-text-right">
+                      {item.status === 'Paid' ? (
+                        <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.825rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle2 size={13} /> Paid
+                        </span>
+                      ) : (
+                        <span style={{ color: '#888', fontSize: '0.8rem' }}>-</span>
+                      )}
                     </td>
                   </tr>
                 );

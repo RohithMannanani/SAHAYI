@@ -87,37 +87,43 @@ namespace Sahayi.Api.Controllers
                     .Where(s => s.UnitId == targetUnitId)
                     .Include(s => s.User)
                     .OrderByDescending(s => s.TransactionDate)
-                    .Take(20)
                     .ToListAsync();
 
-                var savingsLogs = new List<SecretarySavingsItemDto>();
-                if (savingsList.Any())
+                DateTime currentWeekStart = DateTime.UtcNow.AddDays(-6);
+
+                var savingsLogs = unitUsers.Select((u, index) =>
                 {
-                    savingsLogs = savingsList.Select((s, index) => new SecretarySavingsItemDto
+                    // Check if member has paid within current week window (last 6-7 days)
+                    var userTx = savingsList.FirstOrDefault(s => s.UserId == u.UserId && s.TransactionDate >= currentWeekStart);
+                    if (userTx != null)
                     {
-                        Id = s.TransactionId,
-                        UserId = s.UserId,
-                        Name = s.User?.FullName ?? "Member",
-                        MemberId = $"AK-{(index + 1):D3}",
-                        Amount = s.Amount.ToString("0.00"),
-                        Status = "Paid",
-                        Date = s.TransactionDate.ToString("yyyy-MM-dd")
-                    }).ToList();
-                }
-                else
-                {
-                    // If no savings transactions exist yet, display unit members with Pending status
-                    savingsLogs = unitUsers.Select((u, index) => new SecretarySavingsItemDto
+                        return new SecretarySavingsItemDto
+                        {
+                            Id = userTx.TransactionId,
+                            UserId = u.UserId,
+                            Name = u.FullName,
+                            MemberId = $"AK-{(index + 1):D3}",
+                            Amount = userTx.Amount.ToString("0.00"),
+                            Status = "Paid",
+                            PaymentMode = string.IsNullOrEmpty(userTx.PaymentMode) ? "Cash" : userTx.PaymentMode,
+                            Date = userTx.TransactionDate.ToString("yyyy-MM-dd")
+                        };
+                    }
+                    else
                     {
-                        Id = index + 1,
-                        UserId = u.UserId,
-                        Name = u.FullName,
-                        MemberId = $"AK-{(index + 1):D3}",
-                        Amount = "0.00",
-                        Status = "Pending",
-                        Date = DateTime.UtcNow.ToString("yyyy-MM-dd")
-                    }).ToList();
-                }
+                        return new SecretarySavingsItemDto
+                        {
+                            Id = u.UserId > 0 ? u.UserId : (index + 1),
+                            UserId = u.UserId,
+                            Name = u.FullName,
+                            MemberId = $"AK-{(index + 1):D3}",
+                            Amount = "0.00",
+                            Status = "Pending",
+                            PaymentMode = "-",
+                            Date = DateTime.UtcNow.ToString("yyyy-MM-dd")
+                        };
+                    }
+                }).ToList();
 
                 // Fetch Meetings for Unit
                 var meetingsList = await _context.Meetings
@@ -175,6 +181,67 @@ namespace Sahayi.Api.Controllers
 
                 int pendingDuesCount = savingsLogs.Count(s => s.Status == "Pending");
 
+                // Fetch Unit Bank Account Details & Sync with Online / Bank Deposited Transactions
+                var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
+
+                decimal onlineAndDepositedTotal = await _context.SavingsTransactions
+                    .Where(s => s.UnitId == targetUnitId && (s.PaymentMode == "Online" || s.PaymentMode.Contains("Bank Deposited")))
+                    .SumAsync(s => (decimal?)s.Amount) ?? 0.00m;
+
+                string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
+                string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
+                string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
+
+                if (bankAccount == null)
+                {
+                    bankAccount = new UnitBankAccount
+                    {
+                        UnitId = targetUnitId,
+                        AccountNumber = accNum,
+                        BankName = bankName,
+                        IFSCCode = ifsc,
+                        Balance = onlineAndDepositedTotal,
+                        LastUpdated = DateTime.UtcNow
+                    };
+                    _context.UnitBankAccounts.Add(bankAccount);
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    bool needSave = false;
+                    if (bankAccount.Balance < onlineAndDepositedTotal)
+                    {
+                        bankAccount.Balance = onlineAndDepositedTotal;
+                        needSave = true;
+                    }
+                    if (!string.IsNullOrWhiteSpace(unit?.BankName) && bankAccount.BankName != unit.BankName)
+                    {
+                        bankAccount.BankName = unit.BankName;
+                        needSave = true;
+                    }
+                    if (!string.IsNullOrWhiteSpace(unit?.AccountNumber) && bankAccount.AccountNumber != unit.AccountNumber)
+                    {
+                        bankAccount.AccountNumber = unit.AccountNumber;
+                        needSave = true;
+                    }
+                    if (needSave)
+                    {
+                        bankAccount.LastUpdated = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                var bankAccountDto = new UnitBankAccountDto
+                {
+                    BankAccountId = bankAccount.BankAccountId,
+                    UnitId = bankAccount.UnitId,
+                    AccountNumber = bankAccount.AccountNumber,
+                    BankName = bankAccount.BankName,
+                    IFSCCode = bankAccount.IFSCCode,
+                    Balance = bankAccount.Balance,
+                    LastUpdated = bankAccount.LastUpdated
+                };
+
                 var dto = new SecretaryDashboardDto
                 {
                     UnitId = targetUnitId,
@@ -184,6 +251,7 @@ namespace Sahayi.Api.Controllers
                     TotalWeeklyCollection = totalCollection,
                     DisbursedLoansTotal = disbursedTotal,
                     PendingDuesCount = pendingDuesCount,
+                    BankAccount = bankAccountDto,
                     SavingsLogs = savingsLogs,
                     Meetings = meetingItems,
                     PendingLoans = loanItems,
@@ -352,6 +420,7 @@ namespace Sahayi.Api.Controllers
 
         // POST: api/secretary/savings/record
         [HttpPost("savings/record")]
+        [HttpPost("savings/pay-cash")]
         public async Task<IActionResult> RecordSavings([FromBody] RecordSecretarySavingsDto dto, [FromQuery] int? unitId)
         {
             try
@@ -363,20 +432,35 @@ namespace Sahayi.Api.Controllers
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                 }
 
+                if (dto.UserId > 0)
+                {
+                    var existingTx = await _context.SavingsTransactions
+                        .FirstOrDefaultAsync(s => s.UserId == dto.UserId && s.TransactionDate >= DateTime.UtcNow.AddDays(-6));
+                    if (existingTx != null)
+                    {
+                        return BadRequest(new { message = "Weekly savings deposit for this week has already been paid for this member!" });
+                    }
+                }
+
+                var mode = !string.IsNullOrWhiteSpace(dto.PaymentMode)
+                    ? dto.PaymentMode
+                    : (!string.IsNullOrWhiteSpace(dto.PaymentMethod) ? dto.PaymentMethod : "Cash");
+
                 var savingsTx = new SavingsTransaction
                 {
                     UserId = dto.UserId,
                     UnitId = targetUnitId,
                     Amount = dto.Amount > 0 ? dto.Amount : 100,
+                    PaymentMode = mode,
                     TransactionDate = DateTime.UtcNow,
-                    ReceiptNumber = $"REC-{DateTime.UtcNow.Ticks.ToString()[^8..]}",
+                    ReceiptNumber = $"REC-{(mode.Equals("Online", StringComparison.OrdinalIgnoreCase) ? "RZP" : "CASH")}-{DateTime.UtcNow.Ticks.ToString()[^8..]}",
                     RecordedBy = dto.UserId
                 };
 
                 _context.SavingsTransactions.Add(savingsTx);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = "Weekly savings recorded successfully!", transactionId = savingsTx.TransactionId });
+                return Ok(new { message = "Weekly savings recorded successfully!", transactionId = savingsTx.TransactionId, status = "Paid" });
             }
             catch (Exception ex)
             {
@@ -432,6 +516,30 @@ namespace Sahayi.Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Failed to record attendance.", details = ex.Message });
+            }
+        }
+
+        // POST: api/secretary/clear-savings-data
+        [HttpPost("clear-savings-data")]
+        public async Task<IActionResult> ClearSavingsData()
+        {
+            try
+            {
+                _context.SavingsTransactions.RemoveRange(_context.SavingsTransactions);
+                
+                var bankAccounts = await _context.UnitBankAccounts.ToListAsync();
+                foreach (var acc in bankAccounts)
+                {
+                    acc.Balance = 0.00m;
+                    acc.LastUpdated = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "All savings transactions cleared and unit bank account balances reset to ₹0.00 successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to clear savings data.", details = ex.Message });
             }
         }
     }

@@ -590,3 +590,140 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Registration Receipt (PDF) Card Styles ─────────────────────── */
+.cds-receipt-card {
+  border-left: 4px solid #15803d;
+  background: #ffffff;
+}
+
+.cds-receipt-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 3px 9px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cds-receipt-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #f8faf9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.cds-receipt-box-icon {
+  position: relative;
+  width: 44px;
+  height: 48px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cds-pdf-tag {
+  font-size: 9px;
+  font-weight: 800;
+  color: #dc2626;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.cds-receipt-box-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cds-receipt-filename {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cds-receipt-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.cds-receipt-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+  font-family: monospace;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.cds-receipt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cds-receipt-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cds-receipt-btn--primary {
+  background: #15803d;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.25);
+}
+
+.cds-receipt-btn--primary:hover:not(:disabled) {
+  background: #166534;
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.35);
+  transform: translateY(-1px);
+}
+
+.cds-receipt-btn--primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cds-receipt-btn--secondary {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.cds-receipt-btn--secondary:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+

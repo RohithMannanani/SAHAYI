@@ -826,3 +826,273 @@
   color: #1b432c;
   text-decoration: underline;
 }
+
+/* ── Modal & Toast Utilities ── */
+.mem-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #10b981;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  animation: memSlideIn 0.3s ease-out forwards;
+}
+
+.mem-toast--error {
+  background-color: #ef4444;
+}
+
+@keyframes memSlideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.mem-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+}
+
+.mem-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 28px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.mem-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mem-modal__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1b432c;
+}
+
+.mem-modal__close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.mem-form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mem-form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.mem-form-input, .mem-form-select {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #d1d5db;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.mem-form-input:focus, .mem-form-select:focus {
+  border-color: #1b432c;
+}
+
+.mem-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.mem-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: #1b432c;
+  gap: 16px;
+  font-weight: 600;
+}
+
+.mem-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #1b432c;
+  border-radius: 50%;
+  animation: memSpin 0.8s linear infinite;
+}
+
+@keyframes memSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Weekly Savings Payment Banner Section ── */
+.mem-savings-pay-banner {
+  background: linear-gradient(135deg, #0C382E 0%, #175243 100%);
+  border-radius: 16px;
+  padding: 22px 28px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 10px 25px rgba(12, 56, 46, 0.15);
+}
+
+.mem-savings-pay-info {
+  max-width: 60%;
+}
+
+.mem-savings-pay-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(255, 214, 0, 0.2);
+  color: #ffd600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.mem-savings-pay-title {
+  font-size: 19px;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+  color: #ffffff;
+}
+
+.mem-savings-pay-desc {
+  font-size: 13px;
+  color: #c2ded6;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.mem-savings-pay-action {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.mem-savings-pay-amount-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.mem-savings-pay-amount-label {
+  font-size: 11px;
+  color: #a3c4ba;
+  font-weight: 500;
+}
+
+.mem-savings-pay-amount-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffd600;
+}
+
+.mem-btn-pay-now {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffd600;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0C382E;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255, 214, 0, 0.35);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.mem-btn-pay-now:hover {
+  background: #f0c800;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 214, 0, 0.5);
+}
+
+.mem-btn-pay-savings {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #0C382E;
+  border: 1px solid #0C382E;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(12, 56, 46, 0.25);
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.mem-btn-pay-savings:hover {
+  background: #175243;
+  transform: translateY(-1px);
+}
+
+/* Paid Disabled Button States */
+.mem-savings-pay-tag--paid {
+  background: rgba(16, 185, 129, 0.25) !important;
+  color: #10b981 !important;
+}
+
+.mem-savings-pay-amount-val--paid {
+  color: #10b981 !important;
+}
+
+.mem-btn-pay-now--paid {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  border: 1.5px solid #a7f3d0 !important;
+}
+
+.mem-btn-pay-savings--paid {
+  background: #047857 !important;
+  border-color: #047857 !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.9;
+}
+
+
+

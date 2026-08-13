@@ -28,6 +28,7 @@ namespace Sahayi.Api.Data
         public DbSet<DirectMessage> DirectMessages { get; set; }
         public DbSet<UserCredential> UserCredentials { get; set; }
         public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
+        public DbSet<UnitBankAccount> UnitBankAccounts { get; set; }
 
         // ==========================================
         // 2. MODEL CONFIGURATIONS & FLUENT API
@@ -71,6 +72,10 @@ namespace Sahayi.Api.Data
             // ------------------------------------------
             modelBuilder.Entity<SavingsTransaction>()
                 .Property(s => s.Amount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<UnitBankAccount>()
+                .Property(b => b.Balance)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<LoanApplication>()

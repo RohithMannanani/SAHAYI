@@ -54,6 +54,13 @@ export const fetchShgUnitDetails = async (id) => {
   return await api.get(`/shg/${id}`);
 };
 
+// Fetch / Download Registration Receipt PDF for a Unit
+export const fetchShgUnitReceipt = async (id) => {
+  return await api.get(`/shg/${id}/receipt`, {
+    responseType: 'blob',
+  });
+};
+
 // ========================================================
 // FORGOT PASSWORD VIA MOBILE OTP APIs
 // ========================================================
@@ -120,6 +127,47 @@ export const recordSecretarySavings = async (data, unitId) => {
   return await api.post('/secretary/savings/record', data, { params });
 };
 
+// 4a. Pay Cash Endpoint (POST /api/savings/pay-cash)
+export const payCashSavings = async (data, unitId) => {
+  const params = (unitId && !isNaN(Number(unitId))) ? { unitId: Number(unitId) } : {};
+  try {
+    return await api.post('/savings/pay-cash', data, { params });
+  } catch (err) {
+    return await api.post('/secretary/savings/record', data, { params });
+  }
+};
+
+// 4b. Pay Online Endpoint (POST /api/savings/pay-online)
+export const payOnlineSavings = async (data, unitId) => {
+  const params = (unitId && !isNaN(Number(unitId))) ? { unitId: Number(unitId) } : {};
+  try {
+    return await api.post('/savings/pay-online', data, { params });
+  } catch (err) {
+    return await api.post('/secretary/savings/record', { ...data, paymentMode: 'Online', paymentMethod: 'Online' }, { params });
+  }
+};
+
+// 4c. Deposit Cash to Unit Bank Account (POST /api/savings/deposit-cash-to-bank)
+export const depositCashToBank = async (data) => {
+  try {
+    return await api.post('/savings/deposit-cash-to-bank', data);
+  } catch (err) {
+    if (err.response && (err.response.status === 404 || err.response.status === 405)) {
+      return await api.post('/secretary/savings/record', {
+        ...data,
+        paymentMode: 'Cash (Bank Deposited)',
+        paymentMethod: 'Cash (Bank Deposited)'
+      });
+    }
+    throw err;
+  }
+};
+
+// 4d. Fetch Unit Bank Account Details (GET /api/savings/unit-bank-account/{unitId})
+export const fetchUnitBankAccount = async (unitId) => {
+  return await api.get(`/savings/unit-bank-account/${unitId}`);
+};
+
 // 5. Verify & Endorse Loan Application to President
 export const verifySecretaryLoan = async (loanId) => {
   return await api.post(`/secretary/loans/${loanId}/verify`);
@@ -140,6 +188,50 @@ export const deleteSecretaryMeeting = async (meetingId) => {
     }
     throw err;
   }
+};
+
+// ========================================================
+// RAZORPAY PAYMENT CHECKOUT APIs
+// ========================================================
+
+// 1. Create Razorpay Order (POST /api/create-order)
+export const createRazorpayOrder = async (payload) => {
+  try {
+    return await api.post('/create-order', payload);
+  } catch (err) {
+    return await api.post('/payment/create-order', payload);
+  }
+};
+
+// 2. Verify Razorpay Payment Signature (POST /api/verify-payment)
+export const verifyRazorpayPayment = async (payload) => {
+  try {
+    return await api.post('/verify-payment', payload);
+  } catch (err) {
+    return await api.post('/payment/verify-payment', payload);
+  }
+};
+
+// ========================================================
+// MEMBER DASHBOARD APIs
+// ========================================================
+
+// 1. Fetch Member Dashboard Data from SahayiDb (GET /api/member/dashboard)
+export const fetchMemberDashboard = async (userId, unitId) => {
+  const params = {};
+  if (userId && !isNaN(Number(userId))) params.userId = Number(userId);
+  if (unitId && !isNaN(Number(unitId))) params.unitId = Number(unitId);
+  return await api.get('/member/dashboard', { params });
+};
+
+// 2. Apply for Member Loan (POST /api/member/apply-loan)
+export const applyMemberLoan = async (payload) => {
+  return await api.post('/member/apply-loan', payload);
+};
+
+// 3. Clear All Savings Transactions & Reset Unit Bank Accounts (POST /api/secretary/clear-savings-data)
+export const clearSavingsData = async () => {
+  return await api.post('/secretary/clear-savings-data');
 };
 
 export default api;

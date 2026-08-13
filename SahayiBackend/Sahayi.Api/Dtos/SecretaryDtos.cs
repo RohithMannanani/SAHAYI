@@ -40,6 +40,10 @@ namespace Sahayi.Api.DTOs
         public int UserId { get; set; }
 
         public decimal Amount { get; set; } = 100;
+
+        public string? PaymentMode { get; set; } = "Cash";
+
+        public string? PaymentMethod { get; set; }
     }
 
     public class RecordAttendanceItemDto
@@ -65,6 +69,7 @@ namespace Sahayi.Api.DTOs
         public string MemberId { get; set; } = string.Empty;
         public string Amount { get; set; } = "0.00";
         public string Status { get; set; } = "Pending";
+        public string PaymentMode { get; set; } = "-";
         public string Date { get; set; } = string.Empty;
     }
 
@@ -105,6 +110,17 @@ namespace Sahayi.Api.DTOs
         public string Status { get; set; } = "present";
     }
 
+    public class UnitBankAccountDto
+    {
+        public int BankAccountId { get; set; }
+        public int UnitId { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
+        public string BankName { get; set; } = string.Empty;
+        public string IFSCCode { get; set; } = string.Empty;
+        public decimal Balance { get; set; }
+        public DateTime LastUpdated { get; set; }
+    }
+
     public class SecretaryDashboardDto
     {
         public int UnitId { get; set; }
@@ -114,6 +130,7 @@ namespace Sahayi.Api.DTOs
         public decimal TotalWeeklyCollection { get; set; }
         public decimal DisbursedLoansTotal { get; set; }
         public int PendingDuesCount { get; set; }
+        public UnitBankAccountDto? BankAccount { get; set; }
         public List<SecretarySavingsItemDto> SavingsLogs { get; set; } = new List<SecretarySavingsItemDto>();
         public List<SecretaryMeetingItemDto> Meetings { get; set; } = new List<SecretaryMeetingItemDto>();
         public List<SecretaryLoanItemDto> PendingLoans { get; set; } = new List<SecretaryLoanItemDto>();

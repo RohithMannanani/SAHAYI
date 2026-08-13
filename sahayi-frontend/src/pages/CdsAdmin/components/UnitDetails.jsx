@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UnitDetails.css';
-import { fetchShgUnitDetails } from '../../../services/api';
+import { fetchShgUnitDetails, fetchShgUnitReceipt } from '../../../services/api';
 import { handleDynamicBack } from '../../../utils/navigation';
 
 // ── Icon helper ──────────────────────────────────────────────
@@ -136,6 +136,111 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
   const presidentMember = membersList.find(m => getRoleName(m).toLowerCase() === 'president');
   const secretaryMember = membersList.find(m => getRoleName(m).toLowerCase() === 'secretary');
   const treasurerMember = membersList.find(m => getRoleName(m).toLowerCase() === 'treasurer');
+
+  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
+
+  const handleDownloadReceipt = async () => {
+    setIsDownloadingReceipt(true);
+    const fileName = `${unitName.replace(/\s+/g, '_')}_receipt.pdf`;
+
+    try {
+      // 1. Try backend API download
+      if (unitId && !isNaN(Number(unitId))) {
+        const response = await fetchShgUnitReceipt(unitId);
+        if (response && response.data) {
+          const blob = new Blob([response.data], { type: 'application/pdf' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          setIsDownloadingReceipt(false);
+          return;
+        }
+      }
+
+      // 2. Check localStorage for cached base64 PDF receipt
+      const localKey = `sahayi_unit_receipt_${unitName.toLowerCase().replace(/\s+/g, '_')}`;
+      const cachedDataUrl = localStorage.getItem(localKey);
+      if (cachedDataUrl) {
+        const a = document.createElement('a');
+        a.href = cachedDataUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setIsDownloadingReceipt(false);
+        return;
+      }
+
+      // 3. Fallback text receipt file
+      const textContent = `SAHAYI - AYALKOOTTAM REGISTRATION RECEIPT\n` +
+        `=======================================================\n` +
+        `Unit Name: ${unitName}\n` +
+        `Unit ID: ${unitId}\n` +
+        `Ward Jurisdiction: ${wardDisplay}\n` +
+        `Formation Date: ${formationDate}\n` +
+        `Status: ${statusDisplay}\n` +
+        `Bank Name: ${bankName}\n` +
+        `Account Number: ${accountNumber}\n` +
+        `IFSC Code: ${ifscCode}\n` +
+        `Total Registered Members: ${membersList.length}\n` +
+        `=======================================================\n` +
+        `Stored on server at: wwwroot/receipts/unit_${unitId}_receipt.pdf\n`;
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${unitName.replace(/\s+/g, '_')}_receipt.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.warn("API receipt fetch failed, trying local storage:", err);
+      const localKey = `sahayi_unit_receipt_${unitName.toLowerCase().replace(/\s+/g, '_')}`;
+      const cachedDataUrl = localStorage.getItem(localKey);
+      if (cachedDataUrl) {
+        const a = document.createElement('a');
+        a.href = cachedDataUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        alert("Receipt file is stored in server folder wwwroot/receipts.");
+      }
+    } finally {
+      setIsDownloadingReceipt(false);
+    }
+  };
+
+  const handlePreviewReceipt = async () => {
+    try {
+      if (unitId && !isNaN(Number(unitId))) {
+        const response = await fetchShgUnitReceipt(unitId);
+        if (response && response.data) {
+          const blob = new Blob([response.data], { type: 'application/pdf' });
+          const url = window.URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          return;
+        }
+      }
+      const localKey = `sahayi_unit_receipt_${unitName.toLowerCase().replace(/\s+/g, '_')}`;
+      const cachedDataUrl = localStorage.getItem(localKey);
+      if (cachedDataUrl) {
+        const win = window.open();
+        win.document.write(`<iframe src="${cachedDataUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        return;
+      }
+      handleDownloadReceipt();
+    } catch (err) {
+      handleDownloadReceipt();
+    }
+  };
 
   const handlePrintSummary = () => {
     window.print();
@@ -438,6 +543,52 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Registration Receipt (PDF) Card */}
+          <div className="cds-details-card cds-receipt-card">
+            <div className="cds-details-card__header">
+              <h2 className="cds-details-card__title">
+                <Icon d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 3.5L18.5 8H14V3.5z" size={18} stroke="#15803d" />
+                Registration Receipt (PDF)
+              </h2>
+              <span className="cds-receipt-badge">Stored in Folder</span>
+            </div>
+            <div className="cds-details-card__body">
+              <div className="cds-receipt-box">
+                <div className="cds-receipt-box-icon">
+                  <Icon d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" size={28} stroke="#dc2626" />
+                  <span className="cds-pdf-tag">PDF</span>
+                </div>
+                <div className="cds-receipt-box-info">
+                  <div className="cds-receipt-filename">{unitName.replace(/\s+/g, '_')}_receipt.pdf</div>
+                  <div className="cds-receipt-meta">Official Unit Credentials & Registration Doc</div>
+                  <div className="cds-receipt-path">
+                    <Icon d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" size={12} stroke="#6b7280" />
+                    <span>wwwroot/receipts/unit_{unitId}_receipt.pdf</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="cds-receipt-actions">
+                <button
+                  className="cds-receipt-btn cds-receipt-btn--primary"
+                  onClick={handleDownloadReceipt}
+                  disabled={isDownloadingReceipt}
+                >
+                  <Icon d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" size={15} stroke="#ffffff" />
+                  {isDownloadingReceipt ? 'Downloading...' : 'Download Receipt PDF'}
+                </button>
+
+                <button
+                  className="cds-receipt-btn cds-receipt-btn--secondary"
+                  onClick={handlePreviewReceipt}
+                >
+                  <Icon d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" size={15} stroke="#15803d" />
+                  Preview Receipt
+                </button>
               </div>
             </div>
           </div>

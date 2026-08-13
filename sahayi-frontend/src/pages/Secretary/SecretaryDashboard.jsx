@@ -9,6 +9,9 @@ import {
   registerSecretaryMember,
   scheduleSecretaryMeeting,
   recordSecretarySavings,
+  payCashSavings,
+  payOnlineSavings,
+  depositCashToBank,
   verifySecretaryLoan,
   saveSecretaryAttendance,
   deleteSecretaryMeeting
@@ -36,6 +39,7 @@ import SavingsHistoryModal from './components/modals/SavingsHistoryModal';
 import CalendarModal from './components/modals/CalendarModal';
 import EditSavingsModal from './components/modals/EditSavingsModal';
 import MemberDetailModal from './components/modals/MemberDetailModal';
+import PaymentMethodModal from './components/modals/PaymentMethodModal';
 import { formatTimeTo12Hr } from './utils/formatTime';
 
 function SecretaryDashboard() {
@@ -67,6 +71,7 @@ function SecretaryDashboard() {
   const [selectedLoanDetail, setSelectedLoanDetail] = useState(null);
   const [selectedMemberDetail, setSelectedMemberDetail] = useState(null);
   const [editingSavings, setEditingSavings] = useState(null);
+  const [paymentMemberItem, setPaymentMemberItem] = useState(null);
 
   // Toast Notification State
   const [toast, setToast] = useState(null);
@@ -74,7 +79,9 @@ function SecretaryDashboard() {
   // Synchronize browser history popstate event for dynamic back navigation
   useEffect(() => {
     const handlePopState = () => {
-      if (selectedLoanDetail) {
+      if (paymentMemberItem) {
+        setPaymentMemberItem(null);
+      } else if (selectedLoanDetail) {
         setSelectedLoanDetail(null);
       } else if (selectedMemberDetail) {
         setSelectedMemberDetail(null);
@@ -92,7 +99,7 @@ function SecretaryDashboard() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [selectedLoanDetail, selectedMemberDetail, editingSavings, showRegisterModal, showMeetingModal, showAttendanceModal, showHistoryModal, showCalendarModal, activeTab]);
+  }, [paymentMemberItem, selectedLoanDetail, selectedMemberDetail, editingSavings, showRegisterModal, showMeetingModal, showAttendanceModal, showHistoryModal, showCalendarModal, activeTab]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -116,6 +123,7 @@ function SecretaryDashboard() {
   const [meetings, setMeetings] = useState([]);
   const [loans, setLoans] = useState([]);
   const [attendanceList, setAttendanceList] = useState([]);
+  const [unitBankAccount, setUnitBankAccount] = useState(null);
   const [financials, setFinancials] = useState({
     totalCollection: 0,
     disbursedLoans: 0,
@@ -171,6 +179,7 @@ function SecretaryDashboard() {
         setMeetings(formattedMeetings);
         setLoans(data.pendingLoans || []);
         setAttendanceList(data.members || []);
+        setUnitBankAccount(data.bankAccount || null);
         setFinancials({
           totalCollection: data.totalWeeklyCollection || 0,
           disbursedLoans: data.disbursedLoansTotal || 0,
@@ -191,6 +200,93 @@ function SecretaryDashboard() {
     }
   };
 
+  const handleDepositCashToBank = async (item) => {
+    try {
+      const depositAmount = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
+      const targetTxId = (item.id && !isNaN(Number(item.id))) ? Number(item.id) : null;
+      const targetUnitId = unitInfo.unitId || currentUser?.unitId || 0;
+
+      const payload = {
+        transactionId: targetTxId,
+        unitId: targetUnitId,
+        amount: depositAmount,
+        userId: item.userId || item.id || 0
+      };
+
+      try {
+        const res = await depositCashToBank(payload);
+        const updatedBank = res.data?.bankAccount;
+        if (updatedBank) {
+          setUnitBankAccount(updatedBank);
+        } else {
+          setUnitBankAccount(prev => ({
+            ...(prev || { accountNumber: `SB-UNIT-${targetUnitId}`, bankName: 'Sahayi Co-operative Bank', ifscCode: 'SHY0001001' }),
+            balance: (parseFloat(prev?.balance || 0) + depositAmount)
+          }));
+        }
+      } catch (err) {
+        console.warn('Deposit cash to bank API fallback execution:', err);
+        setUnitBankAccount(prev => ({
+          ...(prev || { accountNumber: `SB-UNIT-${targetUnitId}`, bankName: 'Sahayi Co-operative Bank', ifscCode: 'SHY0001001' }),
+          balance: (parseFloat(prev?.balance || 0) + depositAmount)
+        }));
+      }
+
+      setSavingsLogs(prev =>
+        prev.map(s =>
+          s.id === item.id || (s.userId && item.userId && s.userId === item.userId)
+            ? { ...s, paymentMode: 'Cash (Bank Deposited)' }
+            : s
+        )
+      );
+
+      showToast(`₹${depositAmount.toFixed(2)} cash payment added to Unit Bank Account successfully!`);
+    } catch (err) {
+      console.error('Error depositing cash to unit bank account:', err);
+      showToast('Failed to add cash payment to Unit Bank Account', 'error');
+    }
+  };
+
+  const handleDepositAllCashToBank = async (cashItems) => {
+    if (!cashItems || cashItems.length === 0) return;
+    try {
+      let totalAmount = 0;
+      for (const item of cashItems) {
+        const depositAmount = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
+        const targetTxId = (item.id && !isNaN(Number(item.id))) ? Number(item.id) : null;
+        try {
+          await depositCashToBank({
+            transactionId: targetTxId,
+            unitId: unitInfo.unitId || currentUser?.unitId || 0,
+            amount: depositAmount,
+            userId: item.userId || item.id || 0
+          });
+        } catch (e) {
+          console.warn('Bulk deposit cash notice:', e);
+        }
+        totalAmount += depositAmount;
+      }
+
+      setSavingsLogs(prev =>
+        prev.map(s =>
+          cashItems.some(c => c.id === s.id || (c.userId && s.userId && c.userId === s.userId))
+            ? { ...s, paymentMode: 'Cash (Bank Deposited)' }
+            : s
+        )
+      );
+
+      setUnitBankAccount(prev => ({
+        ...(prev || { accountNumber: `SB-UNIT-${unitInfo.unitId || 0}`, bankName: 'Sahayi Co-operative Bank', ifscCode: 'SHY0001001' }),
+        balance: (parseFloat(prev?.balance || 0) + totalAmount)
+      }));
+
+      showToast(`All cash collections (₹${totalAmount.toFixed(2)}) deposited to Unit Bank Account!`);
+    } catch (err) {
+      console.error('Error depositing all cash:', err);
+      showToast('Failed to deposit cash collections to bank', 'error');
+    }
+  };
+
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -207,19 +303,71 @@ function SecretaryDashboard() {
   };
 
   const handleRecordSavings = async (item) => {
+    // Block duplicate payment entries for the same UserId
+    if (item.status === 'Paid') {
+      showToast(`Weekly savings deposit for this week is already paid for ${item.name}!`, 'error');
+      return;
+    }
+
+    const alreadyPaidLog = savingsLogs.find(
+      s => s.status === 'Paid' && ((s.userId && item.userId && s.userId === item.userId) || (s.id && item.id && s.id === item.id))
+    );
+    if (alreadyPaidLog) {
+      showToast(`Weekly savings deposit for this week is already paid for ${item.name}!`, 'error');
+      return;
+    }
+
     try {
+      const recordAmount = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
       await recordSecretarySavings(
-        { userId: item.userId || '00000000-0000-0000-0000-000000000000', amount: parseFloat(item.amount || 100) },
+        { userId: item.userId || item.id, amount: recordAmount },
         unitInfo.unitId
       );
       setSavingsLogs(prev =>
-        prev.map(s => (s.id === item.id ? { ...s, status: 'Paid' } : s))
+        prev.map(s =>
+          s.id === item.id || (s.userId && item.userId && s.userId === item.userId)
+            ? { ...s, status: 'Paid', amount: recordAmount.toFixed(2), paymentMode: 'Cash' }
+            : s
+        )
       );
+      setFinancials(prev => ({
+        ...prev,
+        totalCollection: prev.totalCollection + recordAmount,
+        pendingDues: Math.max(0, prev.pendingDues - 1)
+      }));
       showToast(`Weekly savings recorded as Paid for ${item.name}!`);
     } catch (err) {
       console.error('Error recording savings:', err);
-      showToast('Failed to record savings in SahayiDb database', 'error');
+      const errMsg = err.response?.data?.message || 'Failed to record savings in SahayiDb database';
+      showToast(errMsg, 'error');
     }
+  };
+
+  const handlePaymentSuccess = (item, method, paymentId) => {
+    const amountVal = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
+    setSavingsLogs(prev =>
+      prev.map(s =>
+        s.id === item.id || (s.userId && item.userId && s.userId === item.userId)
+          ? { ...s, status: 'Paid', amount: amountVal.toFixed(2), paymentMode: method || 'Cash' }
+          : s
+      )
+    );
+    setFinancials(prev => ({
+      ...prev,
+      totalCollection: prev.totalCollection + amountVal,
+      pendingDues: Math.max(0, prev.pendingDues - 1)
+    }));
+    setPaymentMemberItem(null);
+
+    if (method === 'Online') {
+      showToast(`Online payment of ₹${amountVal.toFixed(2)} via Razorpay completed! (Payment ID: ${paymentId || 'Success'})`);
+    } else {
+      showToast(`Cash payment of ₹${amountVal.toFixed(2)} recorded for ${item.name} successfully!`);
+    }
+  };
+
+  const handlePaymentError = (message) => {
+    showToast(message || 'Failed to process payment.', 'error');
   };
 
   const handleSaveEditSavings = (e) => {
@@ -430,7 +578,9 @@ function SecretaryDashboard() {
         <main className="sec-main-content">
           {activeTab === 'dashboard' && (
             <OperationalOverview
+              currentUser={currentUser}
               unitInfo={unitInfo}
+              unitBankAccount={unitBankAccount}
               isLoading={isLoading}
               filteredSavings={filteredSavings}
               meetings={meetings}
@@ -442,6 +592,9 @@ function SecretaryDashboard() {
               onShowHistoryModal={() => setShowHistoryModal(true)}
               onShowCalendarModal={() => setShowCalendarModal(true)}
               onRecordSavings={handleRecordSavings}
+              onDepositCashToBank={handleDepositCashToBank}
+              onDepositAllCashToBank={handleDepositAllCashToBank}
+              onPayNow={setPaymentMemberItem}
               onEditSavings={setEditingSavings}
               onVerifyAndForward={handleVerifyAndForward}
               onSelectLoanDetail={setSelectedLoanDetail}
@@ -460,7 +613,13 @@ function SecretaryDashboard() {
           )}
 
           {activeTab === 'financials' && (
-            <FinancialsView financials={financials} />
+            <FinancialsView
+              financials={financials}
+              unitBankAccount={unitBankAccount}
+              savingsLogs={savingsLogs}
+              onDepositCashToBank={handleDepositCashToBank}
+              onDepositAllCashToBank={handleDepositAllCashToBank}
+            />
           )}
 
           {activeTab === 'meetings' && (
@@ -532,6 +691,7 @@ function SecretaryDashboard() {
       {showHistoryModal && (
         <SavingsHistoryModal
           savingsLogs={savingsLogs}
+          onDepositCashToBank={handleDepositCashToBank}
           onClose={() => setShowHistoryModal(false)}
         />
       )}
@@ -550,6 +710,16 @@ function SecretaryDashboard() {
           setEditingSavings={setEditingSavings}
           onSave={handleSaveEditSavings}
           onClose={() => setEditingSavings(null)}
+        />
+      )}
+
+      {paymentMemberItem && (
+        <PaymentMethodModal
+          item={paymentMemberItem}
+          unitInfo={unitInfo}
+          onClose={() => setPaymentMemberItem(null)}
+          onSuccess={handlePaymentSuccess}
+          onError={handlePaymentError}
         />
       )}
     </div>

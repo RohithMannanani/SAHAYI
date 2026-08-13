@@ -25,6 +25,9 @@ namespace Sahayi.Api.Entities
         [Column(TypeName = "varchar(50)")]
         public string ReceiptNumber { get; set; } = string.Empty;
 
+        [Column(TypeName = "varchar(50)")]
+        public string PaymentMode { get; set; } = "Cash";
+
         [Required]
         public int RecordedBy { get; set; }
 
