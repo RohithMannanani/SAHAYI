@@ -132,6 +132,7 @@ namespace Sahayi.Api.DTOs
         public int PendingDuesCount { get; set; }
         public UnitBankAccountDto? BankAccount { get; set; }
         public List<SecretarySavingsItemDto> SavingsLogs { get; set; } = new List<SecretarySavingsItemDto>();
+        public List<SecretarySavingsItemDto> AllSavingsLogs { get; set; } = new List<SecretarySavingsItemDto>();
         public List<SecretaryMeetingItemDto> Meetings { get; set; } = new List<SecretaryMeetingItemDto>();
         public List<SecretaryLoanItemDto> PendingLoans { get; set; } = new List<SecretaryLoanItemDto>();
         public List<SecretaryMemberItemDto> Members { get; set; } = new List<SecretaryMemberItemDto>();

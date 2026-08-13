@@ -60,15 +60,15 @@ function SavingsHistoryModal({ savingsLogs, onDepositCashToBank, onClose }) {
                     <td className="sec-font-medium">
                       {isOnline ? (
                         <span style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle2 size={13} /> Online (In Bank)
+                          <CheckCircle2 size={13} /> Online 
                         </span>
                       ) : isBankDeposited ? (
                         <span style={{ color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle2 size={13} /> Cash (In Bank)
+                          <CheckCircle2 size={13} /> Cash 
                         </span>
                       ) : isUndepositedCash ? (
                         <span style={{ color: '#d97706', fontWeight: 600 }}>
-                          Cash (In Hand)
+                          Cash
                         </span>
                       ) : (
                         mode

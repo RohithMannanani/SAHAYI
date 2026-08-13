@@ -281,7 +281,7 @@ function OperationalOverview({
                             </span>
                           ) : isBankDeposited ? (
                             <span style={{ color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <CheckCircle2 size={13} /> Cash (In Bank)
+                              <CheckCircle2 size={13} /> Cash 
                             </span>
                           ) : isUndepositedCash ? (
                             <span style={{ color: '#d97706', fontWeight: 600 }}>

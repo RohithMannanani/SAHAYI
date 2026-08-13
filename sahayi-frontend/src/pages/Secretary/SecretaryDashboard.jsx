@@ -171,7 +171,15 @@ function SecretaryDashboard() {
       const res = await fetchSecretaryDashboard(userObj?.unitId, userObj?.userId);
       const data = res.data;
       if (data) {
-        setSavingsLogs(data.savingsLogs || []);
+        const combinedLogs = [...(data.savingsLogs || [])];
+        if (Array.isArray(data.allSavingsLogs)) {
+          data.allSavingsLogs.forEach(histItem => {
+            if (!combinedLogs.some(c => c.id === histItem.id)) {
+              combinedLogs.push(histItem);
+            }
+          });
+        }
+        setSavingsLogs(combinedLogs);
         const formattedMeetings = (data.meetings || []).map(m => ({
           ...m,
           time: formatTimeTo12Hr(m.time)

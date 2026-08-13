@@ -125,6 +125,18 @@ namespace Sahayi.Api.Controllers
                     }
                 }).ToList();
 
+                var allSavingsLogs = savingsList.Select(s => new SecretarySavingsItemDto
+                {
+                    Id = s.TransactionId,
+                    UserId = s.UserId,
+                    Name = s.User?.FullName ?? "Unit Member",
+                    MemberId = $"AK-{s.UserId:D3}",
+                    Amount = s.Amount.ToString("0.00"),
+                    Status = "Paid",
+                    PaymentMode = string.IsNullOrEmpty(s.PaymentMode) ? "Cash" : s.PaymentMode,
+                    Date = s.TransactionDate.ToString("yyyy-MM-dd")
+                }).ToList();
+
                 // Fetch Meetings for Unit
                 var meetingsList = await _context.Meetings
                     .Where(m => m.UnitId == targetUnitId)
@@ -253,6 +265,7 @@ namespace Sahayi.Api.Controllers
                     PendingDuesCount = pendingDuesCount,
                     BankAccount = bankAccountDto,
                     SavingsLogs = savingsLogs,
+                    AllSavingsLogs = allSavingsLogs,
                     Meetings = meetingItems,
                     PendingLoans = loanItems,
                     Members = memberItems
