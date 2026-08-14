@@ -5,6 +5,7 @@ import {
   UserCheck,
   PiggyBank,
   Pencil,
+  Edit,
   Calendar,
   MapPin,
   Shield,
@@ -36,6 +37,8 @@ function OperationalOverview({
   onEditSavings,
   onVerifyAndForward,
   onSelectLoanDetail,
+  onEditMeeting,
+  onMarkMeetingCompleted,
   onDeleteMeeting
 }) {
   const onlineAndDepositedTotalFromLogs = filteredSavings
@@ -338,34 +341,72 @@ function OperationalOverview({
                 No meetings scheduled.
               </p>
             ) : (
-              meetings.map(m => (
-                <div className="sec-meeting-item" key={m.id}>
-                  <div className="sec-meeting-item__top">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`sec-tag sec-tag--${m.tagType || 'dark'}`}>
-                        {m.tag}
-                      </span>
-                      <span className="sec-meeting-item__time">{formatTimeTo12Hr(m.time)}</span>
+              meetings.map(m => {
+                const isDone = m.isCompleted || m.tag === 'COMPLETED';
+
+                return (
+                  <div className="sec-meeting-item" key={m.id}>
+                    <div className="sec-meeting-item__top">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span className={`sec-tag ${isDone ? 'sec-tag--peach' : (m.tagType ? `sec-tag--${m.tagType}` : 'sec-tag--dark')}`}>
+                          {isDone ? 'COMPLETED' : m.tag}
+                        </span>
+                        <span className="sec-meeting-item__time">{formatTimeTo12Hr(m.time)}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {onEditMeeting && (
+                          <button
+                            type="button"
+                            className="sec-icon-action-btn"
+                            title="Edit meeting"
+                            onClick={() => onEditMeeting(m)}
+                            style={{ color: '#2563eb' }}
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
+
+                        {!isDone && onMarkMeetingCompleted && (
+                          <button
+                            type="button"
+                            className="sec-icon-action-btn"
+                            title="Mark as Completed"
+                            onClick={() => onMarkMeetingCompleted(m.id)}
+                            style={{ color: '#16a34a' }}
+                          >
+                            <CheckCircle2 size={14} />
+                          </button>
+                        )}
+
+                        {onDeleteMeeting && (
+                          <button
+                            type="button"
+                            className="sec-icon-action-btn"
+                            title="Delete meeting"
+                            onClick={() => onDeleteMeeting(m.id)}
+                            style={{ color: '#ef4444' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    {onDeleteMeeting && (
-                      <button
-                        type="button"
-                        className="sec-icon-action-btn"
-                        title="Delete meeting"
-                        onClick={() => onDeleteMeeting(m.id)}
-                        style={{ color: '#ef4444' }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
+                    <h4 className="sec-meeting-item__title">{m.title}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                      <div className="sec-meeting-item__location" style={{ marginTop: 0 }}>
+                        <MapPin size={13} />
+                        <span>{m.location || m.venue}</span>
+                      </div>
+                      {isDone && (
+                        <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>
+                          Completed {m.completedDate ? `on ${m.completedDate}` : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <h4 className="sec-meeting-item__title">{m.title}</h4>
-                  <div className="sec-meeting-item__location">
-                    <MapPin size={14} />
-                    <span>{m.location}</span>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

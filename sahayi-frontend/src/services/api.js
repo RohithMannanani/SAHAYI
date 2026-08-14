@@ -190,6 +190,24 @@ export const deleteSecretaryMeeting = async (meetingId) => {
   }
 };
 
+// 8. Update Scheduled Meeting Details
+export const updateSecretaryMeeting = async (meetingId, data) => {
+  try {
+    return await api.put(`/secretary/meetings/${meetingId}`, data);
+  } catch (err) {
+    return await api.post(`/secretary/meetings/${meetingId}`, data);
+  }
+};
+
+// 9. Mark Scheduled Meeting as Completed
+export const completeSecretaryMeeting = async (meetingId) => {
+  try {
+    return await api.post(`/secretary/meetings/${meetingId}/complete`);
+  } catch (err) {
+    return await api.put(`/secretary/meetings/${meetingId}/complete`);
+  }
+};
+
 // ========================================================
 // RAZORPAY PAYMENT CHECKOUT APIs
 // ========================================================

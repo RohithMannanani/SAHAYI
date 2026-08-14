@@ -24,6 +24,13 @@ namespace Sahayi.Api.Entities
         [Required]
         public int CreatedBy { get; set; }
 
+        public bool IsCompleted { get; set; } = false;
+
+        public DateTime? CompletedDate { get; set; }
+
+        [Column(TypeName = "varchar(50)")]
+        public string? MeetingTime { get; set; }
+
         // Navigation Properties
         [ForeignKey("UnitId")]
         public virtual AyalkoottamUnit? AyalkoottamUnit { get; set; }

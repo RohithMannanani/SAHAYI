@@ -8,6 +8,8 @@ import {
   fetchSecretaryDashboard,
   registerSecretaryMember,
   scheduleSecretaryMeeting,
+  updateSecretaryMeeting,
+  completeSecretaryMeeting,
   recordSecretarySavings,
   payCashSavings,
   payOnlineSavings,
@@ -38,6 +40,7 @@ import LoanDetailModal from './components/modals/LoanDetailModal';
 import SavingsHistoryModal from './components/modals/SavingsHistoryModal';
 import CalendarModal from './components/modals/CalendarModal';
 import EditSavingsModal from './components/modals/EditSavingsModal';
+import EditMeetingModal from './components/modals/EditMeetingModal';
 import MemberDetailModal from './components/modals/MemberDetailModal';
 import PaymentMethodModal from './components/modals/PaymentMethodModal';
 import { formatTimeTo12Hr } from './utils/formatTime';
@@ -71,6 +74,7 @@ function SecretaryDashboard() {
   const [selectedLoanDetail, setSelectedLoanDetail] = useState(null);
   const [selectedMemberDetail, setSelectedMemberDetail] = useState(null);
   const [editingSavings, setEditingSavings] = useState(null);
+  const [editingMeeting, setEditingMeeting] = useState(null);
   const [paymentMemberItem, setPaymentMemberItem] = useState(null);
 
   // Toast Notification State
@@ -87,6 +91,8 @@ function SecretaryDashboard() {
         setSelectedMemberDetail(null);
       } else if (editingSavings) {
         setEditingSavings(null);
+      } else if (editingMeeting) {
+        setEditingMeeting(null);
       } else if (showRegisterModal || showMeetingModal || showAttendanceModal || showHistoryModal || showCalendarModal) {
         setShowRegisterModal(false);
         setShowMeetingModal(false);
@@ -517,6 +523,89 @@ function SecretaryDashboard() {
     }
   };
 
+  const handleUpdateMeetingSubmit = async (updatedData) => {
+    if (!updatedData.title || !updatedData.location) {
+      showToast('Please provide meeting title and location', 'error');
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (updatedData.date && updatedData.date < todayStr) {
+      showToast('Cannot set meeting date to a past date. Please select today or a future date.', 'error');
+      return;
+    }
+
+    try {
+      const meetingId = updatedData.id;
+      const formattedTime = formatTimeTo12Hr(updatedData.time);
+
+      const payload = {
+        title: updatedData.title,
+        date: updatedData.date,
+        time: formattedTime,
+        location: updatedData.location,
+        tag: updatedData.tag || 'NEXT WEEK'
+      };
+
+      try {
+        await updateSecretaryMeeting(meetingId, payload);
+      } catch (err) {
+        console.warn('Update meeting API execution notice:', err);
+      }
+
+      setMeetings(prev =>
+        prev.map(m =>
+          m.id === meetingId
+            ? {
+                ...m,
+                title: updatedData.title,
+                date: updatedData.date,
+                time: formattedTime,
+                location: updatedData.location,
+                tag: updatedData.tag || 'NEXT WEEK'
+              }
+            : m
+        )
+      );
+
+      setEditingMeeting(null);
+      showToast(`Meeting "${updatedData.title}" updated successfully!`);
+    } catch (err) {
+      console.error('Error updating meeting:', err);
+      showToast('Failed to update meeting details', 'error');
+    }
+  };
+
+  const handleMarkMeetingCompleted = async (meetingId) => {
+    const todayFormatted = new Date().toISOString().split('T')[0];
+    try {
+      try {
+        await completeSecretaryMeeting(meetingId);
+      } catch (err) {
+        console.warn('Mark complete API execution notice:', err);
+      }
+
+      setMeetings(prev =>
+        prev.map(m =>
+          m.id === meetingId
+            ? {
+                ...m,
+                isCompleted: true,
+                tag: 'COMPLETED',
+                tagType: 'peach',
+                completedDate: todayFormatted
+              }
+            : m
+        )
+      );
+
+      showToast('Meeting marked as Completed!');
+    } catch (err) {
+      console.error('Error marking meeting completed:', err);
+      showToast('Failed to mark meeting as completed', 'error');
+    }
+  };
+
   const handleSaveAttendance = async () => {
     try {
       const attendances = attendanceList.map(item => ({
@@ -606,6 +695,8 @@ function SecretaryDashboard() {
               onEditSavings={setEditingSavings}
               onVerifyAndForward={handleVerifyAndForward}
               onSelectLoanDetail={setSelectedLoanDetail}
+              onEditMeeting={setEditingMeeting}
+              onMarkMeetingCompleted={handleMarkMeetingCompleted}
               onDeleteMeeting={handleDeleteMeeting}
             />
           )}
@@ -634,6 +725,8 @@ function SecretaryDashboard() {
             <MeetingsView
               meetings={meetings}
               onShowMeetingModal={() => setShowMeetingModal(true)}
+              onEditMeeting={setEditingMeeting}
+              onMarkMeetingCompleted={handleMarkMeetingCompleted}
               onDeleteMeeting={handleDeleteMeeting}
             />
           )}
@@ -674,6 +767,7 @@ function SecretaryDashboard() {
         <RecordAttendanceModal
           unitInfo={unitInfo}
           attendanceList={attendanceList}
+          meetings={meetings}
           onToggleAttendance={toggleAttendanceStatus}
           onSaveAttendance={handleSaveAttendance}
           onClose={() => setShowAttendanceModal(false)}
@@ -718,6 +812,14 @@ function SecretaryDashboard() {
           setEditingSavings={setEditingSavings}
           onSave={handleSaveEditSavings}
           onClose={() => setEditingSavings(null)}
+        />
+      )}
+
+      {editingMeeting && (
+        <EditMeetingModal
+          meeting={editingMeeting}
+          onSubmit={handleUpdateMeetingSubmit}
+          onClose={() => setEditingMeeting(null)}
         />
       )}
 

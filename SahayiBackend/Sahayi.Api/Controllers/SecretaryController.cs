@@ -150,10 +150,13 @@ namespace Sahayi.Api.Controllers
                     {
                         Id = m.MeetingId,
                         Title = string.IsNullOrWhiteSpace(m.MinutesOfMeeting) ? $"Meeting #{m.MeetingId}" : m.MinutesOfMeeting,
-                        Tag = m.MeetingDate > DateTime.UtcNow ? "UPCOMING" : "COMPLETED",
-                        TagType = idx % 2 == 0 ? "dark" : "peach",
-                        Time = m.MeetingDate.ToString("hh:mm tt"),
-                        Location = m.Venue
+                        Tag = m.IsCompleted ? "COMPLETED" : (m.MeetingDate > DateTime.UtcNow ? "UPCOMING" : "NEXT WEEK"),
+                        TagType = m.IsCompleted ? "peach" : (idx % 2 == 0 ? "dark" : "peach"),
+                        Date = m.MeetingDate.ToString("yyyy-MM-dd"),
+                        Time = !string.IsNullOrWhiteSpace(m.MeetingTime) ? m.MeetingTime : m.MeetingDate.ToString("hh:mm tt"),
+                        Location = m.Venue,
+                        IsCompleted = m.IsCompleted,
+                        CompletedDate = m.CompletedDate.HasValue ? m.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm") : null
                     }).ToList();
                 }
 
@@ -383,6 +386,7 @@ namespace Sahayi.Api.Controllers
                 {
                     UnitId = targetUnitId,
                     MeetingDate = DateTime.TryParse(dto.Date, out var parsedDate) ? parsedDate : DateTime.UtcNow.AddDays(7),
+                    MeetingTime = string.IsNullOrWhiteSpace(dto.Time) ? "10:00 AM" : dto.Time,
                     Venue = dto.Location,
                     MinutesOfMeeting = dto.Title,
                     CreatedBy = secretary?.UserId ?? 0
@@ -428,6 +432,86 @@ namespace Sahayi.Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Failed to delete meeting.", details = ex.Message });
+            }
+        }
+
+        // PUT: api/secretary/meetings/{id}
+        [HttpPut("meetings/{id}")]
+        public async Task<IActionResult> UpdateMeeting(int id, [FromBody] UpdateSecretaryMeetingDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var meeting = await _context.Meetings.FindAsync(id);
+                if (meeting == null)
+                    return NotFound(new { message = "Meeting not found." });
+
+                if (!string.IsNullOrWhiteSpace(dto.Title))
+                    meeting.MinutesOfMeeting = dto.Title;
+
+                if (!string.IsNullOrWhiteSpace(dto.Location))
+                    meeting.Venue = dto.Location;
+
+                if (!string.IsNullOrWhiteSpace(dto.Time))
+                    meeting.MeetingTime = dto.Time;
+
+                if (DateTime.TryParse(dto.Date, out var parsedDate))
+                {
+                    meeting.MeetingDate = parsedDate;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Meeting details updated successfully!",
+                    meeting = new
+                    {
+                        id = meeting.MeetingId,
+                        title = meeting.MinutesOfMeeting,
+                        tag = dto.Tag ?? "NEXT WEEK",
+                        tagType = dto.Tag == "NEXT WEEK" ? "dark" : "peach",
+                        date = meeting.MeetingDate.ToString("yyyy-MM-dd"),
+                        time = string.IsNullOrWhiteSpace(dto.Time) ? meeting.MeetingDate.ToString("hh:mm tt") : dto.Time,
+                        location = meeting.Venue,
+                        isCompleted = meeting.IsCompleted,
+                        completedDate = meeting.CompletedDate.HasValue ? meeting.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm") : null
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to update meeting.", details = ex.Message });
+            }
+        }
+
+        // POST: api/secretary/meetings/{id}/complete
+        [HttpPost("meetings/{id}/complete")]
+        [HttpPut("meetings/{id}/complete")]
+        public async Task<IActionResult> MarkMeetingCompleted(int id)
+        {
+            try
+            {
+                var meeting = await _context.Meetings.FindAsync(id);
+                if (meeting == null)
+                    return NotFound(new { message = "Meeting not found." });
+
+                meeting.IsCompleted = true;
+                meeting.CompletedDate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = $"Meeting '{meeting.MinutesOfMeeting}' marked as Completed!",
+                    completedDate = meeting.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm")
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to mark meeting as completed.", details = ex.Message });
             }
         }
 
