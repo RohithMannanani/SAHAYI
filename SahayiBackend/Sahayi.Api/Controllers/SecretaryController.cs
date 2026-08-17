@@ -89,57 +89,40 @@ namespace Sahayi.Api.Controllers
                     .OrderByDescending(s => s.TransactionDate)
                     .ToListAsync();
 
-                DateTime currentWeekStart = DateTime.UtcNow.AddDays(-6);
-
-                var savingsLogs = unitUsers.Select((u, index) =>
+                bool updatedNullWeeks = false;
+                foreach (var s in savingsList)
                 {
-                    // Check if member has paid within current week window (last 6-7 days)
-                    var userTx = savingsList.FirstOrDefault(s => s.UserId == u.UserId && s.TransactionDate >= currentWeekStart);
-                    if (userTx != null)
+                    if (!s.SavingsWeekId.HasValue)
                     {
-                        return new SecretarySavingsItemDto
-                        {
-                            Id = userTx.TransactionId,
-                            UserId = u.UserId,
-                            Name = u.FullName,
-                            MemberId = $"AK-{(index + 1):D3}",
-                            Amount = userTx.Amount.ToString("0.00"),
-                            Status = "Paid",
-                            PaymentMode = string.IsNullOrEmpty(userTx.PaymentMode) ? "Cash" : userTx.PaymentMode,
-                            Date = userTx.TransactionDate.ToString("yyyy-MM-dd")
-                        };
+                        s.SavingsWeekId = System.Globalization.ISOWeek.GetWeekOfYear(s.TransactionDate);
+                        updatedNullWeeks = true;
                     }
-                    else
-                    {
-                        return new SecretarySavingsItemDto
-                        {
-                            Id = u.UserId > 0 ? u.UserId : (index + 1),
-                            UserId = u.UserId,
-                            Name = u.FullName,
-                            MemberId = $"AK-{(index + 1):D3}",
-                            Amount = "0.00",
-                            Status = "Pending",
-                            PaymentMode = "-",
-                            Date = DateTime.UtcNow.ToString("yyyy-MM-dd")
-                        };
-                    }
-                }).ToList();
+                }
+                if (updatedNullWeeks)
+                {
+                    await _context.SaveChangesAsync();
+                }
 
                 var allSavingsLogs = savingsList.Select(s => new SecretarySavingsItemDto
                 {
                     Id = s.TransactionId,
+                    SavingsWeekId = s.SavingsWeekId ?? System.Globalization.ISOWeek.GetWeekOfYear(s.TransactionDate),
                     UserId = s.UserId,
                     Name = s.User?.FullName ?? "Unit Member",
                     MemberId = $"AK-{s.UserId:D3}",
                     Amount = s.Amount.ToString("0.00"),
                     Status = "Paid",
                     PaymentMode = string.IsNullOrEmpty(s.PaymentMode) ? "Cash" : s.PaymentMode,
-                    Date = s.TransactionDate.ToString("yyyy-MM-dd")
+                    Date = s.TransactionDate.ToString("yyyy-MM-dd"),
+                    PaidDate = s.TransactionDate.ToString("yyyy-MM-dd")
                 }).ToList();
+
+                var savingsLogs = allSavingsLogs;
 
                 // Fetch Meetings for Unit
                 var meetingsList = await _context.Meetings
                     .Where(m => m.UnitId == targetUnitId)
+                    .Include(m => m.Attendances)
                     .OrderBy(m => m.MeetingDate)
                     .ToListAsync();
 
@@ -156,7 +139,20 @@ namespace Sahayi.Api.Controllers
                         Time = !string.IsNullOrWhiteSpace(m.MeetingTime) ? m.MeetingTime : m.MeetingDate.ToString("hh:mm tt"),
                         Location = m.Venue,
                         IsCompleted = m.IsCompleted,
-                        CompletedDate = m.CompletedDate.HasValue ? m.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm") : null
+                        CompletedDate = m.CompletedDate.HasValue ? m.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm") : null,
+                        AttendanceRecorded = m.Attendances != null && m.Attendances.Any(),
+                        Attendances = m.Attendances != null
+                            ? m.Attendances
+                                .GroupBy(a => a.UserId)
+                                .Select(g => g.OrderByDescending(a => a.AttendanceId).First())
+                                .Select(a => new SecretaryAttendanceRecordDto
+                                {
+                                    AttendanceId = a.AttendanceId,
+                                    MeetingId = a.MeetingId,
+                                    UserId = a.UserId,
+                                    IsPresent = a.IsPresent
+                                }).ToList()
+                            : new List<SecretaryAttendanceRecordDto>()
                     }).ToList();
                 }
 
@@ -197,52 +193,56 @@ namespace Sahayi.Api.Controllers
                 int pendingDuesCount = savingsLogs.Count(s => s.Status == "Pending");
 
                 // Fetch Unit Bank Account Details & Sync with Online / Bank Deposited Transactions
-                var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
-
-                decimal onlineAndDepositedTotal = await _context.SavingsTransactions
-                    .Where(s => s.UnitId == targetUnitId && (s.PaymentMode == "Online" || s.PaymentMode.Contains("Bank Deposited")))
-                    .SumAsync(s => (decimal?)s.Amount) ?? 0.00m;
-
-                string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
-                string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
-                string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
-
-                if (bankAccount == null)
+                UnitBankAccount? bankAccount = null;
+                if (targetUnitId > 0)
                 {
-                    bankAccount = new UnitBankAccount
+                    bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
+
+                    decimal onlineAndDepositedTotal = await _context.SavingsTransactions
+                        .Where(s => s.UnitId == targetUnitId && (s.PaymentMode == "Online" || s.PaymentMode.Contains("Bank Deposited")))
+                        .SumAsync(s => (decimal?)s.Amount) ?? 0.00m;
+
+                    string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
+                    string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
+                    string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
+
+                    if (bankAccount == null)
                     {
-                        UnitId = targetUnitId,
-                        AccountNumber = accNum,
-                        BankName = bankName,
-                        IFSCCode = ifsc,
-                        Balance = onlineAndDepositedTotal,
-                        LastUpdated = DateTime.UtcNow
-                    };
-                    _context.UnitBankAccounts.Add(bankAccount);
-                    await _context.SaveChangesAsync();
-                }
-                else
-                {
-                    bool needSave = false;
-                    if (bankAccount.Balance < onlineAndDepositedTotal)
-                    {
-                        bankAccount.Balance = onlineAndDepositedTotal;
-                        needSave = true;
-                    }
-                    if (!string.IsNullOrWhiteSpace(unit?.BankName) && bankAccount.BankName != unit.BankName)
-                    {
-                        bankAccount.BankName = unit.BankName;
-                        needSave = true;
-                    }
-                    if (!string.IsNullOrWhiteSpace(unit?.AccountNumber) && bankAccount.AccountNumber != unit.AccountNumber)
-                    {
-                        bankAccount.AccountNumber = unit.AccountNumber;
-                        needSave = true;
-                    }
-                    if (needSave)
-                    {
-                        bankAccount.LastUpdated = DateTime.UtcNow;
+                        bankAccount = new UnitBankAccount
+                        {
+                            UnitId = targetUnitId,
+                            AccountNumber = accNum,
+                            BankName = bankName,
+                            IFSCCode = ifsc,
+                            Balance = onlineAndDepositedTotal,
+                            LastUpdated = DateTime.UtcNow
+                        };
+                        _context.UnitBankAccounts.Add(bankAccount);
                         await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        bool needSave = false;
+                        if (bankAccount.Balance < onlineAndDepositedTotal)
+                        {
+                            bankAccount.Balance = onlineAndDepositedTotal;
+                            needSave = true;
+                        }
+                        if (!string.IsNullOrWhiteSpace(unit?.BankName) && bankAccount.BankName != unit.BankName)
+                        {
+                            bankAccount.BankName = unit.BankName;
+                            needSave = true;
+                        }
+                        if (!string.IsNullOrWhiteSpace(unit?.AccountNumber) && bankAccount.AccountNumber != unit.AccountNumber)
+                        {
+                            bankAccount.AccountNumber = unit.AccountNumber;
+                            needSave = true;
+                        }
+                        if (needSave)
+                        {
+                            bankAccount.LastUpdated = DateTime.UtcNow;
+                            await _context.SaveChangesAsync();
+                        }
                     }
                 }
 
@@ -424,6 +424,11 @@ namespace Sahayi.Api.Controllers
                 var meeting = await _context.Meetings.FindAsync(id);
                 if (meeting != null)
                 {
+                    if (meeting.IsCompleted)
+                    {
+                        return BadRequest(new { message = "Completed meetings cannot be deleted." });
+                    }
+
                     _context.Meetings.Remove(meeting);
                     await _context.SaveChangesAsync();
                 }
@@ -447,6 +452,9 @@ namespace Sahayi.Api.Controllers
                 var meeting = await _context.Meetings.FindAsync(id);
                 if (meeting == null)
                     return NotFound(new { message = "Meeting not found." });
+
+                if (meeting.IsCompleted)
+                    return BadRequest(new { message = "Completed meetings cannot be edited." });
 
                 if (!string.IsNullOrWhiteSpace(dto.Title))
                     meeting.MinutesOfMeeting = dto.Title;
@@ -529,10 +537,25 @@ namespace Sahayi.Api.Controllers
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                 }
 
+                DateTime txDate = DateTime.UtcNow;
+                string inputDateStr = !string.IsNullOrWhiteSpace(dto.PaidDate) ? dto.PaidDate : dto.Date;
+                if (!string.IsNullOrWhiteSpace(inputDateStr) && DateTime.TryParse(inputDateStr, out var parsedDate))
+                {
+                    txDate = parsedDate;
+                }
+
+                int calculatedWeekId = dto.SavingsWeekId ?? (txDate.DayOfYear / 7 + 1);
+
                 if (dto.UserId > 0)
                 {
+                    int dayOfWeek = (int)txDate.DayOfWeek;
+                    int diffToMonday = dayOfWeek == 0 ? -6 : 1 - dayOfWeek;
+                    DateTime weekStart = txDate.Date.AddDays(diffToMonday);
+                    DateTime weekEnd = weekStart.AddDays(7).AddTicks(-1);
+
                     var existingTx = await _context.SavingsTransactions
-                        .FirstOrDefaultAsync(s => s.UserId == dto.UserId && s.TransactionDate >= DateTime.UtcNow.AddDays(-6));
+                        .FirstOrDefaultAsync(s => s.UserId == dto.UserId && (s.SavingsWeekId == calculatedWeekId || (s.TransactionDate >= weekStart && s.TransactionDate <= weekEnd)));
+
                     if (existingTx != null)
                     {
                         return BadRequest(new { message = "Weekly savings deposit for this week has already been paid for this member!" });
@@ -547,9 +570,10 @@ namespace Sahayi.Api.Controllers
                 {
                     UserId = dto.UserId,
                     UnitId = targetUnitId,
+                    SavingsWeekId = calculatedWeekId,
                     Amount = dto.Amount > 0 ? dto.Amount : 100,
                     PaymentMode = mode,
-                    TransactionDate = DateTime.UtcNow,
+                    TransactionDate = txDate,
                     ReceiptNumber = $"REC-{(mode.Equals("Online", StringComparison.OrdinalIgnoreCase) ? "RZP" : "CASH")}-{DateTime.UtcNow.Ticks.ToString()[^8..]}",
                     RecordedBy = dto.UserId
                 };
@@ -557,7 +581,16 @@ namespace Sahayi.Api.Controllers
                 _context.SavingsTransactions.Add(savingsTx);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = "Weekly savings recorded successfully!", transactionId = savingsTx.TransactionId, status = "Paid" });
+                return Ok(new
+                {
+                    message = "Weekly savings recorded successfully!",
+                    transactionId = savingsTx.TransactionId,
+                    savingsWeekId = savingsTx.SavingsWeekId,
+                    memberId = dto.UserId,
+                    amount = savingsTx.Amount.ToString("0.00"),
+                    paidDate = txDate.ToString("yyyy-MM-dd"),
+                    status = "Paid"
+                });
             }
             catch (Exception ex)
             {
@@ -592,19 +625,85 @@ namespace Sahayi.Api.Controllers
         {
             try
             {
+                // 1. Resolve meeting ID safely
+                int targetMeetingId = dto.MeetingId;
+                if (targetMeetingId <= 0 || !await _context.Meetings.AnyAsync(m => m.MeetingId == targetMeetingId))
+                {
+                    var latestMeeting = await _context.Meetings
+                        .OrderByDescending(m => m.MeetingDate)
+                        .FirstOrDefaultAsync();
+
+                    if (latestMeeting != null)
+                    {
+                        targetMeetingId = latestMeeting.MeetingId;
+                    }
+                    else
+                    {
+                        var defaultUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive);
+                        var defaultMeeting = new Meeting
+                        {
+                            UnitId = defaultUnit?.UnitId ?? 1,
+                            MeetingDate = DateTime.UtcNow,
+                            MeetingTime = "10:00 AM",
+                            Venue = "Unit Meeting Hall",
+                            MinutesOfMeeting = "Weekly Unit Meeting",
+                            CreatedBy = defaultUnit?.Users?.FirstOrDefault()?.UserId ?? 1
+                        };
+                        _context.Meetings.Add(defaultMeeting);
+                        await _context.SaveChangesAsync();
+                        targetMeetingId = defaultMeeting.MeetingId;
+                    }
+                }
+
                 if (dto.Attendances != null && dto.Attendances.Any())
                 {
+                    // Filter user IDs to only valid registered users to prevent FK constraint failures
+                    var requestedUserIds = dto.Attendances.Select(a => a.UserId).Distinct().ToList();
+                    var validUserIds = await _context.ApplicationUsers
+                        .Where(u => requestedUserIds.Contains(u.UserId))
+                        .Select(u => u.UserId)
+                        .ToListAsync();
+
+                    var existingAttendances = await _context.Attendances
+                        .Where(a => a.MeetingId == targetMeetingId)
+                        .ToListAsync();
+
                     foreach (var att in dto.Attendances)
                     {
-                        var entry = new Attendance
+                        if (validUserIds.Contains(att.UserId))
                         {
-                            MeetingId = dto.MeetingId > 0 ? dto.MeetingId : 1,
-                            UserId = att.UserId,
-                            IsPresent = att.IsPresent,
-                            MarkedAt = DateTime.UtcNow
-                        };
-                        _context.Attendances.Add(entry);
+                            var existing = existingAttendances.FirstOrDefault(a => a.UserId == att.UserId);
+                            if (existing != null)
+                            {
+                                existing.IsPresent = att.IsPresent;
+                                existing.MarkedAt = DateTime.UtcNow;
+                            }
+                            else
+                            {
+                                var entry = new Attendance
+                                {
+                                    MeetingId = targetMeetingId,
+                                    UserId = att.UserId,
+                                    IsPresent = att.IsPresent,
+                                    MarkedAt = DateTime.UtcNow
+                                };
+                                _context.Attendances.Add(entry);
+                            }
+                        }
                     }
+
+                    // Remove any legacy duplicate rows for the same (MeetingId, UserId)
+                    var duplicates = existingAttendances
+                        .GroupBy(a => a.UserId)
+                        .Where(g => g.Count() > 1)
+                        .SelectMany(g => g.OrderByDescending(a => a.AttendanceId).Skip(1))
+                        .ToList();
+
+                    if (duplicates.Any())
+                    {
+                        _context.Attendances.RemoveRange(duplicates);
+                    }
+
                     await _context.SaveChangesAsync();
                 }
 
@@ -613,6 +712,63 @@ namespace Sahayi.Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Failed to record attendance.", details = ex.Message });
+            }
+        }
+
+        // POST: api/secretary/attendance/update-late
+        [HttpPost("attendance/update-late")]
+        public async Task<IActionResult> UpdateLateAttendance([FromBody] UpdateLateAttendanceDto dto)
+        {
+            try
+            {
+                var meeting = await _context.Meetings.FindAsync(dto.MeetingId);
+                if (meeting == null)
+                    return NotFound(new { message = "Meeting not found." });
+
+                if (meeting.IsCompleted)
+                    return BadRequest(new { message = "Completed meetings cannot be edited." });
+
+                bool isToday = meeting.MeetingDate.Date == DateTime.UtcNow.Date || meeting.MeetingDate.Date == DateTime.Today;
+                if (!isToday)
+                {
+                    return BadRequest(new { message = "Attendance editing for late arrivals is permitted only on the meeting date." });
+                }
+
+                var allUserAttendances = await _context.Attendances
+                    .Where(a => a.MeetingId == dto.MeetingId && a.UserId == dto.UserId)
+                    .ToListAsync();
+
+                if (allUserAttendances.Any())
+                {
+                    var primary = allUserAttendances.OrderByDescending(a => a.AttendanceId).First();
+                    primary.IsPresent = true;
+                    primary.MarkedAt = DateTime.UtcNow;
+
+                    var dupes = allUserAttendances.Where(a => a.AttendanceId != primary.AttendanceId).ToList();
+                    if (dupes.Any())
+                    {
+                        _context.Attendances.RemoveRange(dupes);
+                    }
+                }
+                else
+                {
+                    var newEntry = new Attendance
+                    {
+                        MeetingId = dto.MeetingId,
+                        UserId = dto.UserId,
+                        IsPresent = true,
+                        MarkedAt = DateTime.UtcNow
+                    };
+                    _context.Attendances.Add(newEntry);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Late member attendance updated to Present successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to update late attendance.", details = ex.Message });
             }
         }
 

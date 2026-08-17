@@ -20,6 +20,19 @@ namespace Sahayi.Api.DTOs
         public int TenureMonths { get; set; } = 12;
     }
 
+    public class MemberWeeklySavingsRowDto
+    {
+        public int SavingsWeekId { get; set; }
+        public string WeekKey { get; set; } = string.Empty; // e.g. "2026-08-17"
+        public string WeekTitle { get; set; } = string.Empty; // e.g. "Aug 17 – Aug 23, 2026"
+        public decimal Amount { get; set; } = 100.00m;
+        public string Status { get; set; } = "Pending"; // "Paid" or "Pending"
+        public string PaymentMode { get; set; } = "-"; // "Online", "Cash", "-"
+        public string PaidDate { get; set; } = "-";
+        public string ReceiptNumber { get; set; } = string.Empty;
+        public int TransactionId { get; set; }
+    }
+
     public class MemberSavingsSummaryDto
     {
         public decimal TotalSavings { get; set; }
@@ -29,6 +42,8 @@ namespace Sahayi.Api.DTOs
         public bool IsWeeklyPaid { get; set; }
         public string WeeklyStatus { get; set; } = "Pending";
         public string LastPaymentDate { get; set; } = string.Empty;
+        public int PendingWeeksCount { get; set; }
+        public List<MemberWeeklySavingsRowDto> WeeklyHistory { get; set; } = new List<MemberWeeklySavingsRowDto>();
     }
 
     public class MemberLoanStatusDto

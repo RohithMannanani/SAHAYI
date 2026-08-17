@@ -16,6 +16,7 @@ import {
   depositCashToBank,
   verifySecretaryLoan,
   saveSecretaryAttendance,
+  updateLateAttendance,
   deleteSecretaryMeeting
 } from '../../services/api';
 
@@ -69,6 +70,7 @@ function SecretaryDashboard() {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [selectedAttendanceMeeting, setSelectedAttendanceMeeting] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [selectedLoanDetail, setSelectedLoanDetail] = useState(null);
@@ -112,6 +114,27 @@ function SecretaryDashboard() {
     setTimeout(() => {
       setToast(null);
     }, 3500);
+  };
+
+  const handleOpenAttendanceModal = (meeting = null) => {
+    const activeM = meeting || (meetings || []).find(m => m.attendanceRecorded && (m.attendances || m.Attendances)?.length > 0) || (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED') || (meetings || [])[0];
+    setSelectedAttendanceMeeting(activeM);
+
+    if (activeM && activeM.attendanceRecorded && (activeM.attendances || activeM.Attendances)) {
+      const attList = activeM.attendances || activeM.Attendances || [];
+      setAttendanceList(prev =>
+        prev.map(mem => {
+          const memUserId = String(mem.userId || mem.UserId || mem.id || '');
+          const saved = attList.find(a => String(a.userId || a.UserId || '') === memUserId);
+          if (saved !== undefined) {
+            const isPres = saved.isPresent === true || saved.IsPresent === true || saved.isPresent === 1 || saved.IsPresent === 1 || String(saved.isPresent) === 'true';
+            return { ...mem, status: isPres ? 'present' : 'absent' };
+          }
+          return mem;
+        })
+      );
+    }
+    setShowAttendanceModal(true);
   };
 
   // Form states
@@ -192,7 +215,22 @@ function SecretaryDashboard() {
         }));
         setMeetings(formattedMeetings);
         setLoans(data.pendingLoans || []);
-        setAttendanceList(data.members || []);
+
+        const recordedMeeting = formattedMeetings.find(m => m.attendanceRecorded && (m.attendances || m.Attendances)?.length > 0) || formattedMeetings[0];
+        const initialMembers = (data.members || []).map(mem => {
+          if (recordedMeeting && recordedMeeting.attendanceRecorded && (recordedMeeting.attendances || recordedMeeting.Attendances)) {
+            const attList = recordedMeeting.attendances || recordedMeeting.Attendances || [];
+            const memUserId = String(mem.userId || mem.UserId || mem.id || '');
+            const saved = attList.find(a => String(a.userId || a.UserId || '') === memUserId);
+            if (saved !== undefined) {
+              const isPres = saved.isPresent === true || saved.IsPresent === true || saved.isPresent === 1 || saved.IsPresent === 1 || String(saved.isPresent) === 'true';
+              return { ...mem, status: isPres ? 'present' : 'absent' };
+            }
+          }
+          return mem;
+        });
+
+        setAttendanceList(initialMembers);
         setUnitBankAccount(data.bankAccount || null);
         setFinancials({
           totalCollection: data.totalWeeklyCollection || 0,
@@ -316,67 +354,81 @@ function SecretaryDashboard() {
     window.location.replace('/login');
   };
 
-  const handleRecordSavings = async (item) => {
-    // Block duplicate payment entries for the same UserId
-    if (item.status === 'Paid') {
-      showToast(`Weekly savings deposit for this week is already paid for ${item.name}!`, 'error');
-      return;
+  const getNumericUserId = (item) => {
+    if (!item) return 0;
+    if (item.userId && !isNaN(Number(item.userId)) && Number(item.userId) > 0) {
+      return Number(item.userId);
     }
+    if (typeof item.id === 'number' && !isNaN(item.id) && item.id > 0) {
+      return item.id;
+    }
+    return 0;
+  };
 
-    const alreadyPaidLog = savingsLogs.find(
-      s => s.status === 'Paid' && ((s.userId && item.userId && s.userId === item.userId) || (s.id && item.id && s.id === item.id))
-    );
-    if (alreadyPaidLog) {
+  const handleRecordSavings = async (item) => {
+    if (item.status === 'Paid') {
       showToast(`Weekly savings deposit for this week is already paid for ${item.name}!`, 'error');
       return;
     }
 
     try {
       const recordAmount = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
+      const targetUserId = getNumericUserId(item);
+      const targetDate = item.date || item.weekKey || new Date().toISOString().split('T')[0];
+      const targetSavingsWeekId = item.savingsWeekId || null;
+
       await recordSecretarySavings(
-        { userId: item.userId || item.id, amount: recordAmount },
+        { userId: targetUserId, amount: recordAmount, paymentMode: 'Cash', date: targetDate, savingsWeekId: targetSavingsWeekId },
         unitInfo.unitId
       );
-      setSavingsLogs(prev =>
-        prev.map(s =>
-          s.id === item.id || (s.userId && item.userId && s.userId === item.userId)
-            ? { ...s, status: 'Paid', amount: recordAmount.toFixed(2), paymentMode: 'Cash' }
-            : s
-        )
-      );
-      setFinancials(prev => ({
-        ...prev,
-        totalCollection: prev.totalCollection + recordAmount,
-        pendingDues: Math.max(0, prev.pendingDues - 1)
-      }));
+
       showToast(`Weekly savings recorded as Paid for ${item.name}!`);
+      loadDashboardData();
     } catch (err) {
       console.error('Error recording savings:', err);
       const errMsg = err.response?.data?.message || 'Failed to record savings in SahayiDb database';
       showToast(errMsg, 'error');
+      loadDashboardData();
     }
   };
 
-  const handlePaymentSuccess = (item, method, paymentId) => {
+  const handlePaymentSuccess = async (item, method, paymentId) => {
     const amountVal = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
-    setSavingsLogs(prev =>
-      prev.map(s =>
-        s.id === item.id || (s.userId && item.userId && s.userId === item.userId)
-          ? { ...s, status: 'Paid', amount: amountVal.toFixed(2), paymentMode: method || 'Cash' }
-          : s
-      )
-    );
-    setFinancials(prev => ({
-      ...prev,
-      totalCollection: prev.totalCollection + amountVal,
-      pendingDues: Math.max(0, prev.pendingDues - 1)
-    }));
-    setPaymentMemberItem(null);
+    const targetUserId = getNumericUserId(item);
+    const paymentModeStr = method || 'Cash';
+    const paymentDate = item.date || item.weekKey || new Date().toISOString().split('T')[0];
+    const targetSavingsWeekId = item.savingsWeekId || null;
 
-    if (method === 'Online') {
-      showToast(`Online payment of ₹${amountVal.toFixed(2)} via Razorpay completed! (Payment ID: ${paymentId || 'Success'})`);
-    } else {
-      showToast(`Cash payment of ₹${amountVal.toFixed(2)} recorded for ${item.name} successfully!`);
+    try {
+      let res;
+      const payload = {
+        userId: targetUserId,
+        amount: amountVal,
+        paymentMode: paymentModeStr,
+        paymentMethod: paymentModeStr,
+        date: paymentDate,
+        savingsWeekId: targetSavingsWeekId
+      };
+
+      if (paymentModeStr === 'Online') {
+        res = await payOnlineSavings({ ...payload, razorpayPaymentId: paymentId }, unitInfo?.unitId);
+      } else {
+        res = await payCashSavings(payload, unitInfo?.unitId);
+      }
+
+      setPaymentMemberItem(null);
+      if (paymentModeStr === 'Online') {
+        showToast(`Online payment of ₹${amountVal.toFixed(2)} completed for ${item.name}!`);
+      } else {
+        showToast(`Cash payment of ₹${amountVal.toFixed(2)} recorded for ${item.name}!`);
+      }
+      loadDashboardData();
+    } catch (err) {
+      console.error('Error persisting payment in database:', err);
+      const errMsg = err.response?.data?.message || 'Failed to record payment';
+      setPaymentMemberItem(null);
+      showToast(errMsg, 'error');
+      loadDashboardData();
     }
   };
 
@@ -512,6 +564,12 @@ function SecretaryDashboard() {
   };
 
   const handleDeleteMeeting = async (meetingId) => {
+    const targetM = (meetings || []).find(m => String(m.id) === String(meetingId));
+    if (targetM?.isCompleted || targetM?.tag === 'COMPLETED') {
+      showToast('Completed meetings cannot be deleted.', 'error');
+      return;
+    }
+
     setMeetings(prev => prev.filter(m => String(m.id) !== String(meetingId)));
     showToast('Meeting deleted from schedule!');
     if (meetingId && !isNaN(Number(meetingId))) {
@@ -606,19 +664,53 @@ function SecretaryDashboard() {
     }
   };
 
-  const handleSaveAttendance = async () => {
+  const handleSaveAttendance = async (meetingId) => {
     try {
-      const attendances = attendanceList.map(item => ({
-        userId: item.userId || '00000000-0000-0000-0000-000000000000',
-        isPresent: item.status === 'present'
+      const activeM = (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED') || (meetings || [])[0];
+      const targetMeetingId = (meetingId && !isNaN(Number(meetingId)))
+        ? Number(meetingId)
+        : ((activeM?.id && !isNaN(Number(activeM.id))) ? Number(activeM.id) : 1);
+
+      const targetM = (meetings || []).find(m => String(m.id) === String(targetMeetingId));
+      if (targetM?.attendanceRecorded) {
+        showToast('Attendance has already been recorded for this meeting! Multiple entries are not allowed.', 'error');
+        setShowAttendanceModal(false);
+        return;
+      }
+
+      const attendances = attendanceList
+        .map(item => {
+          const rawId = item.userId || item.id;
+          const numericUserId = (rawId && !isNaN(Number(rawId))) ? Number(rawId) : 0;
+          return {
+            userId: numericUserId,
+            isPresent: item.status === 'present'
+          };
+        })
+        .filter(a => a.userId > 0);
+
+      await saveSecretaryAttendance({ meetingId: targetMeetingId, attendances });
+
+      const savedAttendances = attendances.map((a, idx) => ({
+        attendanceId: idx + 1,
+        meetingId: targetMeetingId,
+        userId: a.userId,
+        isPresent: a.isPresent
       }));
 
-      await saveSecretaryAttendance({ meetingId: 1, attendances });
+      setMeetings(prev =>
+        prev.map(m =>
+          String(m.id) === String(targetMeetingId)
+            ? { ...m, attendanceRecorded: true, attendances: savedAttendances }
+            : m
+        )
+      );
+
       setShowAttendanceModal(false);
       showToast('Attendance recorded in SahayiDb database!');
     } catch (err) {
       console.error('Error saving attendance:', err);
-      showToast('Failed to record attendance in database', 'error');
+      showToast(err.response?.data?.message || 'Failed to record attendance in database', 'error');
     }
   };
 
@@ -628,6 +720,38 @@ function SecretaryDashboard() {
         item.id === id ? { ...item, status: item.status === 'present' ? 'absent' : 'present' } : item
       )
     );
+  };
+
+  const handleUpdateLateAttendance = async (meetingId, userId) => {
+    try {
+      await updateLateAttendance(meetingId, userId);
+      setAttendanceList(prev =>
+        prev.map(item =>
+          (String(item.userId) === String(userId) || String(item.id) === String(userId))
+            ? { ...item, status: 'present' }
+            : item
+        )
+      );
+
+      setMeetings(prev =>
+        prev.map(m =>
+          String(m.id) === String(meetingId)
+            ? {
+                ...m,
+                attendanceRecorded: true,
+                attendances: (m.attendances || []).some(a => String(a.userId) === String(userId))
+                  ? m.attendances.map(a => String(a.userId) === String(userId) ? { ...a, isPresent: true } : a)
+                  : [...(m.attendances || []), { attendanceId: 0, meetingId: Number(meetingId), userId: Number(userId), isPresent: true }]
+              }
+            : m
+        )
+      );
+
+      showToast('Member attendance updated to Present (Late Arrival)!');
+    } catch (err) {
+      console.error('Error updating late attendance:', err);
+      showToast(err.response?.data?.message || 'Failed to update late attendance', 'error');
+    }
   };
 
   // Filtering savings log based on search query
@@ -680,12 +804,13 @@ function SecretaryDashboard() {
               unitBankAccount={unitBankAccount}
               isLoading={isLoading}
               filteredSavings={filteredSavings}
+              attendanceList={attendanceList}
               meetings={meetings}
               loans={loans}
               filteredLoans={filteredLoans}
               onShowRegisterModal={() => setShowRegisterModal(true)}
               onShowMeetingModal={() => setShowMeetingModal(true)}
-              onShowAttendanceModal={() => setShowAttendanceModal(true)}
+              onShowAttendanceModal={(m) => handleOpenAttendanceModal(m)}
               onShowHistoryModal={() => setShowHistoryModal(true)}
               onShowCalendarModal={() => setShowCalendarModal(true)}
               onRecordSavings={handleRecordSavings}
@@ -698,6 +823,7 @@ function SecretaryDashboard() {
               onEditMeeting={setEditingMeeting}
               onMarkMeetingCompleted={handleMarkMeetingCompleted}
               onDeleteMeeting={handleDeleteMeeting}
+              onNavigateMeetings={() => setActiveTab('meetings')}
             />
           )}
 
@@ -716,8 +842,11 @@ function SecretaryDashboard() {
               financials={financials}
               unitBankAccount={unitBankAccount}
               savingsLogs={savingsLogs}
+              allMembers={attendanceList}
               onDepositCashToBank={handleDepositCashToBank}
               onDepositAllCashToBank={handleDepositAllCashToBank}
+              onRecordSavings={handleRecordSavings}
+              onPayNow={setPaymentMemberItem}
             />
           )}
 
@@ -728,6 +857,7 @@ function SecretaryDashboard() {
               onEditMeeting={setEditingMeeting}
               onMarkMeetingCompleted={handleMarkMeetingCompleted}
               onDeleteMeeting={handleDeleteMeeting}
+              onShowAttendanceModal={(m) => handleOpenAttendanceModal(m)}
             />
           )}
 
@@ -768,9 +898,14 @@ function SecretaryDashboard() {
           unitInfo={unitInfo}
           attendanceList={attendanceList}
           meetings={meetings}
+          nextMeeting={selectedAttendanceMeeting}
           onToggleAttendance={toggleAttendanceStatus}
           onSaveAttendance={handleSaveAttendance}
-          onClose={() => setShowAttendanceModal(false)}
+          onUpdateLateAttendance={handleUpdateLateAttendance}
+          onClose={() => {
+            setShowAttendanceModal(false);
+            setSelectedAttendanceMeeting(null);
+          }}
         />
       )}
 

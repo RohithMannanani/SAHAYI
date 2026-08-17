@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { Landmark, CheckCircle2, Calendar, ChevronDown, ChevronUp, ArrowDownCircle, Search } from 'lucide-react';
+import { Landmark, CheckCircle2, Calendar, ChevronDown, ChevronUp, ArrowDownCircle, Search, CreditCard } from 'lucide-react';
 import { getWeeklyCollectionLogs } from '../../utils/weeklyCollectionUtils';
+import { formatDateToDDMMYYYY } from '../../utils/formatTime';
 
 function FinancialsView({
   financials,
   unitBankAccount,
   savingsLogs = [],
+  allMembers = [],
   onDepositCashToBank,
-  onDepositAllCashToBank
+  onDepositAllCashToBank,
+  onRecordSavings,
+  onPayNow
 }) {
   const [showWeeklyLog, setShowWeeklyLog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,8 +35,8 @@ function FinancialsView({
     onlineAndDepositedTotalFromLogs
   );
 
-  // Get weekly collection logs grouped and sorted in DESCENDING order of dates & weeks
-  const weeklyLogs = getWeeklyCollectionLogs(savingsLogs);
+  // Get weekly collection logs grouped and sorted in DESCENDING order of dates & weeks (includes all unit members)
+  const weeklyLogs = getWeeklyCollectionLogs(savingsLogs, allMembers);
 
   const toggleWeekCollapse = (weekKey) => {
     setCollapsedWeeks(prev => ({
@@ -255,7 +259,7 @@ function FinancialsView({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Calendar size={16} style={{ color: '#6ee7b7' }} />
                         <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                          {weekGroup.weekTitle}
+                          {weekGroup.weekTitle} ({formatDateToDDMMYYYY(weekGroup.mondayStr || weekGroup.weekKey)} to {formatDateToDDMMYYYY(weekGroup.sundayStr || weekGroup.weekKey)})
                         </span>
                         {index === 0 && (
                           <span style={{
@@ -312,7 +316,7 @@ function FinancialsView({
                               return (
                                 <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.825rem' }}>
                                   <td style={{ padding: '8px 10px', color: '#475569', fontWeight: 500 }}>
-                                    {item.date || new Date().toISOString().split('T')[0]}
+                                    {formatDateToDDMMYYYY(item.date)}
                                   </td>
                                   <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>
                                     {item.name}
@@ -371,6 +375,27 @@ function FinancialsView({
                                       <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                         <CheckCircle2 size={12} /> Recorded
                                       </span>
+                                    ) : onPayNow ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => onPayNow(item)}
+                                        style={{
+                                          backgroundColor: '#0284c7',
+                                          color: '#ffffff',
+                                          border: 'none',
+                                          padding: '3px 8px',
+                                          borderRadius: '5px',
+                                          fontSize: '0.725rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                      >
+                                        <CreditCard size={11} />
+                                        <span>Record Payment</span>
+                                      </button>
                                     ) : (
                                       <span style={{ color: '#94a3b8' }}>-</span>
                                     )}

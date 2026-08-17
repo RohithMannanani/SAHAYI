@@ -64,6 +64,8 @@ namespace Sahayi.Api.Controllers
             public int? UserId { get; set; }
             public int? UnitId { get; set; }
             public decimal? Amount { get; set; }
+            public int? SavingsWeekId { get; set; }
+            public string? Date { get; set; }
         }
 
         // POST: /api/create-order OR /api/payment/create-order
@@ -162,56 +164,70 @@ namespace Sahayi.Api.Controllers
                         if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                     }
 
-                    var amountVal = (dto.Amount.HasValue && dto.Amount.Value > 0) ? dto.Amount.Value : 100;
+                    var receiptNo = $"REC-RZP-{dto.RazorpayPaymentId}";
+                    var existingTx = await _context.SavingsTransactions.FirstOrDefaultAsync(s => s.ReceiptNumber == receiptNo);
 
-                    var savingsTx = new SavingsTransaction
+                    if (existingTx == null)
                     {
-                        UserId = dto.UserId.Value,
-                        UnitId = targetUnitId,
-                        Amount = amountVal,
-                        PaymentMode = "Online",
-                        TransactionDate = DateTime.UtcNow,
-                        ReceiptNumber = $"REC-RZP-{dto.RazorpayPaymentId}",
-                        RecordedBy = dto.UserId.Value
-                    };
-
-                    _context.SavingsTransactions.Add(savingsTx);
-
-                    // Credit Unit Bank Account balance for Online payments
-                    if (targetUnitId > 0)
-                    {
-                        var unitInfo = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.UnitId == targetUnitId);
-                        var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
-
-                        string accNum = !string.IsNullOrWhiteSpace(unitInfo?.AccountNumber) ? unitInfo.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
-                        string bankName = !string.IsNullOrWhiteSpace(unitInfo?.BankName) ? unitInfo.BankName : "Sahayi Co-operative Bank";
-                        string ifsc = !string.IsNullOrWhiteSpace(unitInfo?.IFSCCode) ? unitInfo.IFSCCode : "SHY0001001";
-
-                        if (bankAccount == null)
+                        var amountVal = (dto.Amount.HasValue && dto.Amount.Value > 0) ? dto.Amount.Value : 100;
+                        DateTime txDate = DateTime.UtcNow;
+                        if (!string.IsNullOrWhiteSpace(dto.Date) && DateTime.TryParse(dto.Date, out var parsedDate))
                         {
-                            bankAccount = new UnitBankAccount
+                            txDate = parsedDate;
+                        }
+
+                        int calculatedWeekId = dto.SavingsWeekId ?? System.Globalization.ISOWeek.GetWeekOfYear(txDate);
+
+                        var savingsTx = new SavingsTransaction
+                        {
+                            UserId = dto.UserId.Value,
+                            UnitId = targetUnitId,
+                            Amount = amountVal,
+                            PaymentMode = "Online",
+                            TransactionDate = txDate,
+                            SavingsWeekId = calculatedWeekId,
+                            ReceiptNumber = receiptNo,
+                            RecordedBy = dto.UserId.Value
+                        };
+
+                        _context.SavingsTransactions.Add(savingsTx);
+
+                        // Credit Unit Bank Account balance for Online payments
+                        if (targetUnitId > 0)
+                        {
+                            var unitInfo = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.UnitId == targetUnitId);
+                            var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
+
+                            string accNum = !string.IsNullOrWhiteSpace(unitInfo?.AccountNumber) ? unitInfo.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
+                            string bankName = !string.IsNullOrWhiteSpace(unitInfo?.BankName) ? unitInfo.BankName : "Sahayi Co-operative Bank";
+                            string ifsc = !string.IsNullOrWhiteSpace(unitInfo?.IFSCCode) ? unitInfo.IFSCCode : "SHY0001001";
+
+                            if (bankAccount == null)
                             {
-                                UnitId = targetUnitId,
-                                AccountNumber = accNum,
-                                BankName = bankName,
-                                IFSCCode = ifsc,
-                                Balance = 0.00m,
-                                LastUpdated = DateTime.UtcNow
-                            };
-                            _context.UnitBankAccounts.Add(bankAccount);
-                        }
-                        else
-                        {
-                            if (!string.IsNullOrWhiteSpace(unitInfo?.BankName)) bankAccount.BankName = unitInfo.BankName;
-                            if (!string.IsNullOrWhiteSpace(unitInfo?.IFSCCode)) bankAccount.IFSCCode = unitInfo.IFSCCode;
-                            if (!string.IsNullOrWhiteSpace(unitInfo?.AccountNumber)) bankAccount.AccountNumber = unitInfo.AccountNumber;
+                                bankAccount = new UnitBankAccount
+                                {
+                                    UnitId = targetUnitId,
+                                    AccountNumber = accNum,
+                                    BankName = bankName,
+                                    IFSCCode = ifsc,
+                                    Balance = 0.00m,
+                                    LastUpdated = DateTime.UtcNow
+                                };
+                                _context.UnitBankAccounts.Add(bankAccount);
+                            }
+                            else
+                            {
+                                if (!string.IsNullOrWhiteSpace(unitInfo?.BankName)) bankAccount.BankName = unitInfo.BankName;
+                                if (!string.IsNullOrWhiteSpace(unitInfo?.IFSCCode)) bankAccount.IFSCCode = unitInfo.IFSCCode;
+                                if (!string.IsNullOrWhiteSpace(unitInfo?.AccountNumber)) bankAccount.AccountNumber = unitInfo.AccountNumber;
+                            }
+
+                            bankAccount.Balance += amountVal;
+                            bankAccount.LastUpdated = DateTime.UtcNow;
                         }
 
-                        bankAccount.Balance += amountVal;
-                        bankAccount.LastUpdated = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
                     }
-
-                    await _context.SaveChangesAsync();
                 }
 
                 return Ok(new

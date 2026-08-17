@@ -21,6 +21,8 @@ namespace Sahayi.Api.Entities
         [Required]
         public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
 
+        public int? SavingsWeekId { get; set; }
+
         [Required]
         [Column(TypeName = "varchar(50)")]
         public string ReceiptNumber { get; set; } = string.Empty;

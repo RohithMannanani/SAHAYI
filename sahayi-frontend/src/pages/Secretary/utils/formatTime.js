@@ -33,3 +33,36 @@ export const formatTimeTo12Hr = (timeStr) => {
 
   return str;
 };
+
+/**
+ * Formats any date string (e.g., YYYY-MM-DD or ISO) into DD-MM-YYYY format.
+ * Examples:
+ * - "2026-08-17" -> "17-08-2026"
+ * - "2026-08-17T00:00:00" -> "17-08-2026"
+ */
+export const formatDateToDDMMYYYY = (dateStr) => {
+  if (!dateStr) return '';
+  const str = String(dateStr).trim().split('T')[0];
+
+  const matchYYYYMMDD = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (matchYYYYMMDD) {
+    const [, yyyy, mm, dd] = matchYYYYMMDD;
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  const matchDDMMYYYY = str.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (matchDDMMYYYY) {
+    return str;
+  }
+
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return str;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch {
+    return str;
+  }
+};

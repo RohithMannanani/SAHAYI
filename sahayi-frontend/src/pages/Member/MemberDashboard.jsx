@@ -55,6 +55,7 @@ function MemberDashboard() {
 
   // Modal States
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedWeekItem, setSelectedWeekItem] = useState(null);
   const [showApplyLoanModal, setShowApplyLoanModal] = useState(false);
   const [isSubmittingLoan, setIsSubmittingLoan] = useState(false);
   const [loanForm, setLoanForm] = useState({
@@ -201,6 +202,8 @@ verified from SahayiDb Database.
   const isWeeklyPaid = Boolean(dashboardData?.savings?.isWeeklyPaid);
   const weeklyStatus = dashboardData?.savings?.weeklyStatus || (isWeeklyPaid ? 'Paid' : 'Pending');
   const lastPaymentDate = dashboardData?.savings?.lastPaymentDate || '';
+  const pendingWeeksCount = dashboardData?.savings?.pendingWeeksCount || 0;
+  const weeklyHistoryRows = dashboardData?.savings?.weeklyHistory || [];
 
   const activeLoan = dashboardData?.activeLoan || {
     hasLoan: false,
@@ -515,6 +518,132 @@ verified from SahayiDb Database.
                     <span className="mem-loan-card__detail-key">Due Date</span>
                     <span className="mem-loan-card__detail-val">{activeLoan.dueDate}</span>
                   </div>
+                </div>
+              </div>
+
+              {/* ── Section: Weekly Savings Ledger & Dues ── */}
+              <div className="mem-card" style={{ marginTop: '24px', marginBottom: '24px' }}>
+                <div className="mem-card__head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h2 className="mem-card__title" style={{ margin: 0, fontSize: '1.15rem' }}>Weekly Savings Ledger & Dues</h2>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>
+                      Complete week-by-week history of your community savings deposits and pending dues.
+                    </p>
+                  </div>
+                  {pendingWeeksCount > 0 && (
+                    <span style={{
+                      backgroundColor: '#fef3c7',
+                      color: '#b45309',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '4px 12px',
+                      borderRadius: '12px'
+                    }}>
+                      {pendingWeeksCount} Week{pendingWeeksCount > 1 ? 's' : ''} Pending
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ overflowX: 'auto', marginTop: '16px' }}>
+                  <table className="mem-repay-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>Week Range</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Payment Mode</th>
+                        <th>Paid Date</th>
+                        <th>Receipt No.</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {weeklyHistoryRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem' }}>
+                            No weekly savings history available.
+                          </td>
+                        </tr>
+                      ) : (
+                        weeklyHistoryRows.map((row, idx) => (
+                          <tr key={row.weekKey || idx}>
+                            <td style={{ fontWeight: 600, color: '#1e293b' }}>
+                              {row.weekTitle}
+                              {idx === 0 && (
+                                <span style={{
+                                  marginLeft: '8px',
+                                  backgroundColor: '#0c382e',
+                                  color: '#ffffff',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  padding: '2px 6px',
+                                  borderRadius: '4px'
+                                }}>
+                                  CURRENT
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ fontWeight: 700, color: '#0f172a' }}>₹{parseFloat(row.amount).toFixed(2)}</td>
+                            <td>
+                              {row.status === 'Paid' ? (
+                                <span className="mem-status mem-status--paid">
+                                  <Icon d="M20 6L9 17l-5-5" size={12} stroke="#1b6b3a" strokeWidth={2.5} />
+                                  Paid
+                                </span>
+                              ) : (
+                                <span className="mem-status mem-status--pending">
+                                  <Icon d="M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={12} stroke="#b5681c" strokeWidth={2} />
+                                  Pending
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ color: '#475569', fontSize: '0.85rem' }}>{row.paymentMode || '-'}</td>
+                            <td style={{ color: '#475569', fontSize: '0.85rem' }}>{row.paidDate || '-'}</td>
+                            <td style={{ color: '#64748b', fontSize: '0.78rem', fontFamily: 'monospace' }}>{row.receiptNumber || '-'}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              {row.status === 'Paid' ? (
+                                <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.8rem' }}>✓ Recorded</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  style={{
+                                    backgroundColor: '#0c382e',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '5px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  onClick={() => {
+                                    setSelectedWeekItem({
+                                      id: currentUser?.userId || dashboardData?.userId || 1,
+                                      userId: currentUser?.userId || dashboardData?.userId || 1,
+                                      name: memberName,
+                                      memberId: memberIdStr,
+                                      amount: row.amount || 100,
+                                      weekKey: row.weekKey,
+                                      savingsWeekId: row.savingsWeekId,
+                                      weekTitle: row.weekTitle,
+                                      status: 'Pending'
+                                    });
+                                    setShowPaymentModal(true);
+                                  }}
+                                >
+                                  <Icon d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" size={12} stroke="#ffffff" />
+                                  <span>Pay ₹100 Now</span>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 

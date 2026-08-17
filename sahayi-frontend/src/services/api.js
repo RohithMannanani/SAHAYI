@@ -178,6 +178,11 @@ export const saveSecretaryAttendance = async (data) => {
   return await api.post('/secretary/attendance', data);
 };
 
+// 6b. Update Late Member Attendance Record (Allowed on meeting day only)
+export const updateLateAttendance = async (meetingId, userId) => {
+  return await api.post('/secretary/attendance/update-late', { meetingId, userId });
+};
+
 // 7. Delete Scheduled Meeting
 export const deleteSecretaryMeeting = async (meetingId) => {
   try {

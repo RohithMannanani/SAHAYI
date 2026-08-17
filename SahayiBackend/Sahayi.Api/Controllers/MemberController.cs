@@ -71,6 +71,20 @@ namespace Sahayi.Api.Controllers
                     .OrderByDescending(s => s.TransactionDate)
                     .ToListAsync();
 
+                bool updatedNullWeeks = false;
+                foreach (var s in savingsTxs)
+                {
+                    if (!s.SavingsWeekId.HasValue)
+                    {
+                        s.SavingsWeekId = System.Globalization.ISOWeek.GetWeekOfYear(s.TransactionDate);
+                        updatedNullWeeks = true;
+                    }
+                }
+                if (updatedNullWeeks)
+                {
+                    await _context.SaveChangesAsync();
+                }
+
                 decimal totalSavings = savingsTxs.Sum(s => s.Amount);
                 DateTime now = DateTime.UtcNow;
                 decimal savingsThisMonth = savingsTxs
@@ -80,10 +94,67 @@ namespace Sahayi.Api.Controllers
                 decimal savingsGoal = 100000m;
                 int progressPct = (int)Math.Min(100, Math.Round((totalSavings / savingsGoal) * 100m));
 
-                var latestTx = savingsTxs.FirstOrDefault();
-                bool isWeeklyPaid = latestTx != null && (now - latestTx.TransactionDate).TotalDays <= 6;
+                // Generate Weekly History for Member (Current Week + Last 7 Weeks)
+                var weeklyHistory = new List<MemberWeeklySavingsRowDto>();
+
+                int currentDayOfWeek = (int)now.DayOfWeek;
+                int diffToCurrentMonday = currentDayOfWeek == 0 ? -6 : 1 - currentDayOfWeek;
+                DateTime currentMonday = now.AddDays(diffToCurrentMonday).Date;
+
+                for (int w = 0; w < 8; w++)
+                {
+                    DateTime monday = currentMonday.AddDays(-7 * w);
+                    DateTime sunday = monday.AddDays(6).AddHours(23).AddMinutes(59).AddSeconds(59);
+
+                    int weekNumber = System.Globalization.ISOWeek.GetWeekOfYear(monday);
+                    string weekKey = monday.ToString("yyyy-MM-dd");
+
+                    string startStr = monday.ToString("MMM d");
+                    string endStr = sunday.ToString("MMM d, yyyy");
+                    string weekTitle = $"{startStr} – {endStr}";
+
+                    var matchTx = savingsTxs.FirstOrDefault(s =>
+                        (s.SavingsWeekId.HasValue && s.SavingsWeekId.Value == weekNumber && s.TransactionDate.Year == monday.Year) ||
+                        (s.TransactionDate >= monday && s.TransactionDate <= sunday));
+
+                    if (matchTx != null)
+                    {
+                        weeklyHistory.Add(new MemberWeeklySavingsRowDto
+                        {
+                            SavingsWeekId = matchTx.SavingsWeekId ?? weekNumber,
+                            WeekKey = weekKey,
+                            WeekTitle = weekTitle,
+                            Amount = matchTx.Amount,
+                            Status = "Paid",
+                            PaymentMode = string.IsNullOrWhiteSpace(matchTx.PaymentMode) ? "Cash" : matchTx.PaymentMode,
+                            PaidDate = matchTx.TransactionDate.ToString("dd MMM yyyy"),
+                            ReceiptNumber = matchTx.ReceiptNumber,
+                            TransactionId = matchTx.TransactionId
+                        });
+                    }
+                    else
+                    {
+                        weeklyHistory.Add(new MemberWeeklySavingsRowDto
+                        {
+                            SavingsWeekId = weekNumber,
+                            WeekKey = weekKey,
+                            WeekTitle = weekTitle,
+                            Amount = 100.00m,
+                            Status = "Pending",
+                            PaymentMode = "-",
+                            PaidDate = "-",
+                            ReceiptNumber = string.Empty,
+                            TransactionId = 0
+                        });
+                    }
+                }
+
+                var currentWeekItem = weeklyHistory.FirstOrDefault(w => w.WeekKey == currentMonday.ToString("yyyy-MM-dd"));
+                bool isWeeklyPaid = currentWeekItem != null && currentWeekItem.Status == "Paid";
                 string weeklyStatus = isWeeklyPaid ? "Paid" : "Pending";
+                var latestTx = savingsTxs.FirstOrDefault();
                 string lastPaymentDate = latestTx != null ? latestTx.TransactionDate.ToString("dd MMM yyyy") : string.Empty;
+                int pendingWeeksCount = weeklyHistory.Count(w => w.Status == "Pending");
 
                 // 3. Fetch Active Loan for User
                 var loans = await _context.LoanApplications
@@ -288,7 +359,9 @@ namespace Sahayi.Api.Controllers
                         ProgressPct = progressPct,
                         IsWeeklyPaid = isWeeklyPaid,
                         WeeklyStatus = weeklyStatus,
-                        LastPaymentDate = lastPaymentDate
+                        LastPaymentDate = lastPaymentDate,
+                        PendingWeeksCount = pendingWeeksCount,
+                        WeeklyHistory = weeklyHistory
                     },
 
                     ActiveLoan = loanStatusDto,

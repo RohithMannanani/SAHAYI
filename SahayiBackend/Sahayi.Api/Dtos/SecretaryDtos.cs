@@ -39,11 +39,17 @@ namespace Sahayi.Api.DTOs
         [Required]
         public int UserId { get; set; }
 
+        public int? SavingsWeekId { get; set; }
+
         public decimal Amount { get; set; } = 100;
 
         public string? PaymentMode { get; set; } = "Cash";
 
         public string? PaymentMethod { get; set; }
+
+        public string? Date { get; set; }
+
+        public string? PaidDate { get; set; }
     }
 
     public class RecordAttendanceItemDto
@@ -64,6 +70,7 @@ namespace Sahayi.Api.DTOs
     public class SecretarySavingsItemDto
     {
         public int Id { get; set; }
+        public int? SavingsWeekId { get; set; }
         public int UserId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string MemberId { get; set; } = string.Empty;
@@ -71,6 +78,7 @@ namespace Sahayi.Api.DTOs
         public string Status { get; set; } = "Pending";
         public string PaymentMode { get; set; } = "-";
         public string Date { get; set; } = string.Empty;
+        public string PaidDate { get; set; } = string.Empty;
     }
 
     public class UpdateSecretaryMeetingDto
@@ -88,6 +96,14 @@ namespace Sahayi.Api.DTOs
         public string Tag { get; set; } = "NEXT WEEK";
     }
 
+    public class SecretaryAttendanceRecordDto
+    {
+        public int AttendanceId { get; set; }
+        public int MeetingId { get; set; }
+        public int UserId { get; set; }
+        public bool IsPresent { get; set; }
+    }
+
     public class SecretaryMeetingItemDto
     {
         public int Id { get; set; }
@@ -99,6 +115,8 @@ namespace Sahayi.Api.DTOs
         public string Location { get; set; } = string.Empty;
         public bool IsCompleted { get; set; } = false;
         public string? CompletedDate { get; set; }
+        public bool AttendanceRecorded { get; set; } = false;
+        public List<SecretaryAttendanceRecordDto> Attendances { get; set; } = new List<SecretaryAttendanceRecordDto>();
     }
 
     public class SecretaryLoanItemDto
@@ -154,5 +172,14 @@ namespace Sahayi.Api.DTOs
         public List<SecretaryMeetingItemDto> Meetings { get; set; } = new List<SecretaryMeetingItemDto>();
         public List<SecretaryLoanItemDto> PendingLoans { get; set; } = new List<SecretaryLoanItemDto>();
         public List<SecretaryMemberItemDto> Members { get; set; } = new List<SecretaryMemberItemDto>();
+    }
+
+    public class UpdateLateAttendanceDto
+    {
+        [Required]
+        public int MeetingId { get; set; }
+
+        [Required]
+        public int UserId { get; set; }
     }
 }

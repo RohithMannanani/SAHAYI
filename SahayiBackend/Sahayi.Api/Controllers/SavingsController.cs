@@ -26,6 +26,8 @@ namespace Sahayi.Api.Controllers
             public string? PaymentMethod { get; set; }
             public string? TransactionId { get; set; }
             public string? RazorpayPaymentId { get; set; }
+            public int? SavingsWeekId { get; set; }
+            public string? Date { get; set; }
         }
 
         // POST: api/savings/pay-cash
@@ -44,14 +46,28 @@ namespace Sahayi.Api.Controllers
                 }
 
                 var amountVal = dto.Amount > 0 ? dto.Amount : 100;
+                DateTime txDate = DateTime.UtcNow;
+                if (!string.IsNullOrWhiteSpace(dto.Date) && DateTime.TryParse(dto.Date, out var parsedDate))
+                {
+                    txDate = parsedDate;
+                }
+
+                int dayOfWeek = (int)txDate.DayOfWeek;
+                int diffToMonday = dayOfWeek == 0 ? -6 : 1 - dayOfWeek;
+                DateTime weekStart = txDate.AddDays(diffToMonday).Date;
+                DateTime weekEnd = weekStart.AddDays(7).AddTicks(-1);
+
+                int calculatedWeekId = dto.SavingsWeekId ?? System.Globalization.ISOWeek.GetWeekOfYear(txDate);
 
                 if (targetUserId > 0)
                 {
                     var existingTx = await _context.SavingsTransactions
-                        .FirstOrDefaultAsync(s => s.UserId == targetUserId && s.TransactionDate >= DateTime.UtcNow.AddDays(-6));
+                        .FirstOrDefaultAsync(s => s.UserId == targetUserId &&
+                            ((dto.SavingsWeekId.HasValue && s.SavingsWeekId == dto.SavingsWeekId.Value) ||
+                             (s.TransactionDate >= weekStart && s.TransactionDate <= weekEnd)));
                     if (existingTx != null)
                     {
-                        return BadRequest(new { message = "Weekly savings deposit for this week has already been paid!" });
+                        return BadRequest(new { message = "Weekly savings deposit for this specific week has already been paid!" });
                     }
                 }
 
@@ -61,7 +77,8 @@ namespace Sahayi.Api.Controllers
                     UnitId = targetUnitId,
                     Amount = amountVal,
                     PaymentMode = "Cash",
-                    TransactionDate = DateTime.UtcNow,
+                    TransactionDate = txDate,
+                    SavingsWeekId = calculatedWeekId,
                     ReceiptNumber = $"REC-CASH-{DateTime.UtcNow.Ticks.ToString()[^8..]}",
                     RecordedBy = targetUserId
                 };
@@ -98,14 +115,28 @@ namespace Sahayi.Api.Controllers
                 }
 
                 var amountVal = dto.Amount > 0 ? dto.Amount : 100;
+                DateTime txDate = DateTime.UtcNow;
+                if (!string.IsNullOrWhiteSpace(dto.Date) && DateTime.TryParse(dto.Date, out var parsedDate))
+                {
+                    txDate = parsedDate;
+                }
+
+                int dayOfWeek = (int)txDate.DayOfWeek;
+                int diffToMonday = dayOfWeek == 0 ? -6 : 1 - dayOfWeek;
+                DateTime weekStart = txDate.AddDays(diffToMonday).Date;
+                DateTime weekEnd = weekStart.AddDays(7).AddTicks(-1);
+
+                int calculatedWeekId = dto.SavingsWeekId ?? System.Globalization.ISOWeek.GetWeekOfYear(txDate);
 
                 if (targetUserId > 0)
                 {
                     var existingTx = await _context.SavingsTransactions
-                        .FirstOrDefaultAsync(s => s.UserId == targetUserId && s.TransactionDate >= DateTime.UtcNow.AddDays(-6));
+                        .FirstOrDefaultAsync(s => s.UserId == targetUserId &&
+                            ((dto.SavingsWeekId.HasValue && s.SavingsWeekId == dto.SavingsWeekId.Value) ||
+                             (s.TransactionDate >= weekStart && s.TransactionDate <= weekEnd)));
                     if (existingTx != null)
                     {
-                        return BadRequest(new { message = "Weekly savings deposit for this week has already been paid!" });
+                        return BadRequest(new { message = "Weekly savings deposit for this specific week has already been paid!" });
                     }
                 }
 
@@ -115,7 +146,8 @@ namespace Sahayi.Api.Controllers
                     UnitId = targetUnitId,
                     Amount = amountVal,
                     PaymentMode = "Online",
-                    TransactionDate = DateTime.UtcNow,
+                    TransactionDate = txDate,
+                    SavingsWeekId = calculatedWeekId,
                     ReceiptNumber = $"REC-RZP-{dto.RazorpayPaymentId ?? DateTime.UtcNow.Ticks.ToString()[^8..]}",
                     RecordedBy = targetUserId
                 };
@@ -176,6 +208,11 @@ namespace Sahayi.Api.Controllers
         [HttpGet("unit-bank-account/{unitId}")]
         public async Task<IActionResult> GetUnitBankAccount(int unitId)
         {
+            if (unitId <= 0)
+            {
+                return BadRequest(new { message = "Invalid unit ID specified." });
+            }
+
             try
             {
                 var unitInfo = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.UnitId == unitId);

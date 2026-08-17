@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   UserPlus,
   PlusCircle,
@@ -12,19 +12,23 @@ import {
   Landmark,
   Store,
   CheckCircle2,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { formatTimeTo12Hr } from '../../utils/formatTime';
+import { formatTimeTo12Hr, formatDateToDDMMYYYY } from '../../utils/formatTime';
+import { getWeeklyCollectionLogs } from '../../utils/weeklyCollectionUtils';
 
 function OperationalOverview({
   currentUser,
   unitInfo,
   unitBankAccount,
   isLoading,
-  filteredSavings,
-  meetings,
-  loans,
-  filteredLoans,
+  filteredSavings = [],
+  attendanceList = [],
+  meetings = [],
+  loans = [],
+  filteredLoans = [],
   onShowRegisterModal,
   onShowMeetingModal,
   onShowAttendanceModal,
@@ -39,8 +43,11 @@ function OperationalOverview({
   onSelectLoanDetail,
   onEditMeeting,
   onMarkMeetingCompleted,
-  onDeleteMeeting
+  onDeleteMeeting,
+  onNavigateMeetings
 }) {
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
+
   const onlineAndDepositedTotalFromLogs = filteredSavings
     .filter(s => s.status === 'Paid' && (
       (s.paymentMode || '').toLowerCase().includes('online') ||
@@ -54,6 +61,26 @@ function OperationalOverview({
     onlineAndDepositedTotalFromLogs
   );
 
+  const undepositedCashList = filteredSavings.filter(s =>
+    s.status === 'Paid' && (s.paymentMode === 'Cash' || (!s.paymentMode || s.paymentMode === '-'))
+  );
+  const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+
+  const weeklyLogs = getWeeklyCollectionLogs(filteredSavings, attendanceList || []);
+  const currentWeekGroup = weeklyLogs[selectedWeekIndex] || weeklyLogs[0] || {
+    weekTitle: 'Current Week',
+    mondayStr: new Date().toISOString().split('T')[0],
+    sundayStr: new Date().toISOString().split('T')[0],
+    items: filteredSavings
+  };
+
+  const currentWeekItems = currentWeekGroup?.items || filteredSavings;
+  const startDurationStr = formatDateToDDMMYYYY(currentWeekGroup.mondayStr || currentWeekGroup.weekKey);
+  const endDurationStr = formatDateToDDMMYYYY(currentWeekGroup.sundayStr || currentWeekGroup.weekKey);
+  const durationText = `${startDurationStr} to ${endDurationStr}`;
+
+  const upcomingMeetings = (meetings || []).filter(m => !m.isCompleted && m.tag !== 'COMPLETED');
+
   return (
     <div className="sec-dashboard-view">
       {/* Operational Overview Header */}
@@ -61,7 +88,7 @@ function OperationalOverview({
         <div>
           <h1 className="sec-overview-title">Operational Overview</h1>
           <p className="sec-overview-subtitle">
-            Manage daily administrative tasks, weekly collection, and unit records for <strong>{unitInfo.unitName}</strong>.
+            Manage daily administrative tasks, weekly collection, and unit records for <strong>{unitInfo?.unitName || 'Ambika Vilas'}</strong>.
           </p>
         </div>
         <div className="sec-session-badge">
@@ -92,7 +119,10 @@ function OperationalOverview({
 
         <button
           className="sec-action-btn sec-action-btn--tertiary"
-          onClick={onShowAttendanceModal}
+          onClick={() => {
+            const upcomingMeeting = (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED');
+            onShowAttendanceModal(upcomingMeeting);
+          }}
         >
           <UserCheck size={18} />
           <span>Record Attendance</span>
@@ -141,63 +171,112 @@ function OperationalOverview({
         </div>
 
         {/* Pending Cash Collection Summary & Bulk Deposit Button */}
-        {(() => {
-          const undepositedCashList = filteredSavings.filter(s =>
-            s.status === 'Paid' && (s.paymentMode === 'Cash' || (!s.paymentMode || s.paymentMode === '-'))
-          );
-          const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-
-          return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255, 255, 255, 0.1)', padding: '0.6rem 1rem', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', opacity: 0.8, display: 'block', textTransform: 'uppercase' }}>Cash Collected In Hand</span>
-                <strong style={{ fontSize: '1rem', color: '#fbbf24' }}>₹{undepositedTotal.toFixed(2)}</strong>
-              </div>
-              {undepositedCashList.length > 0 && onDepositAllCashToBank && (
-                <button
-                  type="button"
-                  onClick={() => onDepositAllCashToBank(undepositedCashList)}
-                  style={{
-                    backgroundColor: '#10b981',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '0.45rem 0.9rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-                  }}
-                >
-                  <Landmark size={14} />
-                  <span>Deposit Cash to Bank</span>
-                </button>
-              )}
-            </div>
-          );
-        })()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255, 255, 255, 0.1)', padding: '0.6rem 1rem', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
+          <div>
+            <span style={{ fontSize: '0.7rem', opacity: 0.8, display: 'block', textTransform: 'uppercase' }}>Cash Collected In Hand</span>
+            <strong style={{ fontSize: '1rem', color: '#fbbf24' }}>₹{undepositedTotal.toFixed(2)}</strong>
+          </div>
+          {undepositedCashList.length > 0 && onDepositAllCashToBank && (
+            <button
+              type="button"
+              onClick={() => onDepositAllCashToBank(undepositedCashList)}
+              style={{
+                backgroundColor: '#10b981',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.45rem 0.9rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              <Landmark size={14} />
+              <span>Deposit Cash to Bank</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Middle Grid: Savings Log (Left) & Upcoming Meetings (Right) */}
       <div className="sec-middle-grid">
         {/* Weekly Savings Log */}
         <div className="sec-card sec-card--savings">
-          <div className="sec-card__header">
+          <div className="sec-card__header" style={{ flexWrap: 'wrap', gap: '10px' }}>
             <div className="sec-card__title-group">
               <div className="sec-card__icon-wrapper sec-card__icon-wrapper--bronze">
                 <PiggyBank size={20} />
               </div>
-              <h3 className="sec-card__title">Weekly Savings Log</h3>
+              <div>
+                <h3 className="sec-card__title" style={{ margin: 0 }}>Weekly Savings Log</h3>
+                <span style={{ fontSize: '0.75rem', color: '#0c382e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                  <Calendar size={13} /> Duration: {durationText}
+                </span>
+              </div>
             </div>
-            <button
-              className="sec-card__link-btn"
-              onClick={onShowHistoryModal}
-            >
-              View History
-            </button>
+
+            {/* Week Navigation Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedWeekIndex(prev => Math.min(prev + 1, Math.max(0, weeklyLogs.length - 1)))}
+                disabled={selectedWeekIndex >= weeklyLogs.length - 1}
+                title="Previous Week Log"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.785rem',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: selectedWeekIndex >= weeklyLogs.length - 1 ? '#f8fafc' : '#ffffff',
+                  color: selectedWeekIndex >= weeklyLogs.length - 1 ? '#94a3b8' : '#0c382e',
+                  cursor: selectedWeekIndex >= weeklyLogs.length - 1 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <ChevronLeft size={15} />
+                <span>Previous Week</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedWeekIndex(prev => Math.max(prev - 1, 0))}
+                disabled={selectedWeekIndex <= 0}
+                title="Upcoming Week Log"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.785rem',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: selectedWeekIndex <= 0 ? '#f8fafc' : '#ffffff',
+                  color: selectedWeekIndex <= 0 ? '#94a3b8' : '#0c382e',
+                  cursor: selectedWeekIndex <= 0 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span>Upcoming Week</span>
+                <ChevronRight size={15} />
+              </button>
+
+              <button
+                className="sec-card__link-btn"
+                onClick={onShowHistoryModal}
+                style={{ marginLeft: '4px' }}
+              >
+                View History
+              </button>
+            </div>
           </div>
 
           <div className="sec-table-container">
@@ -220,14 +299,14 @@ function OperationalOverview({
                       Loading weekly savings logs from SahayiDb...
                     </td>
                   </tr>
-                ) : filteredSavings.length === 0 ? (
+                ) : currentWeekItems.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="sec-table-empty">
-                      No member savings logs found.
+                      No member savings logs found for this week.
                     </td>
                   </tr>
                 ) : (
-                  filteredSavings.map(item => {
+                  currentWeekItems.map(item => {
                     // Helper to get month and week details
                     const getDetails = (log) => {
                       if (log.month && log.week) return { month: log.month, week: log.week };
@@ -235,7 +314,7 @@ function OperationalOverview({
                       const validDate = isNaN(d.getTime()) ? new Date() : d;
                       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                       const monthStr = log.month || `${monthNames[validDate.getMonth()]} ${validDate.getFullYear()}`;
-                      const weekNum = Math.ceil(validDate.getDate() / 7);
+                      const weekNum = currentWeekGroup.weekNumber || Math.ceil(validDate.getDate() / 7);
                       const weekStr = log.week || `Week ${weekNum}`;
                       return { month: monthStr, week: weekStr };
                     };
@@ -336,21 +415,26 @@ function OperationalOverview({
           </div>
 
           <div className="sec-meetings-list">
-            {meetings.length === 0 ? (
+            {upcomingMeetings.length === 0 ? (
               <p style={{ color: '#888', textAlign: 'center', padding: '0.75rem 0.25rem', fontSize: '0.85rem' }}>
-                No meetings scheduled.
+                No upcoming meetings scheduled.
               </p>
             ) : (
-              meetings.map(m => {
+              upcomingMeetings.map(m => {
                 const isDone = m.isCompleted || m.tag === 'COMPLETED';
 
                 return (
-                  <div className="sec-meeting-item" key={m.id}>
+                  <div
+                    className="sec-meeting-item"
+                    key={m.id}
+                    onClick={() => onNavigateMeetings && onNavigateMeetings()}
+                  >
                     <div className="sec-meeting-item__top">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span className={`sec-tag ${isDone ? 'sec-tag--peach' : (m.tagType ? `sec-tag--${m.tagType}` : 'sec-tag--dark')}`}>
                           {isDone ? 'COMPLETED' : m.tag}
                         </span>
+                        {m.date && <span className="sec-meeting-item__date">{formatDateToDDMMYYYY(m.date)}</span>}
                         <span className="sec-meeting-item__time">{formatTimeTo12Hr(m.time)}</span>
                       </div>
 
@@ -360,7 +444,10 @@ function OperationalOverview({
                             type="button"
                             className="sec-icon-action-btn"
                             title="Edit meeting"
-                            onClick={() => onEditMeeting(m)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditMeeting(m);
+                            }}
                             style={{ color: '#2563eb' }}
                           >
                             <Edit size={14} />
@@ -372,19 +459,25 @@ function OperationalOverview({
                             type="button"
                             className="sec-icon-action-btn"
                             title="Mark as Completed"
-                            onClick={() => onMarkMeetingCompleted(m.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkMeetingCompleted(m.id);
+                            }}
                             style={{ color: '#16a34a' }}
                           >
                             <CheckCircle2 size={14} />
                           </button>
                         )}
 
-                        {onDeleteMeeting && (
+                        {onDeleteMeeting && !isDone && (
                           <button
                             type="button"
                             className="sec-icon-action-btn"
                             title="Delete meeting"
-                            onClick={() => onDeleteMeeting(m.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteMeeting(m.id);
+                            }}
                             style={{ color: '#ef4444' }}
                           >
                             <Trash2 size={14} />
@@ -433,7 +526,7 @@ function OperationalOverview({
             <div className="sec-watermark-text">
               <span className="sec-watermark-label">PENDING</span>
               <span className="sec-watermark-count">
-                {loans.length < 10 ? `0${loans.length}` : loans.length} Requests
+                {(loans || []).length < 10 ? `0${(loans || []).length}` : (loans || []).length} Requests
               </span>
             </div>
           </div>

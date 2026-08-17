@@ -67,6 +67,10 @@ namespace Sahayi.Api.Data
                .HasIndex(u => u.Username)
                .IsUnique();
 
+            modelBuilder.Entity<UnitBankAccount>()
+                .HasIndex(b => b.UnitId)
+                .IsUnique();
+
             // ------------------------------------------
             // FINANCIAL DECIMAL PRECISION (18, 2)
             // ------------------------------------------
