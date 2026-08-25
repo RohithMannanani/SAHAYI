@@ -29,6 +29,7 @@ namespace Sahayi.Api.Data
         public DbSet<UserCredential> UserCredentials { get; set; }
         public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
         public DbSet<UnitBankAccount> UnitBankAccounts { get; set; }
+        public DbSet<SavingsWeek> SavingsWeeks { get; set; }
 
         // ==========================================
         // 2. MODEL CONFIGURATIONS & FLUENT API
@@ -71,11 +72,24 @@ namespace Sahayi.Api.Data
                 .HasIndex(b => b.UnitId)
                 .IsUnique();
 
+            modelBuilder.Entity<SavingsWeek>()
+                .HasIndex(w => new { w.UnitId, w.WeekNumber })
+                .IsUnique();
+
+            modelBuilder.Entity<SavingsTransaction>()
+                .HasIndex(st => new { st.SavingsWeekId, st.UserId })
+                .IsUnique()
+                .HasFilter("[SavingsWeekId] IS NOT NULL");
+
             // ------------------------------------------
             // FINANCIAL DECIMAL PRECISION (18, 2)
             // ------------------------------------------
             modelBuilder.Entity<SavingsTransaction>()
                 .Property(s => s.Amount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<SavingsWeek>()
+                .Property(w => w.Amount)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<UnitBankAccount>()
@@ -170,6 +184,12 @@ namespace Sahayi.Api.Data
                 .WithMany()
                 .HasForeignKey(st => st.RecordedBy)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SavingsTransaction>()
+                .HasOne(st => st.SavingsWeek)
+                .WithMany(sw => sw.SavingsTransactions)
+                .HasForeignKey(st => st.SavingsWeekId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // 6. LoanApplication -> User, Unit, Approver
             modelBuilder.Entity<LoanApplication>()

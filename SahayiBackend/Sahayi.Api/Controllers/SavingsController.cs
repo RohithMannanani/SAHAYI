@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,160 @@ namespace Sahayi.Api.Controllers
             public string? Date { get; set; }
         }
 
+        public static async Task<SavingsWeek> EnsureWeekExistsAsync(ApplicationDbContext context, int unitId, DateTime txDate, int? requestedWeekId = null)
+        {
+            if (unitId <= 0)
+            {
+                var firstUnit = await context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
+                                ?? await context.AyalkoottamUnits.FirstOrDefaultAsync();
+                unitId = firstUnit?.UnitId ?? 1;
+            }
+
+            if (requestedWeekId.HasValue && requestedWeekId.Value > 0)
+            {
+                var existingById = await context.SavingsWeeks.FirstOrDefaultAsync(w => w.Id == requestedWeekId.Value && w.UnitId == unitId);
+                if (existingById != null) return existingById;
+            }
+
+            int weekNum = System.Globalization.ISOWeek.GetWeekOfYear(txDate);
+            int dayOfWeek = (int)txDate.DayOfWeek;
+            int diffToMonday = dayOfWeek == 0 ? -6 : 1 - dayOfWeek;
+            DateTime weekStart = txDate.AddDays(diffToMonday).Date;
+            DateTime weekEnd = weekStart.AddDays(7).AddTicks(-1);
+
+            var week = await context.SavingsWeeks
+                .FirstOrDefaultAsync(w => w.UnitId == unitId && w.WeekNumber == weekNum && w.StartDate.Year == weekStart.Year);
+            
+            if (week == null)
+            {
+                week = await context.SavingsWeeks
+                    .FirstOrDefaultAsync(w => w.UnitId == unitId && w.WeekNumber == weekNum);
+            }
+
+            if (week == null && unitId > 0)
+            {
+                week = new SavingsWeek
+                {
+                    UnitId = unitId,
+                    WeekNumber = weekNum,
+                    StartDate = weekStart,
+                    EndDate = weekEnd,
+                    Amount = 100.00m,
+                    Status = "Open",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.SavingsWeeks.Add(week);
+                await context.SaveChangesAsync();
+            }
+
+            return week ?? new SavingsWeek { Id = 1, UnitId = Math.Max(1, unitId), WeekNumber = weekNum, StartDate = weekStart, EndDate = weekEnd, Amount = 100.00m, Status = "Open" };
+        }
+
+        private Task<SavingsWeek> EnsureWeekExistsAsync(int unitId, DateTime txDate, int? requestedWeekId = null) =>
+            EnsureWeekExistsAsync(_context, unitId, txDate, requestedWeekId);
+
+
+        // GET: api/savings/weeks?unitId={unitId}
+        [HttpGet("weeks")]
+        public async Task<IActionResult> GetSavingsWeeks([FromQuery] int unitId)
+        {
+            if (unitId <= 0)
+            {
+                return BadRequest(new { message = "Valid Unit ID is required." });
+            }
+
+            try
+            {
+                DateTime now = DateTime.UtcNow;
+                await EnsureWeekExistsAsync(unitId, now);
+
+                var weeks = await _context.SavingsWeeks
+                    .Where(w => w.UnitId == unitId)
+                    .OrderByDescending(w => w.WeekNumber)
+                    .ThenByDescending(w => w.StartDate)
+                    .ToListAsync();
+
+                var unitMembers = await _context.ApplicationUsers
+                    .Where(u => u.UnitId == unitId && u.IsActive)
+                    .OrderBy(u => u.FullName)
+                    .Select(u => new
+                    {
+                        u.UserId,
+                        u.FullName
+                    })
+                    .ToListAsync();
+
+                var transactions = await _context.SavingsTransactions
+                    .Where(st => st.UnitId == unitId)
+                    .ToListAsync();
+
+                bool backfilled = false;
+                foreach (var tx in transactions)
+                {
+                    if (!tx.SavingsWeekId.HasValue)
+                    {
+                        var matchingWeek = await EnsureWeekExistsAsync(unitId, tx.TransactionDate);
+                        tx.SavingsWeekId = matchingWeek.Id;
+                        backfilled = true;
+                    }
+                }
+                if (backfilled)
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                var result = weeks.Select(w =>
+                {
+                    var weekTxs = transactions.Where(st => st.SavingsWeekId == w.Id).ToList();
+
+                    var memberList = unitMembers.Select(m =>
+                    {
+                        var tx = weekTxs.FirstOrDefault(st => st.UserId == m.UserId);
+                        return new
+                        {
+                            userId = m.UserId,
+                            memberId = $"M-{m.UserId:D3}",
+                            name = m.FullName,
+                            amount = tx?.Amount ?? 0.00m,
+                            status = tx != null ? "Paid" : "Pending",
+                            paidDate = tx?.TransactionDate.ToString("yyyy-MM-dd HH:mm"),
+                            paymentMode = tx?.PaymentMode,
+                            receiptNumber = tx?.ReceiptNumber,
+                            transactionId = tx?.TransactionId
+                        };
+                    }).ToList();
+
+                    decimal totalCollected = memberList.Where(m => m.status == "Paid").Sum(m => m.amount);
+                    int paidCount = memberList.Count(m => m.status == "Paid");
+                    int pendingCount = memberList.Count(m => m.status == "Pending");
+
+                    return new
+                    {
+                        id = w.Id,
+                        savingsWeekId = w.Id,
+                        unitId = w.UnitId,
+                        weekNumber = w.WeekNumber,
+                        weekTitle = $"Week {w.WeekNumber} ({w.StartDate:MMM d} – {w.EndDate:MMM d, yyyy})",
+                        startDate = w.StartDate.ToString("yyyy-MM-dd"),
+                        endDate = w.EndDate.ToString("yyyy-MM-dd"),
+                        amount = w.Amount,
+                        status = w.Status,
+                        totalCollected = totalCollected,
+                        paidCount = paidCount,
+                        pendingCount = pendingCount,
+                        totalMembers = unitMembers.Count,
+                        members = memberList
+                    };
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to fetch savings weeks.", details = ex.Message });
+            }
+        }
+
         // POST: api/savings/pay-cash
         [HttpPost("pay-cash")]
         public async Task<IActionResult> PayCash([FromBody] PaySavingsDto dto)
@@ -45,6 +200,13 @@ namespace Sahayi.Api.Controllers
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                 }
 
+                if (targetUnitId <= 0)
+                {
+                    var firstUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
+                                    ?? await _context.AyalkoottamUnits.FirstOrDefaultAsync();
+                    targetUnitId = firstUnit?.UnitId ?? 1;
+                }
+
                 var amountVal = dto.Amount > 0 ? dto.Amount : 100;
                 DateTime txDate = DateTime.UtcNow;
                 if (!string.IsNullOrWhiteSpace(dto.Date) && DateTime.TryParse(dto.Date, out var parsedDate))
@@ -52,19 +214,12 @@ namespace Sahayi.Api.Controllers
                     txDate = parsedDate;
                 }
 
-                int dayOfWeek = (int)txDate.DayOfWeek;
-                int diffToMonday = dayOfWeek == 0 ? -6 : 1 - dayOfWeek;
-                DateTime weekStart = txDate.AddDays(diffToMonday).Date;
-                DateTime weekEnd = weekStart.AddDays(7).AddTicks(-1);
-
-                int calculatedWeekId = dto.SavingsWeekId ?? System.Globalization.ISOWeek.GetWeekOfYear(txDate);
+                var week = await EnsureWeekExistsAsync(targetUnitId, txDate, dto.SavingsWeekId);
 
                 if (targetUserId > 0)
                 {
                     var existingTx = await _context.SavingsTransactions
-                        .FirstOrDefaultAsync(s => s.UserId == targetUserId &&
-                            ((dto.SavingsWeekId.HasValue && s.SavingsWeekId == dto.SavingsWeekId.Value) ||
-                             (s.TransactionDate >= weekStart && s.TransactionDate <= weekEnd)));
+                        .FirstOrDefaultAsync(s => s.UserId == targetUserId && s.SavingsWeekId == week.Id);
                     if (existingTx != null)
                     {
                         return BadRequest(new { message = "Weekly savings deposit for this specific week has already been paid!" });
@@ -78,7 +233,7 @@ namespace Sahayi.Api.Controllers
                     Amount = amountVal,
                     PaymentMode = "Cash",
                     TransactionDate = txDate,
-                    SavingsWeekId = calculatedWeekId,
+                    SavingsWeekId = week.Id,
                     ReceiptNumber = $"REC-CASH-{DateTime.UtcNow.Ticks.ToString()[^8..]}",
                     RecordedBy = targetUserId
                 };
@@ -90,6 +245,7 @@ namespace Sahayi.Api.Controllers
                 {
                     message = "Cash payment recorded successfully!",
                     transactionId = savingsTx.TransactionId,
+                    savingsWeekId = week.Id,
                     status = "Paid"
                 });
             }
@@ -114,6 +270,13 @@ namespace Sahayi.Api.Controllers
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                 }
 
+                if (targetUnitId <= 0)
+                {
+                    var firstUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
+                                    ?? await _context.AyalkoottamUnits.FirstOrDefaultAsync();
+                    targetUnitId = firstUnit?.UnitId ?? 1;
+                }
+
                 var amountVal = dto.Amount > 0 ? dto.Amount : 100;
                 DateTime txDate = DateTime.UtcNow;
                 if (!string.IsNullOrWhiteSpace(dto.Date) && DateTime.TryParse(dto.Date, out var parsedDate))
@@ -121,19 +284,12 @@ namespace Sahayi.Api.Controllers
                     txDate = parsedDate;
                 }
 
-                int dayOfWeek = (int)txDate.DayOfWeek;
-                int diffToMonday = dayOfWeek == 0 ? -6 : 1 - dayOfWeek;
-                DateTime weekStart = txDate.AddDays(diffToMonday).Date;
-                DateTime weekEnd = weekStart.AddDays(7).AddTicks(-1);
-
-                int calculatedWeekId = dto.SavingsWeekId ?? System.Globalization.ISOWeek.GetWeekOfYear(txDate);
+                var week = await EnsureWeekExistsAsync(targetUnitId, txDate, dto.SavingsWeekId);
 
                 if (targetUserId > 0)
                 {
                     var existingTx = await _context.SavingsTransactions
-                        .FirstOrDefaultAsync(s => s.UserId == targetUserId &&
-                            ((dto.SavingsWeekId.HasValue && s.SavingsWeekId == dto.SavingsWeekId.Value) ||
-                             (s.TransactionDate >= weekStart && s.TransactionDate <= weekEnd)));
+                        .FirstOrDefaultAsync(s => s.UserId == targetUserId && s.SavingsWeekId == week.Id);
                     if (existingTx != null)
                     {
                         return BadRequest(new { message = "Weekly savings deposit for this specific week has already been paid!" });
@@ -147,7 +303,7 @@ namespace Sahayi.Api.Controllers
                     Amount = amountVal,
                     PaymentMode = "Online",
                     TransactionDate = txDate,
-                    SavingsWeekId = calculatedWeekId,
+                    SavingsWeekId = week.Id,
                     ReceiptNumber = $"REC-RZP-{dto.RazorpayPaymentId ?? DateTime.UtcNow.Ticks.ToString()[^8..]}",
                     RecordedBy = targetUserId
                 };
@@ -194,6 +350,7 @@ namespace Sahayi.Api.Controllers
                 {
                     message = "Online payment recorded successfully!",
                     transactionId = savingsTx.TransactionId,
+                    savingsWeekId = week.Id,
                     razorpayPaymentId = dto.RazorpayPaymentId,
                     status = "Paid"
                 });

@@ -168,6 +168,11 @@ export const fetchUnitBankAccount = async (unitId) => {
   return await api.get(`/savings/unit-bank-account/${unitId}`);
 };
 
+// 4e. Fetch Weekly Savings Weeks & Member Status Breakdown (GET /api/savings/weeks?unitId={unitId})
+export const fetchSavingsWeeks = async (unitId) => {
+  return await api.get('/savings/weeks', { params: { unitId } });
+};
+
 // 5. Verify & Endorse Loan Application to President
 export const verifySecretaryLoan = async (loanId) => {
   return await api.post(`/secretary/loans/${loanId}/verify`);

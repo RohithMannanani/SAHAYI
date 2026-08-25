@@ -73,6 +73,14 @@ export function sortMembersByRoleOrIndex(items = [], allMembers = []) {
   return [...items].sort((a, b) => getRank(a) - getRank(b));
 }
 
+function formatYMD(d) {
+  if (!d || isNaN(d.getTime())) return new Date().toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function getWeeklyCollectionLogs(savingsLogs = [], allMembers = []) {
   if (!Array.isArray(savingsLogs)) savingsLogs = [];
 
@@ -82,7 +90,7 @@ export function getWeeklyCollectionLogs(savingsLogs = [], allMembers = []) {
   logsToProcess.forEach(item => {
     const d = parseLogDate(item.date);
     const { monday, sunday } = getWeekRange(d);
-    const weekKey = monday.toISOString().split('T')[0];
+    const weekKey = formatYMD(monday);
 
     // Format week title e.g. "Aug 10 - Aug 16, 2026"
     const startMonth = monday.toLocaleDateString('en-US', { month: 'short' });
@@ -120,7 +128,7 @@ export function getWeeklyCollectionLogs(savingsLogs = [], allMembers = []) {
     if (!group.items.some(i => i.id === item.id || (i.userId && item.userId && i.userId === item.userId && i.date === item.date))) {
       group.items.push({
         ...item,
-        savingsWeekId: item.savingsWeekId || group.weekNumber,
+        savingsWeekId: item.savingsWeekId || null,
         paidDate: item.paidDate || item.date
       });
 
@@ -141,25 +149,29 @@ export function getWeeklyCollectionLogs(savingsLogs = [], allMembers = []) {
     }
   });
 
-  // If weekMap is empty, create current week entry
-  if (weekMap.size === 0) {
-    const { monday, sunday } = getWeekRange(new Date());
-    const weekKey = monday.toISOString().split('T')[0];
-    const startMonth = monday.toLocaleDateString('en-US', { month: 'short' });
-    const endMonth = sunday.toLocaleDateString('en-US', { month: 'short' });
-    const year = monday.getFullYear();
+  // Always ensure current calendar week entry exists in weekMap so the current active week is always visible and seeded with Pending members
+  const { monday: curMonday, sunday: curSunday } = getWeekRange(new Date());
+  const curWeekKey = formatYMD(curMonday);
+  if (!weekMap.has(curWeekKey)) {
+    const startMonth = curMonday.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = curSunday.toLocaleDateString('en-US', { month: 'short' });
+    const year = curMonday.getFullYear();
     const weekTitle = startMonth === endMonth
-      ? `${startMonth} ${monday.getDate()} – ${sunday.getDate()}, ${year}`
-      : `${startMonth} ${monday.getDate()} – ${endMonth} ${sunday.getDate()}, ${year}`;
+      ? `${startMonth} ${curMonday.getDate()} – ${curSunday.getDate()}, ${year}`
+      : `${startMonth} ${curMonday.getDate()} – ${endMonth} ${curSunday.getDate()}, ${year}`;
 
-    weekMap.set(weekKey, {
-      weekKey,
-      mondayTimestamp: monday.getTime(),
-      weekNumber: 1,
+    const startOfYear = new Date(year, 0, 1);
+    const pastDaysOfYear = (curMonday - startOfYear) / 86400000;
+    const weekNumber = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+
+    weekMap.set(curWeekKey, {
+      weekKey: curWeekKey,
+      mondayTimestamp: curMonday.getTime(),
+      weekNumber,
       year,
       weekTitle,
-      mondayStr: monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      sundayStr: sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      mondayStr: curMonday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      sundayStr: curSunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       items: [],
       totalCollected: 0,
       cashTotal: 0,
@@ -185,7 +197,7 @@ export function getWeeklyCollectionLogs(savingsLogs = [], allMembers = []) {
           group.items.push({
             id: `pending-${memUserId || Math.random()}-${weekKey}`,
             userId: memUserId,
-            savingsWeekId: group.weekNumber,
+            savingsWeekId: null,
             weekKey: weekKey,
             weekTitle: group.weekTitle,
             name: mem.name,

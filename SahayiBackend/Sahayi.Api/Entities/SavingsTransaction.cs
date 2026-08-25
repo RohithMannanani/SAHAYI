@@ -42,5 +42,8 @@ namespace Sahayi.Api.Entities
 
         [ForeignKey("RecordedBy")]
         public virtual ApplicationUser? Recorder { get; set; }
+
+        [ForeignKey("SavingsWeekId")]
+        public virtual SavingsWeek? SavingsWeek { get; set; }
     }
 }

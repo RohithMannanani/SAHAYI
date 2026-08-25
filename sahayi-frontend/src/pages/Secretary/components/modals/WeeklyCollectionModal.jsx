@@ -1,12 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Landmark, CheckCircle2, ChevronDown, ChevronUp, ArrowDownCircle, Search } from 'lucide-react';
 import { getWeeklyCollectionLogs } from '../../utils/weeklyCollectionUtils';
+import { fetchSavingsWeeks } from '../../../../services/api';
 
-function WeeklyCollectionModal({ savingsLogs = [], onDepositCashToBank, onClose }) {
+function WeeklyCollectionModal({ unitId, savingsLogs = [], allMembers = [], onDepositCashToBank, onClose }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedWeeks, setExpandedWeeks] = useState({});
+  const [serverWeeks, setServerWeeks] = useState(null);
 
-  const weeklyLogs = getWeeklyCollectionLogs(savingsLogs);
+  useEffect(() => {
+    if (unitId) {
+      fetchSavingsWeeks(unitId)
+        .then(res => {
+          if (res.data && Array.isArray(res.data)) {
+            setServerWeeks(res.data);
+          }
+        })
+        .catch(err => console.error("Failed to fetch server savings weeks:", err));
+    }
+  }, [unitId]);
+
+  // Compute logs from server API response or fallback to local helper
+  const weeklyLogs = serverWeeks ? serverWeeks.map(w => ({
+    weekKey: `week-${w.weekNumber}-${w.startDate}`,
+    weekTitle: w.weekTitle || `Week ${w.weekNumber} (${w.startDate} – ${w.endDate})`,
+    totalCollected: w.totalCollected || 0,
+    paidCount: w.paidCount || 0,
+    pendingCount: w.pendingCount || 0,
+    items: (w.members || []).map(m => ({
+      id: m.transactionId || `tx-${m.userId}-${w.weekNumber}`,
+      userId: m.userId,
+      name: m.name,
+      memberId: m.memberId,
+      amount: m.amount,
+      status: m.status,
+      date: m.paidDate ? m.paidDate.split(' ')[0] : w.startDate,
+      paidDate: m.paidDate,
+      paymentMode: m.paymentMode || (m.status === 'Paid' ? 'Cash' : '-'),
+      receiptNumber: m.receiptNumber
+    }))
+  })) : getWeeklyCollectionLogs(savingsLogs, allMembers);
 
   // Toggle collapse/expand for a specific week
   const toggleWeekExpand = (weekKey) => {

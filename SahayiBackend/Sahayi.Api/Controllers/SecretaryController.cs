@@ -92,9 +92,12 @@ namespace Sahayi.Api.Controllers
                 bool updatedNullWeeks = false;
                 foreach (var s in savingsList)
                 {
-                    if (!s.SavingsWeekId.HasValue)
+                    bool isValidPk = s.SavingsWeekId.HasValue && s.SavingsWeekId.Value > 0 &&
+                        await _context.SavingsWeeks.AnyAsync(w => w.Id == s.SavingsWeekId.Value && w.UnitId == targetUnitId);
+                    if (!isValidPk)
                     {
-                        s.SavingsWeekId = System.Globalization.ISOWeek.GetWeekOfYear(s.TransactionDate);
+                        var matchingWeek = await SavingsController.EnsureWeekExistsAsync(_context, targetUnitId, s.TransactionDate, s.SavingsWeekId);
+                        s.SavingsWeekId = matchingWeek.Id;
                         updatedNullWeeks = true;
                     }
                 }
@@ -106,7 +109,7 @@ namespace Sahayi.Api.Controllers
                 var allSavingsLogs = savingsList.Select(s => new SecretarySavingsItemDto
                 {
                     Id = s.TransactionId,
-                    SavingsWeekId = s.SavingsWeekId ?? System.Globalization.ISOWeek.GetWeekOfYear(s.TransactionDate),
+                    SavingsWeekId = s.SavingsWeekId ?? 1,
                     UserId = s.UserId,
                     Name = s.User?.FullName ?? "Unit Member",
                     MemberId = $"AK-{s.UserId:D3}",
@@ -544,21 +547,17 @@ namespace Sahayi.Api.Controllers
                     txDate = parsedDate;
                 }
 
-                int calculatedWeekId = dto.SavingsWeekId ?? (txDate.DayOfYear / 7 + 1);
+                var week = await SavingsController.EnsureWeekExistsAsync(_context, targetUnitId, txDate, dto.SavingsWeekId);
+                int weekIdVal = week.Id;
 
                 if (dto.UserId > 0)
                 {
-                    int dayOfWeek = (int)txDate.DayOfWeek;
-                    int diffToMonday = dayOfWeek == 0 ? -6 : 1 - dayOfWeek;
-                    DateTime weekStart = txDate.Date.AddDays(diffToMonday);
-                    DateTime weekEnd = weekStart.AddDays(7).AddTicks(-1);
-
                     var existingTx = await _context.SavingsTransactions
-                        .FirstOrDefaultAsync(s => s.UserId == dto.UserId && (s.SavingsWeekId == calculatedWeekId || (s.TransactionDate >= weekStart && s.TransactionDate <= weekEnd)));
+                        .FirstOrDefaultAsync(s => s.UserId == dto.UserId && s.SavingsWeekId == weekIdVal);
 
                     if (existingTx != null)
                     {
-                        return BadRequest(new { message = "Weekly savings deposit for this week has already been paid for this member!" });
+                        return BadRequest(new { message = "Weekly savings deposit for this specific week has already been paid for this member!" });
                     }
                 }
 
@@ -570,7 +569,7 @@ namespace Sahayi.Api.Controllers
                 {
                     UserId = dto.UserId,
                     UnitId = targetUnitId,
-                    SavingsWeekId = calculatedWeekId,
+                    SavingsWeekId = weekIdVal,
                     Amount = dto.Amount > 0 ? dto.Amount : 100,
                     PaymentMode = mode,
                     TransactionDate = txDate,
