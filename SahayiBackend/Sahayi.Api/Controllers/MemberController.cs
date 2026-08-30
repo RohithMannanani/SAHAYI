@@ -1,15 +1,19 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sahayi.Api.Data;
 using Sahayi.Api.DTOs;
+using Sahayi.Api.Dtos;
 using Sahayi.Api.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Sahayi.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class MemberController : ControllerBase
@@ -183,6 +187,28 @@ namespace Sahayi.Api.Controllers
                         _ => activeLoanEntity.Status
                     };
 
+                    DateTime nextDueDate;
+                    var latestRepayment = activeLoanEntity.LoanRepayments
+                        .OrderByDescending(r => r.RepaymentDate)
+                        .FirstOrDefault();
+
+                    if (latestRepayment != null)
+                    {
+                        nextDueDate = latestRepayment.RepaymentDate.AddMonths(1);
+                    }
+                    else if (activeLoanEntity.DisbursedDate.HasValue)
+                    {
+                        nextDueDate = activeLoanEntity.DisbursedDate.Value.AddMonths(1);
+                    }
+                    else
+                    {
+                        nextDueDate = activeLoanEntity.AppliedDate.AddMonths(1);
+                    }
+
+                    string dueDateStr = (activeLoanEntity.Status == "Disbursed" || activeLoanEntity.Status == "Approved")
+                        ? nextDueDate.ToString("dd MMM yyyy")
+                        : "-";
+
                     loanStatusDto = new MemberLoanStatusDto
                     {
                         HasLoan = true,
@@ -190,8 +216,8 @@ namespace Sahayi.Api.Controllers
                         LoanAmount = activeLoanEntity.AmountRequested,
                         RemainingBalance = remaining > 0 ? remaining : activeLoanEntity.AmountRequested,
                         Status = displayStatus,
-                        NextPayment = monthlyTotal > 0 ? monthlyTotal : 1200m,
-                        DueDate = now.AddDays(15).ToString("dd MMM yyyy")
+                        NextPayment = monthlyTotal,
+                        DueDate = dueDateStr
                     };
 
                     // Map Repayments Schedule
@@ -241,13 +267,8 @@ namespace Sahayi.Api.Controllers
                         DueDate = "-"
                     };
 
-                    // Default sample repayment rows if no loan active
-                    repaymentScheduleList = new List<MemberRepaymentRowDto>
-                    {
-                        new MemberRepaymentRowDto { Id = 1, Month = now.AddMonths(-1).ToString("MMM yyyy"), Principal = "₹1,000", Interest = "₹200", Total = "₹1,200", Status = "paid" },
-                        new MemberRepaymentRowDto { Id = 2, Month = now.ToString("MMM yyyy"), Principal = "₹1,000", Interest = "₹200", Total = "₹1,200", Status = "pending" },
-                        new MemberRepaymentRowDto { Id = 3, Month = now.AddMonths(1).ToString("MMM yyyy"), Principal = "₹1,000", Interest = "₹200", Total = "₹1,200", Status = "pending" }
-                    };
+                    // No repayment schedule when no active loan is scheduled
+                    repaymentScheduleList = new List<MemberRepaymentRowDto>();
                 }
 
                 // 4. Attendance Calendar Data
@@ -338,6 +359,30 @@ namespace Sahayi.Api.Controllers
                     });
                 }
 
+                // 5b. Fetch Available Unit Savings (Savings Collections - Disbursed Loans + Loan Repayments)
+                decimal unitSavingsCollected = await _context.SavingsTransactions
+                    .Where(s => s.UnitId == targetUnitId)
+                    .SumAsync(s => (decimal?)s.Amount) ?? 0m;
+
+                decimal unitLoansDisbursed = await _context.LoanApplications
+                    .Where(l => l.UnitId == targetUnitId && (l.Status == "Disbursed" || l.Status == "Approved" || l.Status == "Closed"))
+                    .SumAsync(l => (decimal?)l.AmountRequested) ?? 0m;
+
+                decimal unitLoansRepaid = await _context.LoanApplications
+                    .Where(l => l.UnitId == targetUnitId)
+                    .SelectMany(l => l.LoanRepayments)
+                    .SumAsync(r => (decimal?)r.AmountPaid) ?? 0m;
+
+                var unitBankAcc = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
+                decimal unitTotalSavings = unitBankAcc?.Balance ?? unit?.AccountBalance ?? 0m;
+
+                int totalUnitMembers = await _context.ApplicationUsers
+                    .CountAsync(u => u.UnitId == targetUnitId && u.IsActive);
+
+                decimal unitMonthlyTotal = await _context.SavingsTransactions
+                    .Where(s => s.UnitId == targetUnitId && s.TransactionDate.Month == now.Month && s.TransactionDate.Year == now.Year)
+                    .SumAsync(s => (decimal?)s.Amount) ?? 0m;
+
                 // 6. Build Final Member Dashboard DTO
                 var dashboardDto = new MemberDashboardDto
                 {
@@ -350,6 +395,10 @@ namespace Sahayi.Api.Controllers
                     MemberIdStr = $"AK-{user.UserId:D3}",
                     RoleName = user.UserRole?.RoleName ?? "Member",
                     AvatarUrl = "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=120",
+
+                    UnitTotalSavings = unitTotalSavings,
+                    TotalUnitMembers = totalUnitMembers > 0 ? totalUnitMembers : 15,
+                    UnitMonthlyTotal = unitMonthlyTotal,
 
                     Savings = new MemberSavingsSummaryDto
                     {
@@ -389,29 +438,59 @@ namespace Sahayi.Api.Controllers
 
         // POST: api/member/apply-loan
         [HttpPost("apply-loan")]
-        public async Task<IActionResult> ApplyForLoan([FromBody] ApplyMemberLoanDto dto)
+        [Authorize(Roles = "Member,President,Secretary,Treasurer")]
+        public async Task<IActionResult> ApplyForLoan([FromBody] ApplyLoanDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var user = await _context.ApplicationUsers.FindAsync(dto.UserId);
-                if (user == null)
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
                 {
-                    return BadRequest(new { message = $"User ID {dto.UserId} not found." });
+                    return Unauthorized("User ID not found in token.");
                 }
 
-                int targetUnitId = dto.UnitId > 0 ? dto.UnitId : (user.UnitId ?? 0);
+                var user = await _context.ApplicationUsers.FindAsync(currentUserId);
+                if (user == null)
+                {
+                    return NotFound(new { message = $"User not found." });
+                }
+
+                // Guard: User cannot apply if they currently have an active 'Disbursed' or 'Approved' loan with an unsettled balance
+                var activeLoan = await _context.LoanApplications
+                    .FirstOrDefaultAsync(l => l.UserId == currentUserId && (l.Status == "Disbursed" || l.Status == "Approved" || l.Status == "Pending"));
+
+                if (activeLoan != null)
+                {
+                    return BadRequest(new { message = $"You cannot apply for a new loan. You currently have a {activeLoan.Status} loan." });
+                }
+
+                int targetUnitId = user.UnitId ?? 0;
+                if (targetUnitId == 0)
+                {
+                    return BadRequest(new { message = "You are not assigned to a unit." });
+                }
+
+                // Check net available unit savings balance (UnitBankAccounts.Balance)
+                var unitBankAcc = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
+                var unitObj = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.UnitId == targetUnitId);
+                decimal unitTotalSavings = unitBankAcc?.Balance ?? unitObj?.AccountBalance ?? 0m;
+
+                if (dto.AmountRequested > unitTotalSavings)
+                {
+                    return BadRequest(new { message = $"Requested loan amount (₹{dto.AmountRequested:N0}) exceeds the total unit savings available (₹{unitTotalSavings:N0})." });
+                }
 
                 var loanApplication = new LoanApplication
                 {
-                    UserId = dto.UserId,
+                    UserId = currentUserId,
                     UnitId = targetUnitId,
-                    AmountRequested = dto.Amount,
+                    AmountRequested = dto.AmountRequested,
                     Purpose = dto.Purpose,
-                    TenureMonths = dto.TenureMonths > 0 ? dto.TenureMonths : 12,
-                    InterestRate = 6.0m,
+                    TenureMonths = dto.TenureMonths,
+                    InterestRate = dto.InterestRate,
                     Status = "Pending",
                     AppliedDate = DateTime.UtcNow
                 };
@@ -421,7 +500,7 @@ namespace Sahayi.Api.Controllers
 
                 return Ok(new
                 {
-                    message = $"Loan application of ₹{dto.Amount:N0} submitted successfully! Pending Secretary endorsement.",
+                    message = $"Loan application of ₹{dto.AmountRequested:N0} submitted successfully! Pending review.",
                     loanId = loanApplication.LoanId,
                     status = "Pending"
                 });
@@ -429,6 +508,194 @@ namespace Sahayi.Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Failed to submit loan application.", details = ex.Message });
+            }
+        }
+
+        // GET: api/member/my-loans
+        [HttpGet("my-loans")]
+        [Authorize(Roles = "Member,President,Secretary,Treasurer")]
+        public async Task<IActionResult> GetMyLoans()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+                {
+                    return Unauthorized("User ID not found in token.");
+                }
+
+                var loans = await _context.LoanApplications
+                    .Include(l => l.Approver)
+                    .Include(l => l.LoanRepayments)
+                        .ThenInclude(r => r.Recorder)
+                    .Where(l => l.UserId == currentUserId)
+                    .OrderByDescending(l => l.AppliedDate)
+                    .ToListAsync();
+
+                var dtos = loans.Select(l =>
+                {
+                    decimal totalPrincipalPaid = l.LoanRepayments.Sum(r => r.PrincipalComponent);
+                    decimal totalInterestPaid = l.LoanRepayments.Sum(r => r.InterestComponent);
+                    decimal outstandingBalance = Math.Max(0m, l.AmountRequested - totalPrincipalPaid);
+
+                    var repaymentDtos = l.LoanRepayments
+                        .OrderByDescending(r => r.RepaymentDate)
+                        .Select(r => new LoanRepaymentHistoryDto
+                        {
+                            RepaymentId = r.RepaymentId,
+                            AmountPaid = r.AmountPaid,
+                            PrincipalComponent = r.PrincipalComponent,
+                            InterestComponent = r.InterestComponent,
+                            RepaymentDate = r.RepaymentDate,
+                            ReceiptNumber = r.ReceiptNumber ?? string.Empty,
+                            RecordedByName = r.Recorder?.FullName ?? "Treasurer"
+                        }).ToList();
+
+                    return new LoanSummaryDto
+                    {
+                        LoanId = l.LoanId,
+                        UserId = l.UserId,
+                        AmountRequested = l.AmountRequested,
+                        Purpose = l.Purpose,
+                        TenureMonths = l.TenureMonths,
+                        InterestRate = l.InterestRate,
+                        Status = l.Status,
+                        AppliedDate = l.AppliedDate,
+                        ApprovedByName = l.Approver?.FullName,
+                        DisbursedDate = l.DisbursedDate,
+                        TotalPrincipalPaid = totalPrincipalPaid,
+                        TotalInterestPaid = totalInterestPaid,
+                        OutstandingBalance = outstandingBalance,
+                        Repayments = repaymentDtos
+                    };
+                }).ToList();
+
+                return Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to fetch loans.", details = ex.Message });
+            }
+        }
+
+        // POST: api/member/pay-installment?loanId={loanId}
+        [HttpPost("pay-installment")]
+        [Authorize(Roles = "Member,President,Secretary,Treasurer")]
+        public async Task<IActionResult> PayInstallment([FromBody] RecordRepaymentDto dto, [FromQuery] int loanId)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+                {
+                    return Unauthorized("User ID not found in token.");
+                }
+
+                var loan = await _context.LoanApplications
+                    .Include(l => l.LoanRepayments)
+                    .FirstOrDefaultAsync(l => l.LoanId == loanId);
+
+                if (loan == null)
+                    return NotFound(new { message = "Loan application not found." });
+
+                if (loan.UserId != currentUserId && !User.IsInRole("Treasurer") && !User.IsInRole("Secretary") && !User.IsInRole("President"))
+                {
+                    return Forbid();
+                }
+
+                if (loan.Status != "Disbursed" && loan.Status != "Approved")
+                    return BadRequest(new { message = $"Cannot pay installment for a loan that is {loan.Status}." });
+
+                decimal totalPrincipalPaid = loan.LoanRepayments.Sum(r => r.PrincipalComponent);
+                decimal outstandingBalance = loan.AmountRequested - totalPrincipalPaid;
+
+                if (outstandingBalance <= 0)
+                {
+                    loan.Status = "Closed";
+                    await _context.SaveChangesAsync();
+                    return BadRequest(new { message = "Loan is already fully repaid." });
+                }
+
+                decimal monthlyInterestDue = Math.Round((outstandingBalance * (loan.InterestRate / 100m)) / 12m, 2);
+
+                decimal principalPaid = dto.AmountPaid - monthlyInterestDue;
+                if (principalPaid < 0)
+                {
+                    principalPaid = 0;
+                }
+
+                if (principalPaid > outstandingBalance)
+                {
+                    principalPaid = outstandingBalance;
+                    dto.AmountPaid = principalPaid + monthlyInterestDue;
+                }
+
+                decimal interestComponent = dto.AmountPaid - principalPaid;
+                string receiptNumber = $"REC-LN-ONLINE-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(1000, 9999)}";
+
+                var repayment = new LoanRepayment
+                {
+                    LoanId = loanId,
+                    AmountPaid = dto.AmountPaid,
+                    PrincipalComponent = principalPaid,
+                    InterestComponent = interestComponent,
+                    RepaymentDate = DateTime.UtcNow,
+                    ReceiptNumber = receiptNumber,
+                    RecordedBy = currentUserId
+                };
+
+                _context.LoanRepayments.Add(repayment);
+
+                decimal newBalance = outstandingBalance - principalPaid;
+                if (newBalance <= 0)
+                {
+                    loan.Status = "Closed";
+                }
+
+                var unit = await _context.AyalkoottamUnits.FindAsync(loan.UnitId);
+                var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == loan.UnitId);
+                if (bankAccount == null)
+                {
+                    string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{loan.UnitId:D4}";
+                    string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
+                    string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
+
+                    bankAccount = new UnitBankAccount
+                    {
+                        UnitId = loan.UnitId,
+                        AccountNumber = accNum,
+                        BankName = bankName,
+                        IFSCCode = ifsc,
+                        Balance = dto.AmountPaid,
+                        LastUpdated = DateTime.UtcNow
+                    };
+                    _context.UnitBankAccounts.Add(bankAccount);
+                }
+                else
+                {
+                    bankAccount.Balance += dto.AmountPaid;
+                    bankAccount.LastUpdated = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Installment payment recorded successfully!",
+                    receiptNumber = receiptNumber,
+                    principalPaid = principalPaid,
+                    interestPaid = interestComponent,
+                    amountPaid = dto.AmountPaid,
+                    newBalance = newBalance,
+                    status = loan.Status
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to process installment payment.", details = ex.Message });
             }
         }
     }

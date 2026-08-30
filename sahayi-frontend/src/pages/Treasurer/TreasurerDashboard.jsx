@@ -35,6 +35,8 @@ import {
 } from '../../services/api';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
 import FinancialsView from '../Secretary/components/views/FinancialsView';
+import TreasurerLoanOps from './components/TreasurerLoanOps';
+import MemberLoanPage from '../Member/MemberLoanPage';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
 import { getWeeklyCollectionLogs } from '../Secretary/utils/weeklyCollectionUtils';
 import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
@@ -51,6 +53,7 @@ function TreasurerDashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('treasurer_active_tab') || 'financials';
   });
+  const [loanSubTab, setLoanSubTab] = useState('personal');
 
   // Dynamic States for SahayiDb data
   const [isLoading, setIsLoading] = useState(true);
@@ -341,12 +344,17 @@ function TreasurerDashboard() {
     ))
     .reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-  const availableBalance = Math.max(
-    parseFloat(unitBank?.balance || 0),
-    depositedTotalFromLogs
-  );
+  const availableBalance = unitBank?.balance !== undefined && unitBank?.balance !== null
+    ? parseFloat(unitBank.balance)
+    : (dashboardData?.bankAccount?.balance !== undefined && dashboardData?.bankAccount?.balance !== null
+        ? parseFloat(dashboardData.bankAccount.balance)
+        : depositedTotalFromLogs);
 
-  const totalCollection = dashboardData?.totalWeeklyCollection || savingsLogs.filter(s => s.status === 'Paid').reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+  const totalCollection = (dashboardData?.bankAccount?.balance !== undefined && dashboardData?.bankAccount?.balance !== null)
+    ? parseFloat(dashboardData.bankAccount.balance)
+    : (unitBank?.balance !== undefined && unitBank?.balance !== null
+        ? parseFloat(unitBank.balance)
+        : (dashboardData?.totalWeeklyCollection || savingsLogs.filter(s => s.status === 'Paid').reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0)));
   const disbursedLoans = dashboardData?.disbursedLoansTotal || 0;
 
   const liveTransactions = React.useMemo(() => {
@@ -639,6 +647,14 @@ function TreasurerDashboard() {
             </div>
 
             <div
+              className={`tr-nav-item ${activeTab === 'loans' ? 'tr-nav-item--active' : ''}`}
+              onClick={() => setActiveTab('loans')}
+            >
+              <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={18} />
+              <span>Loans</span>
+            </div>
+
+            <div
               className={`tr-nav-item ${activeTab === 'reports' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('reports')}
             >
@@ -672,6 +688,7 @@ function TreasurerDashboard() {
               {activeTab === 'financials' && 'Treasurer Dashboard'}
               {activeTab === 'members' && 'Treasurer Dashboard'}
               {activeTab === 'meetings' && 'Treasurer Dashboard'}
+              {activeTab === 'loans' && 'Treasurer Dashboard'}
               {activeTab === 'reports' && 'Treasurer Dashboard'}
               {activeTab === 'settings' && 'Treasurer Dashboard'}
             </div>
@@ -1023,6 +1040,7 @@ function TreasurerDashboard() {
               onDepositAllCashToBank={handleDepositAllCashToBank}
               onRecordSavings={handleRecordSavings}
               onPayNow={setPaymentMemberItem}
+              showCollectionsInHand={true}
             />
           )}
 
@@ -1105,6 +1123,71 @@ function TreasurerDashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* ── LOANS TAB VIEW ── */}
+          {activeTab === 'loans' && (
+            <div>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  backgroundColor: '#f1f5f9',
+                  padding: '4px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  gap: '4px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setLoanSubTab('personal')}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: loanSubTab === 'personal' ? '#ffffff' : 'transparent',
+                      color: loanSubTab === 'personal' ? '#0c382e' : '#64748b',
+                      fontWeight: loanSubTab === 'personal' ? 700 : 500,
+                      boxShadow: loanSubTab === 'personal' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span>👤</span> My Personal Loans & Repayments
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLoanSubTab('admin')}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: loanSubTab === 'admin' ? '#ffffff' : 'transparent',
+                      color: loanSubTab === 'admin' ? '#0c382e' : '#64748b',
+                      fontWeight: loanSubTab === 'admin' ? 700 : 500,
+                      boxShadow: loanSubTab === 'admin' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span>💼</span> Unit Loan Operations & EMI Collection
+                  </button>
+                </div>
+              </div>
+
+              {loanSubTab === 'personal' ? (
+                <MemberLoanPage unitTotalSavings={availableBalance} />
+              ) : (
+                <TreasurerLoanOps />
+              )}
             </div>
           )}
 

@@ -5,6 +5,8 @@ import { fetchMemberDashboard, applyMemberLoan, fetchSavingsWeeks } from '../../
 import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
+import MemberLoanPage from './MemberLoanPage';
+import MemberSavingsView from './MemberSavingsView';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -127,8 +129,15 @@ function MemberDashboard() {
   // Submit Loan Application to Backend
   const handleLoanSubmit = async (e) => {
     e.preventDefault();
-    if (!loanForm.amount || parseFloat(loanForm.amount) <= 0) {
+    const amountVal = parseFloat(loanForm.amount);
+    if (!amountVal || amountVal <= 0) {
       showToast('Please enter a valid loan amount.', 'error');
+      return;
+    }
+
+    const unitTotalSavings = dashboardData?.unitTotalSavings || 0;
+    if (unitTotalSavings > 0 && amountVal > unitTotalSavings) {
+      showToast(`Requested loan amount (₹${amountVal.toLocaleString('en-IN')}) cannot exceed total unit savings (₹${unitTotalSavings.toLocaleString('en-IN')}).`, 'error');
       return;
     }
 
@@ -137,7 +146,7 @@ function MemberDashboard() {
       const payload = {
         userId: currentUser?.userId || dashboardData?.userId || 0,
         unitId: currentUser?.unitId || dashboardData?.unitId || 0,
-        amount: parseFloat(loanForm.amount),
+        amount: amountVal,
         purpose: loanForm.purpose,
         tenureMonths: parseInt(loanForm.tenureMonths || 12)
       };
@@ -266,12 +275,12 @@ verified from SahayiDb Database.
             </div>
 
             <div
-              className="mem-nav-item"
-              onClick={() => setShowHistoryModal(true)}
-              title="View my own weekly savings history and dues"
+              className={`mem-nav-item ${activeTab === 'savings' ? 'mem-nav-item--active' : ''}`}
+              onClick={() => setActiveTab('savings')}
+              title="View unit savings and weekly payment history"
             >
               <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={17} />
-              <span>View Own Savings</span>
+              <span>Unit Savings & History</span>
             </div>
 
             <div
@@ -291,11 +300,11 @@ verified from SahayiDb Database.
             </div>
 
             <div
-              className={`mem-nav-item ${activeTab === 'reports' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('reports')}
+              className={`mem-nav-item ${activeTab === 'loans' ? 'mem-nav-item--active' : ''}`}
+              onClick={() => setActiveTab('loans')}
             >
-              <Icon d="M18 20V10M12 20V4M6 20v-6" size={17} />
-              <span>Reports</span>
+              <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={17} />
+              <span>Loans</span>
             </div>
           </nav>
         </div>
@@ -363,7 +372,17 @@ verified from SahayiDb Database.
 
         {/* ── Content ── */}
         <div className="mem-content">
-          {isLoading ? (
+          {activeTab === 'loans' ? (
+            <MemberLoanPage unitTotalSavings={dashboardData?.unitTotalSavings} />
+          ) : activeTab === 'savings' ? (
+            <MemberSavingsView
+              dashboardData={dashboardData}
+              savingsWeeks={savingsWeeks}
+              currentUser={currentUser}
+              onPaySavings={() => setShowPaymentModal(true)}
+              onDownloadPassbook={handleDownloadPassbook}
+            />
+          ) : isLoading ? (
             <div className="mem-loading-container">
               <div className="mem-spinner" />
               <span>Loading member financial summary from SahayiDb...</span>
@@ -489,7 +508,12 @@ verified from SahayiDb Database.
                 </div>
 
                 {/* Active Loan Status */}
-                <div className="mem-loan-card">
+                <div
+                  className="mem-loan-card"
+                  onClick={() => setActiveTab('loans')}
+                  style={{ cursor: 'pointer' }}
+                  title="Click to view loan details and repayment statement"
+                >
                   <div className="mem-loan-card__header">
                     <div className="mem-loan-card__label">
                       <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={16} stroke="#1b432c" />
@@ -503,8 +527,16 @@ verified from SahayiDb Database.
                   <div className="mem-loan-card__amount">
                     ₹{activeLoan.remainingBalance.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                   </div>
-                  <div className="mem-loan-card__sublabel">
-                    {activeLoan.hasLoan ? 'Remaining Balance' : 'No Active Balance'}
+                  <div className="mem-loan-card__sublabel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{activeLoan.hasLoan ? 'Remaining Balance' : 'No Active Balance'}</span>
+                    {activeLoan.hasLoan && activeLoan.dueDate && activeLoan.dueDate !== '-' && (
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#166534', background: '#dcfce7', padding: '2px 8px', borderRadius: '12px' }}>
+                        Due: {activeLoan.dueDate}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '2px 8px', borderRadius: '12px' }}>
+                      Repayment Info &rarr;
+                    </span>
                   </div>
                 </div>
               </div>
@@ -512,7 +544,7 @@ verified from SahayiDb Database.
               {/* ── Section: Weekly Savings Ledger & Dues (Clickable Card) ── */}
               <div
                 className="mem-card"
-                onClick={() => setShowHistoryModal(true)}
+                onClick={() => setActiveTab('savings')}
                 style={{ marginTop: '24px', marginBottom: '24px', cursor: 'pointer', borderLeft: '4px solid #10b981' }}
               >
                 <div className="mem-card__head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -564,17 +596,36 @@ verified from SahayiDb Database.
 
             <form onSubmit={handleLoanSubmit}>
               <div className="mem-form-group">
-                <label>Loan Amount Requested (₹)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ margin: 0 }}>Loan Amount Requested (₹)</label>
+                  {(dashboardData?.unitTotalSavings || 0) > 0 && (
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: '12px' }}>
+                      Unit Savings: ₹{dashboardData.unitTotalSavings.toLocaleString('en-IN')}
+                    </span>
+                  )}
+                </div>
                 <input
                   type="number"
                   className="mem-form-input"
-                  min="1000"
-                  max="200000"
+                  min="100"
+                  max={dashboardData?.unitTotalSavings || 200000}
                   step="500"
                   value={loanForm.amount}
                   onChange={e => setLoanForm({ ...loanForm, amount: e.target.value })}
                   required
+                  style={{
+                    borderColor: (dashboardData?.unitTotalSavings || 0) > 0 && parseFloat(loanForm.amount) > dashboardData.unitTotalSavings ? '#ef4444' : undefined
+                  }}
                 />
+                {(dashboardData?.unitTotalSavings || 0) > 0 && parseFloat(loanForm.amount) > dashboardData.unitTotalSavings ? (
+                  <small style={{ display: 'block', marginTop: '4px', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>
+                    Amount cannot exceed total unit savings (₹{dashboardData.unitTotalSavings.toLocaleString('en-IN')}).
+                  </small>
+                ) : (dashboardData?.unitTotalSavings || 0) > 0 ? (
+                  <small style={{ display: 'block', marginTop: '4px', color: '#64748b', fontSize: '0.75rem' }}>
+                    Maximum eligible amount: ₹{dashboardData.unitTotalSavings.toLocaleString('en-IN')}
+                  </small>
+                ) : null}
               </div>
 
               <div className="mem-form-group">

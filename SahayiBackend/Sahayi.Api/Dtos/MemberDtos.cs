@@ -98,6 +98,10 @@ namespace Sahayi.Api.DTOs
         public string RoleName { get; set; } = "Member";
         public string AvatarUrl { get; set; } = string.Empty;
 
+        public decimal UnitTotalSavings { get; set; }
+        public int TotalUnitMembers { get; set; }
+        public decimal UnitMonthlyTotal { get; set; }
+
         public MemberSavingsSummaryDto Savings { get; set; } = new MemberSavingsSummaryDto();
         public MemberLoanStatusDto ActiveLoan { get; set; } = new MemberLoanStatusDto();
         public List<MemberRepaymentRowDto> RepaymentSchedule { get; set; } = new List<MemberRepaymentRowDto>();

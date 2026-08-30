@@ -35,7 +35,11 @@ function PaymentMethodModal({ item, unitInfo, onClose, onSuccess, onError }) {
     if (typeof item.id === 'number' && !isNaN(item.id) && item.id > 0) {
       return item.id;
     }
-    if (typeof item.id === 'string') {
+    if (typeof item.memberId === 'string') {
+      const match = item.memberId.match(/\d+/);
+      if (match) return parseInt(match[0], 10);
+    }
+    if (typeof item.id === 'string' && !item.id.startsWith('pending-')) {
       const match = item.id.match(/\d+/);
       if (match) return parseInt(match[0], 10);
     }
@@ -44,7 +48,7 @@ function PaymentMethodModal({ item, unitInfo, onClose, onSuccess, onError }) {
 
   // Handle Cash Payment
   const handleCashPayment = async () => {
-    if (item.status === 'Paid') {
+    if (item.status?.toLowerCase() === 'paid') {
       if (onError) onError('Weekly savings deposit for this week has already been paid!');
       return;
     }
@@ -77,7 +81,7 @@ function PaymentMethodModal({ item, unitInfo, onClose, onSuccess, onError }) {
 
   // Handle Razorpay Online Payment
   const handleOnlinePayment = async () => {
-    if (item.status === 'Paid') {
+    if (item.status?.toLowerCase() === 'paid') {
       if (onError) onError('Weekly savings deposit for this week has already been paid!');
       return;
     }

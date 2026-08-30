@@ -62,10 +62,9 @@ function OperationalOverview({
     ))
     .reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-  const effectiveBankBalance = Math.max(
-    parseFloat(unitBankAccount?.balance || 0),
-    depositedTotalFromLogs
-  );
+  const effectiveBankBalance = unitBankAccount?.balance !== undefined && unitBankAccount?.balance !== null
+    ? parseFloat(unitBankAccount.balance)
+    : depositedTotalFromLogs;
 
   const weeklyLogs = getWeeklyCollectionLogs(filteredSavings, attendanceList || []);
   const currentWeekGroup = weeklyLogs[selectedWeekIndex] || weeklyLogs[0] || {
@@ -370,69 +369,27 @@ function OperationalOverview({
         })()}
       </div>
 
-      {/* Bottom Card: Loan Application Review */}
+      {/* Bottom Card: Loan Approval Notice */}
       <div className="sec-card sec-card--loans">
         <div className="sec-card__header sec-card__header--loans">
           <div>
-            <h3 className="sec-card__title">Loan Application Review</h3>
+            <h3 className="sec-card__title">Loan Approvals & Management</h3>
             <p className="sec-card__subtitle">
-              Pending Secretary endorsement for Presidential approval.
+              Member loan application reviews, approvals, and disbursements are managed by the Unit Treasurer.
             </p>
           </div>
           <div className="sec-watermark-badge">
             <Shield size={36} className="sec-watermark-icon" />
             <div className="sec-watermark-text">
-              <span className="sec-watermark-label">PENDING</span>
-              <span className="sec-watermark-count">
-                {(loans || []).length < 10 ? `0${(loans || []).length}` : (loans || []).length} Requests
-              </span>
+              <span className="sec-watermark-label">TREASURER</span>
+              <span className="sec-watermark-count">AUTHORITY</span>
             </div>
           </div>
         </div>
-
-        <div className="sec-loans-grid">
-          {filteredLoans.length === 0 ? (
-            <div className="sec-empty-loans">
-              <CheckCircle2 size={32} color="#0C382E" />
-              <p>All loan applications reviewed & endorsed!</p>
-            </div>
-          ) : (
-            filteredLoans.map(loan => (
-              <div className="sec-loan-card" key={loan.id}>
-                <div className="sec-loan-card__header">
-                  <div className="sec-loan-card__icon-wrap">
-                    {loan.iconType === 'bank' ? (
-                      <Landmark size={22} />
-                    ) : (
-                      <Store size={22} />
-                    )}
-                  </div>
-                  <div className="sec-loan-card__info">
-                    <h4 className="sec-loan-card__name">{loan.name}</h4>
-                    <p className="sec-loan-card__purpose">
-                      Purpose: {loan.purpose}
-                    </p>
-                  </div>
-                  <div className="sec-loan-card__amount">{loan.amount}</div>
-                </div>
-
-                <div className="sec-loan-card__actions">
-                  <button
-                    className="sec-btn-verify"
-                    onClick={() => onVerifyAndForward(loan)}
-                  >
-                    Verify & Forward
-                  </button>
-                  <button
-                    className="sec-btn-detail"
-                    onClick={() => onSelectLoanDetail(loan)}
-                  >
-                    Detail
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+        <div style={{ padding: '24px', color: '#64748b', fontSize: '0.95rem' }}>
+          <p style={{ margin: 0 }}>
+            Member loan applications submitted via the Sahayi portal are routed directly to the <strong>Unit Treasurer</strong> for review, approval, and disbursement. Members can track their loan application status in their personal account view.
+          </p>
         </div>
       </div>
     </div>

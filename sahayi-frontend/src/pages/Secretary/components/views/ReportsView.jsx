@@ -138,7 +138,7 @@ Unit Name            : ${unitName}
 Secretary Name       : ${secretaryName}
 Report Generated On  : ${generatedDate}
 Bank Account Number  : ${unitBankAccount?.accountNumber || `SB-UNIT-${unitInfo?.unitId || 1}`}
-Bank Balance         : ₹${(unitBankAccount?.balance || totalSavingsVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+Bank Balance         : ₹${(unitBankAccount?.balance !== undefined && unitBankAccount?.balance !== null ? parseFloat(unitBankAccount.balance) : totalSavingsVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
 
 ----------------------------------------------------------------
 1. FINANCIAL SUMMARY & SAVINGS POOL
@@ -331,7 +331,7 @@ President Signoff    : ___________________________
             <span>Unit Bank Balance</span>
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#6d28d9', marginTop: '6px' }}>
-            ₹{(unitBankAccount?.balance || totalSavingsVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            ₹{(unitBankAccount?.balance !== undefined && unitBankAccount?.balance !== null ? parseFloat(unitBankAccount.balance) : totalSavingsVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
             A/c: {unitBankAccount?.accountNumber || `SB-UNIT-${unitInfo?.unitId || 1}`}

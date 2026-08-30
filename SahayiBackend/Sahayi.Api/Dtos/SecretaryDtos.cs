@@ -39,6 +39,8 @@ namespace Sahayi.Api.DTOs
         [Required]
         public int UserId { get; set; }
 
+        public int? UnitId { get; set; }
+
         public int? SavingsWeekId { get; set; }
 
         public decimal Amount { get; set; } = 100;

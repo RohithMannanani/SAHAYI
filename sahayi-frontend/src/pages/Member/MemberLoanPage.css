@@ -1,0 +1,20 @@
+.member-loan-page .apply-loan-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: none;
+}
+
+.member-loan-page .apply-loan-card .card-header {
+  border-bottom: none;
+}
+
+.member-loan-page .table th {
+  font-weight: 600;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-top: none;
+}
+
+.member-loan-page .table td {
+  vertical-align: middle;
+}

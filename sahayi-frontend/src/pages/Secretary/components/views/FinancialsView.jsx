@@ -13,7 +13,8 @@ function FinancialsView({
   onDepositCashToBank,
   onDepositAllCashToBank,
   onRecordSavings,
-  onPayNow
+  onPayNow,
+  showCollectionsInHand = false
 }) {
   const [showWeeklyLog, setShowWeeklyLog] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -41,10 +42,9 @@ function FinancialsView({
     ))
     .reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-  const effectiveBankBalance = Math.max(
-    parseFloat(unitBankAccount?.balance || 0),
-    depositedTotalFromLogs
-  );
+  const effectiveBankBalance = unitBankAccount?.balance !== undefined && unitBankAccount?.balance !== null
+    ? parseFloat(unitBankAccount.balance)
+    : depositedTotalFromLogs;
 
   const cleanTitle = (t) => {
     if (!t) return '';
@@ -149,43 +149,44 @@ function FinancialsView({
           </span>
         </div>
 
-        <div className="sec-stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <span className="sec-stat-label">Collections In Hand (Not Yet in Bank)</span>
-          <h3 className="sec-stat-value" style={{ color: '#d97706' }}>
-            ₹{undepositedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </h3>
-          <span className="sec-stat-sub">
-            {undepositedCashCount > 0 && `${undepositedCashCount} cash`}
-            {undepositedCashCount > 0 && undepositedOnlineCount > 0 && ' + '}
-            {undepositedOnlineCount > 0 && `${undepositedOnlineCount} online`}
-            {undepositedCashList.length > 0 ? ' payment(s) pending bank deposit' : 'No pending deposits'}
-          </span>
-          {undepositedCashList.length > 0 && onDepositAllCashToBank && (
-            <button
-              type="button"
-              onClick={() => onDepositAllCashToBank(undepositedCashList)}
-              style={{
-                marginTop: '0.5rem',
-                backgroundColor: '#0C382E',
-                color: '#ffffff',
-                border: 'none',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Landmark size={13} />
-              <span>Deposit All Cash to Bank</span>
-            </button>
-          )}
-        </div>
 
-        {/* Weekly Savings History Card (Clickable to open Paid & Pending Payments Modal) */}
+        {showCollectionsInHand && (
+          <div className="sec-stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+            <span className="sec-stat-label">Collections In Hand (Not Yet in Bank)</span>
+            <h3 className="sec-stat-value" style={{ color: '#d97706' }}>
+              ₹{undepositedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </h3>
+            <span className="sec-stat-sub">
+              {undepositedCashCount > 0 && `${undepositedCashCount} cash`}
+              {undepositedCashCount > 0 && undepositedOnlineCount > 0 && ' + '}
+              {undepositedOnlineCount > 0 && `${undepositedOnlineCount} online`}
+              {undepositedCashList.length > 0 ? ' payment(s) pending bank deposit' : 'No pending deposits'}
+            </span>
+            {undepositedCashList.length > 0 && onDepositAllCashToBank && (
+              <button
+                type="button"
+                onClick={() => onDepositAllCashToBank(undepositedCashList)}
+                style={{
+                  marginTop: '0.5rem',
+                  backgroundColor: '#0C382E',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Landmark size={13} />
+                <span>Deposit All Cash to Bank</span>
+              </button>
+            )}
+          </div>
+        )}
         <div
           className="sec-stat-card"
           onClick={handleCardClick}

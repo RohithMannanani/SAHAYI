@@ -33,7 +33,7 @@ namespace Sahayi.Api.Controllers
 
         public static async Task<SavingsWeek> EnsureWeekExistsAsync(ApplicationDbContext context, int unitId, DateTime txDate, int? requestedWeekId = null)
         {
-            if (unitId <= 0)
+            if (unitId <= 0 || !await context.AyalkoottamUnits.AnyAsync(u => u.UnitId == unitId))
             {
                 var firstUnit = await context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
                                 ?? await context.AyalkoottamUnits.FirstOrDefaultAsync();
@@ -63,6 +63,14 @@ namespace Sahayi.Api.Controllers
 
             if (week == null && unitId > 0)
             {
+                bool validUnit = await context.AyalkoottamUnits.AnyAsync(u => u.UnitId == unitId);
+                if (!validUnit)
+                {
+                    var fallback = await context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
+                                   ?? await context.AyalkoottamUnits.FirstOrDefaultAsync();
+                    unitId = fallback?.UnitId ?? 1;
+                }
+
                 week = new SavingsWeek
                 {
                     UnitId = unitId,
@@ -88,9 +96,11 @@ namespace Sahayi.Api.Controllers
         [HttpGet("weeks")]
         public async Task<IActionResult> GetSavingsWeeks([FromQuery] int unitId)
         {
-            if (unitId <= 0)
+            if (unitId <= 0 || !await _context.AyalkoottamUnits.AnyAsync(u => u.UnitId == unitId))
             {
-                return BadRequest(new { message = "Valid Unit ID is required." });
+                var firstUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
+                                ?? await _context.AyalkoottamUnits.FirstOrDefaultAsync();
+                unitId = firstUnit?.UnitId ?? 1;
             }
 
             try
@@ -200,11 +210,22 @@ namespace Sahayi.Api.Controllers
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                 }
 
-                if (targetUnitId <= 0)
+                if (targetUnitId <= 0 || !await _context.AyalkoottamUnits.AnyAsync(u => u.UnitId == targetUnitId))
                 {
                     var firstUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
                                     ?? await _context.AyalkoottamUnits.FirstOrDefaultAsync();
                     targetUnitId = firstUnit?.UnitId ?? 1;
+                }
+
+                if (targetUserId <= 0 || !await _context.ApplicationUsers.AnyAsync(u => u.UserId == targetUserId))
+                {
+                    var firstUser = await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.UnitId == targetUnitId && u.IsActive)
+                                    ?? await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.IsActive)
+                                    ?? await _context.ApplicationUsers.FirstOrDefaultAsync();
+                    if (firstUser != null)
+                    {
+                        targetUserId = firstUser.UserId;
+                    }
                 }
 
                 var amountVal = dto.Amount > 0 ? dto.Amount : 100;
@@ -270,11 +291,22 @@ namespace Sahayi.Api.Controllers
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                 }
 
-                if (targetUnitId <= 0)
+                if (targetUnitId <= 0 || !await _context.AyalkoottamUnits.AnyAsync(u => u.UnitId == targetUnitId))
                 {
                     var firstUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
                                     ?? await _context.AyalkoottamUnits.FirstOrDefaultAsync();
                     targetUnitId = firstUnit?.UnitId ?? 1;
+                }
+
+                if (targetUserId <= 0 || !await _context.ApplicationUsers.AnyAsync(u => u.UserId == targetUserId))
+                {
+                    var firstUser = await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.UnitId == targetUnitId && u.IsActive)
+                                    ?? await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.IsActive)
+                                    ?? await _context.ApplicationUsers.FirstOrDefaultAsync();
+                    if (firstUser != null)
+                    {
+                        targetUserId = firstUser.UserId;
+                    }
                 }
 
                 var amountVal = dto.Amount > 0 ? dto.Amount : 100;
@@ -352,9 +384,21 @@ namespace Sahayi.Api.Controllers
                     .Where(s => s.UnitId == unitId && s.PaymentMode.Contains("Bank Deposited"))
                     .SumAsync(s => (decimal?)s.Amount) ?? 0.00m;
 
+                decimal totalDisbursedLoans = await _context.LoanApplications
+                    .Where(l => l.UnitId == unitId && (l.Status == "Disbursed" || l.Status == "Closed"))
+                    .SumAsync(l => (decimal?)l.AmountRequested) ?? 0.00m;
+
+                decimal totalLoanRepayments = await _context.LoanApplications
+                    .Where(l => l.UnitId == unitId)
+                    .SelectMany(l => l.LoanRepayments)
+                    .SumAsync(r => (decimal?)r.AmountPaid) ?? 0.00m;
+
                 string accNum = !string.IsNullOrWhiteSpace(unitInfo?.AccountNumber) ? unitInfo.AccountNumber : $"SB-UNIT-{unitId:D4}";
                 string bankName = !string.IsNullOrWhiteSpace(unitInfo?.BankName) ? unitInfo.BankName : "Sahayi Co-operative Bank";
                 string ifsc = !string.IsNullOrWhiteSpace(unitInfo?.IFSCCode) ? unitInfo.IFSCCode : "SHY0001001";
+
+                decimal initialBalance = unitInfo?.AccountBalance ?? 0.00m;
+                decimal expectedMinBalance = initialBalance + depositedTotal - totalDisbursedLoans + totalLoanRepayments;
 
                 if (bankAccount == null)
                 {
@@ -364,7 +408,7 @@ namespace Sahayi.Api.Controllers
                         AccountNumber = accNum,
                         BankName = bankName,
                         IFSCCode = ifsc,
-                        Balance = depositedTotal,
+                        Balance = expectedMinBalance,
                         LastUpdated = DateTime.UtcNow
                     };
                     _context.UnitBankAccounts.Add(bankAccount);
@@ -373,10 +417,9 @@ namespace Sahayi.Api.Controllers
                 else
                 {
                     bool updated = false;
-                    // Always sync to exactly the deposited total (corrects previously inflated balance)
-                    if (bankAccount.Balance != depositedTotal)
+                    if (bankAccount.Balance != expectedMinBalance)
                     {
-                        bankAccount.Balance = depositedTotal;
+                        bankAccount.Balance = expectedMinBalance;
                         updated = true;
                     }
                     if (!string.IsNullOrWhiteSpace(unitInfo?.BankName) && bankAccount.BankName != unitInfo.BankName)

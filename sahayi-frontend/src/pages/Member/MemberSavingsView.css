@@ -1,0 +1,357 @@
+/* Member Savings & History View Styles */
+.mem-savings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mem-savings-hero {
+  background: linear-gradient(135deg, #0c382e 0%, #166534 100%);
+  border-radius: 16px;
+  padding: 24px 28px;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 10px 25px -5px rgba(12, 56, 46, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.mem-savings-hero::after {
+  content: '';
+  position: absolute;
+  right: -50px;
+  bottom: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.mem-savings-hero__title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px 0;
+}
+
+.mem-savings-hero__sub {
+  font-size: 0.875rem;
+  color: #a7f3d0;
+  margin: 0;
+}
+
+.mem-savings-hero__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* 4-Card Top Metric Grid */
+.mem-savings-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.mem-savings-stat-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mem-savings-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.mem-savings-stat-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mem-savings-stat-card__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mem-savings-stat-card__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.mem-savings-stat-card__val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.mem-savings-stat-card__sub {
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Main Section Card */
+.mem-savings-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  padding: 24px;
+}
+
+.mem-savings-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mem-savings-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mem-savings-card__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0c382e;
+  margin: 0;
+}
+
+/* Dual View Toggle Tabs */
+.mem-savings-tabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.mem-savings-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mem-savings-tab-btn--active {
+  background: #ffffff;
+  color: #0c382e;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* Filter Bar */
+.mem-savings-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.mem-savings-input-search {
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  outline: none;
+  min-width: 220px;
+  background: #ffffff;
+}
+
+.mem-savings-input-search:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+/* Unit Summary Bar for Selected Week */
+.mem-unit-week-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.mem-unit-week-summary__item {
+  display: flex;
+  flex-direction: column;
+}
+
+.mem-unit-week-summary__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #065f46;
+}
+
+.mem-unit-week-summary__val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0c382e;
+}
+
+/* Data Table */
+.mem-savings-table-container {
+  overflow-x: auto;
+}
+
+.mem-savings-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.mem-savings-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mem-savings-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.mem-savings-table tr:last-child td {
+  border-bottom: none;
+}
+
+.mem-savings-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Status Badges */
+.mem-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.mem-status-badge--paid {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.mem-status-badge--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.mem-status-badge--excused {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* Payment Mode Pill */
+.mem-mode-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Pay Action Button */
+.mem-btn-pay-sm {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.mem-btn-pay-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.mem-btn-download-sm {
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mem-btn-download-sm:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}

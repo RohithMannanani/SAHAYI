@@ -16,6 +16,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Response interceptor to handle 401 Unauthorized (expired/invalid token)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Ayalkoottam Registration (returns PDF Blob)
 export const registerShgUnit = async (data) => {
   return await api.post('/shg/register', data, {
@@ -138,7 +153,10 @@ export const payCashSavings = async (data, unitId) => {
   try {
     return await api.post('/savings/pay-cash', data, { params });
   } catch (err) {
-    return await api.post('/secretary/savings/record', data, { params });
+    if (err.response && (err.response.status === 404 || err.response.status === 405)) {
+      return await api.post('/secretary/savings/record', data, { params });
+    }
+    throw err;
   }
 };
 
@@ -148,7 +166,10 @@ export const payOnlineSavings = async (data, unitId) => {
   try {
     return await api.post('/savings/pay-online', data, { params });
   } catch (err) {
-    return await api.post('/secretary/savings/record', { ...data, paymentMode: 'Online', paymentMethod: 'Online' }, { params });
+    if (err.response && (err.response.status === 404 || err.response.status === 405)) {
+      return await api.post('/secretary/savings/record', { ...data, paymentMode: 'Online', paymentMethod: 'Online' }, { params });
+    }
+    throw err;
   }
 };
 

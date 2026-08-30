@@ -758,9 +758,13 @@ function RegisterUnitWizard({
                           className={shouldShowStep1Error('accountBalance') && step1Errors.accountBalance ? 'error' : ''}
                         />
                         {shouldShowStep1Error('accountBalance') && step1Errors.accountBalance && <span className="cds-input-error">{step1Errors.accountBalance}</span>}
-                        {registrationType === 'new' && (
+                        {registrationType === 'new' ? (
                           <span className="cds-balance-hint">
                             New units typically start with a ₹0 balance.
+                          </span>
+                        ) : (
+                          <span className="cds-balance-hint" style={{ color: '#1e4731', fontWeight: 500 }}>
+                            Enter opening account balance of the existing unit to seed unit bank account records.
                           </span>
                         )}
                       </div>

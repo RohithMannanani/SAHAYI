@@ -32,6 +32,8 @@ import FinancialsView from './components/views/FinancialsView';
 import MeetingsView from './components/views/MeetingsView';
 import ReportsView from './components/views/ReportsView';
 import SettingsView from './components/views/SettingsView';
+import SecretaryLoanReview from './components/SecretaryLoanReview';
+import MemberLoanPage from '../Member/MemberLoanPage';
 
 // Modal Components
 import RegisterMemberModal from './components/modals/RegisterMemberModal';
@@ -57,6 +59,7 @@ function SecretaryDashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('secretary_active_tab') || 'dashboard';
   });
+  const [loanSubTab, setLoanSubTab] = useState('personal');
 
   useEffect(() => {
     if (activeTab) {
@@ -247,7 +250,9 @@ function SecretaryDashboard() {
         setAttendanceList(initialMembers);
         setUnitBankAccount(data.bankAccount || null);
         setFinancials({
-          totalCollection: data.totalWeeklyCollection || 0,
+          totalCollection: (data.bankAccount?.balance !== undefined && data.bankAccount?.balance !== null)
+            ? parseFloat(data.bankAccount.balance)
+            : (data.totalWeeklyCollection || 0),
           disbursedLoans: data.disbursedLoansTotal || 0,
           pendingDues: data.pendingDuesCount || 0
         });
@@ -906,6 +911,12 @@ function SecretaryDashboard() {
               currentUser={currentUser}
               onShowToast={showToast}
             />
+          )}
+
+          {activeTab === 'loans' && (
+            <div>
+              <MemberLoanPage unitTotalSavings={unitBankAccount?.balance !== undefined && unitBankAccount?.balance !== null ? parseFloat(unitBankAccount.balance) : (financials?.totalCollection || 0)} />
+            </div>
           )}
 
           {activeTab === 'settings' && (

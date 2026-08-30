@@ -7,7 +7,8 @@ import {
   Calendar,
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  Banknote
 } from 'lucide-react';
 
 function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenOwnSavings }) {
@@ -70,6 +71,16 @@ function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenO
             <div className="sec-nav-item__left">
               <Calendar size={19} />
               <span>Meetings</span>
+            </div>
+          </button>
+
+          <button
+            className={`sec-nav-item ${activeTab === 'loans' ? 'sec-nav-item--active' : ''}`}
+            onClick={() => setActiveTab('loans')}
+          >
+            <div className="sec-nav-item__left">
+              <Banknote size={19} />
+              <span>Loans</span>
             </div>
           </button>
 

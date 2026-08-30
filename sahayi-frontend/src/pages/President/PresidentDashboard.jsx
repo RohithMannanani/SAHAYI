@@ -4,6 +4,10 @@ import './PresidentDashboard.css';
 import { fetchSecretaryDashboard, fetchSavingsWeeks, applyMemberLoan } from '../../services/api';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
+import PresidentLoanMonitor from './components/PresidentLoanMonitor';
+import MemberLoanPage from '../Member/MemberLoanPage';
+
+import loanService from '../../services/loanService';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -17,10 +21,19 @@ function PresidentDashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('president_active_tab') || 'dashboard';
   });
+  const [loanSubTab, setLoanSubTab] = useState('admin');
 
-  // Dynamic Data States
-  const [isLoading, setIsLoading] = useState(true);
+  const currentUser = useMemo(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const [dashboardData, setDashboardData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [savingsWeeks, setSavingsWeeks] = useState([]);
   const [pendingLoans, setPendingLoans] = useState([]);
   const [members, setMembers] = useState([]);
@@ -45,16 +58,6 @@ function PresidentDashboard() {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
   };
-
-  // User details
-  const [currentUser] = useState(() => {
-    try {
-      const u = localStorage.getItem('user');
-      return u ? JSON.parse(u) : null;
-    } catch (e) {
-      return null;
-    }
-  });
 
   // Current week date range calculation
   const { mondayDate, sundayDate, startDurationStr, endDurationStr } = useMemo(() => {
@@ -122,17 +125,21 @@ function PresidentDashboard() {
     const userId = currentUser?.userId || 0;
 
     try {
-      const [dashRes, weeksRes] = await Promise.allSettled([
+      const [dashRes, weeksRes, pendingLoansRes] = await Promise.allSettled([
         fetchSecretaryDashboard(unitId, userId),
-        fetchSavingsWeeks(unitId)
+        fetchSavingsWeeks(unitId),
+        loanService.getPresidentPendingLoans()
       ]);
 
       if (dashRes.status === 'fulfilled' && dashRes.value?.data) {
         const d = dashRes.value.data;
         setDashboardData(d);
-        setPendingLoans(d.pendingLoans || []);
         setMembers(d.members || []);
         setMeetings(d.meetings || []);
+      }
+
+      if (pendingLoansRes.status === 'fulfilled') {
+        setPendingLoans(pendingLoansRes.value || []);
       }
 
       if (weeksRes.status === 'fulfilled' && weeksRes.value?.data) {
@@ -172,8 +179,15 @@ function PresidentDashboard() {
   // Submit President Personal Loan Application
   const handleLoanSubmit = async (e) => {
     e.preventDefault();
-    if (!loanForm.amount || parseFloat(loanForm.amount) <= 0) {
+    const amountVal = parseFloat(loanForm.amount);
+    if (!amountVal || amountVal <= 0) {
       showToast('Please enter a valid loan amount.', 'error');
+      return;
+    }
+
+    const unitTotalSavings = groupSavingsTotal;
+    if (unitTotalSavings > 0 && amountVal > unitTotalSavings) {
+      showToast(`Requested loan amount (₹${amountVal.toLocaleString('en-IN')}) cannot exceed total unit savings (₹${unitTotalSavings.toLocaleString('en-IN')}).`, 'error');
       return;
     }
 
@@ -182,7 +196,7 @@ function PresidentDashboard() {
       const payload = {
         userId: currentUser?.userId || 0,
         unitId: currentUser?.unitId || 1,
-        amount: parseFloat(loanForm.amount),
+        amount: amountVal,
         purpose: loanForm.purpose,
         tenureMonths: parseInt(loanForm.tenureMonths || 12)
       };
@@ -201,7 +215,9 @@ function PresidentDashboard() {
   };
 
   // Metric values calculated dynamically from database
-  const groupSavingsTotal = dashboardData?.totalWeeklyCollection || (savingsWeeks || []).reduce((acc, w) => acc + (w.totalCollected || 0), 0);
+  const groupSavingsTotal = (dashboardData?.bankAccount?.balance !== undefined && dashboardData?.bankAccount?.balance !== null)
+    ? parseFloat(dashboardData.bankAccount.balance)
+    : (dashboardData?.totalWeeklyCollection || (savingsWeeks || []).reduce((acc, w) => acc + (w.totalCollected || 0), 0));
   const activeLoansVal = dashboardData?.disbursedLoansTotal || 0;
   const pendingApprovalsCount = pendingLoans.length;
 
@@ -266,13 +282,21 @@ function PresidentDashboard() {
               <span>Financials</span>
             </div>
 
-            <div
+            <button
               className={`pres-nav-item ${activeTab === 'meetings' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('meetings')}
             >
               <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={17} />
               <span>Meetings</span>
-            </div>
+            </button>
+
+            <button
+              className={`pres-nav-item ${activeTab === 'loans' ? 'pres-nav-item--active' : ''}`}
+              onClick={() => setActiveTab('loans')}
+            >
+              <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={17} />
+              <span>Loans</span>
+            </button>
 
             <div
               className={`pres-nav-item ${activeTab === 'reports' ? 'pres-nav-item--active' : ''}`}
@@ -280,15 +304,6 @@ function PresidentDashboard() {
             >
               <Icon d="M18 20V10M12 20V4M6 20v-6" size={17} />
               <span>Reports</span>
-            </div>
-
-            <div
-              className="pres-nav-item"
-              onClick={() => setShowApplyLoanModal(true)}
-              title="Apply for a personal loan application"
-            >
-              <Icon d="M12 5v14M5 12h14" size={17} stroke="#3b82f6" />
-              <span>Apply for Personal Loan</span>
             </div>
 
             <div
@@ -372,11 +387,6 @@ function PresidentDashboard() {
             </div>
 
             <div className="pres-banner__actions">
-              <button className="pres-btn-outline" onClick={() => setShowApplyLoanModal(true)} style={{ color: '#2563eb', borderColor: '#bfdbfe' }}>
-                <Icon d="M12 5v14M5 12h14" size={15} stroke="#2563eb" />
-                <span>Apply Personal Loan</span>
-              </button>
-
               <button className="pres-btn-outline" onClick={() => setShowOwnSavingsModal(true)}>
                 <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={15} stroke="#10b981" />
                 <span>View My Own Savings</span>
@@ -490,6 +500,68 @@ function PresidentDashboard() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          ) : activeTab === 'loans' ? (
+            <div>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  backgroundColor: '#f1f5f9',
+                  padding: '4px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  gap: '4px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setLoanSubTab('personal')}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: loanSubTab === 'personal' ? '#ffffff' : 'transparent',
+                      color: loanSubTab === 'personal' ? '#0c382e' : '#64748b',
+                      fontWeight: loanSubTab === 'personal' ? 700 : 500,
+                      boxShadow: loanSubTab === 'personal' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span>👤</span> My Personal Loans & Repayments
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLoanSubTab('admin')}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: loanSubTab === 'admin' ? '#ffffff' : 'transparent',
+                      color: loanSubTab === 'admin' ? '#0c382e' : '#64748b',
+                      fontWeight: loanSubTab === 'admin' ? 700 : 500,
+                      boxShadow: loanSubTab === 'admin' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span>🛡️</span> Unit Loan Monitoring & Sign-offs
+                  </button>
+                </div>
+              </div>
+
+              {loanSubTab === 'personal' ? (
+                <MemberLoanPage unitTotalSavings={groupSavingsTotal} />
+              ) : (
+                <PresidentLoanMonitor />
+              )}
             </div>
           ) : activeTab === 'reports' || activeTab === 'financials' ? (
             /* ── FINANCIALS & REPORTS TAB VIEW ── */
@@ -859,42 +931,48 @@ function PresidentDashboard() {
                         </td>
                       </tr>
                     ) : (
-                      pendingLoans.map(loan => (
-                        <tr key={loan.id}>
-                          <td>
-                            <div className="pres-applicant-col">
-                              <div className="pres-applicant-avatar">
-                                {(loan.name || 'L').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      pendingLoans.map((loan, index) => {
+                        const targetId = loan.loanId || loan.id;
+                        const name = loan.memberName || loan.name || 'Member';
+                        const amt = loan.amountRequested !== undefined ? loan.amountRequested : (loan.amount || 0);
+
+                        return (
+                          <tr key={targetId || index}>
+                            <td>
+                              <div className="pres-applicant-col">
+                                <div className="pres-applicant-avatar">
+                                  {(name || 'L').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="pres-applicant-name">{name}</div>
+                                  <div className="pres-applicant-sub">{loan.memberId || `AK-${loan.userId || index}`}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="pres-applicant-name">{loan.name}</div>
-                                <div className="pres-applicant-sub">{loan.memberId || 'Member'}</div>
+                            </td>
+                            <td>
+                              <span className="pres-amount-val">₹{amt.toLocaleString('en-IN')}</span>
+                            </td>
+                            <td>{loan.purpose}</td>
+                            <td>
+                              <div className="pres-trust-score">
+                                <div className="pres-trust-bar">
+                                  <div
+                                    className="pres-trust-fill"
+                                    style={{ width: `${((loan.trustScore || 8.5) / 10) * 100}%`, background: '#0c2c1a' }}
+                                  />
+                                </div>
+                                <span className="pres-trust-score-val">{loan.trustScore || 8.5}</span>
                               </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="pres-amount-val">₹{loan.amount}</span>
-                          </td>
-                          <td>{loan.purpose}</td>
-                          <td>
-                            <div className="pres-trust-score">
-                              <div className="pres-trust-bar">
-                                <div
-                                  className="pres-trust-fill"
-                                  style={{ width: `${((loan.trustScore || 8.5) / 10) * 100}%`, background: '#0c2c1a' }}
-                                />
+                            </td>
+                            <td>
+                              <div className="pres-action-btns" style={{ justifyContent: 'flex-end' }}>
+                                <button className="pres-btn-reject" onClick={() => handleReject(targetId)}>Reject</button>
+                                <button className="pres-btn-approve" onClick={() => handleApprove(targetId)}>Approve</button>
                               </div>
-                              <span className="pres-trust-score-val">{loan.trustScore || 8.5}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="pres-action-btns" style={{ justifyContent: 'flex-end' }}>
-                              <button className="pres-btn-reject" onClick={() => handleReject(loan.id)}>Reject</button>
-                              <button className="pres-btn-approve" onClick={() => handleApprove(loan.id)}>Approve</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -935,7 +1013,7 @@ function PresidentDashboard() {
                 </label>
                 <input
                   type="number"
-                  min="1000"
+                  min="100"
                   max="200000"
                   step="500"
                   value={loanForm.amount}

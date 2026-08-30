@@ -24,6 +24,43 @@ namespace Sahayi.Api.Controllers
             _pdfService = new PdfGeneratorService();
         }
 
+        public static async Task EnsureUnitBankAccountsBackfilledAsync(ApplicationDbContext context)
+        {
+            try
+            {
+                var units = await context.AyalkoottamUnits.ToListAsync();
+                var bankAccounts = await context.UnitBankAccounts.ToListAsync();
+                bool addedOrUpdatedAny = false;
+
+                foreach (var u in units)
+                {
+                    var bankAcc = bankAccounts.FirstOrDefault(b => b.UnitId == u.UnitId);
+                    if (bankAcc == null)
+                    {
+                        context.UnitBankAccounts.Add(new UnitBankAccount
+                        {
+                            UnitId = u.UnitId,
+                            AccountNumber = !string.IsNullOrWhiteSpace(u.AccountNumber) ? u.AccountNumber : $"ACC-{u.UnitId:D8}",
+                            BankName = !string.IsNullOrWhiteSpace(u.BankName) ? u.BankName : "State Bank of India",
+                            IFSCCode = !string.IsNullOrWhiteSpace(u.IFSCCode) ? u.IFSCCode : "SBIN0001234",
+                            Balance = u.AccountBalance,
+                            LastUpdated = DateTime.UtcNow
+                        });
+                        addedOrUpdatedAny = true;
+                    }
+                }
+
+                if (addedOrUpdatedAny)
+                {
+                    await context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error backfilling UnitBankAccounts: {ex.Message}");
+            }
+        }
+
         [HttpGet("wards")]
         public async Task<IActionResult> GetWards()
         {
@@ -85,17 +122,30 @@ namespace Sahayi.Api.Controllers
                 _context.AyalkoottamUnits.Add(unit);
                 await _context.SaveChangesAsync();
 
-                // Create associated UnitBankAccount record with real bank details and initial balance
-                var unitBankAccount = new UnitBankAccount
+                // Create or update associated UnitBankAccount record with real bank details and initial balance
+                var existingBankAcc = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == unit.UnitId);
+                if (existingBankAcc == null)
                 {
-                    UnitId = unit.UnitId,
-                    AccountNumber = unit.AccountNumber,
-                    BankName = unit.BankName,
-                    IFSCCode = unit.IFSCCode,
-                    Balance = dto.AccountBalance,
-                    LastUpdated = DateTime.UtcNow
-                };
-                _context.UnitBankAccounts.Add(unitBankAccount);
+                    var unitBankAccount = new UnitBankAccount
+                    {
+                        UnitId = unit.UnitId,
+                        AccountNumber = !string.IsNullOrWhiteSpace(unit.AccountNumber) ? unit.AccountNumber : $"ACC-{unit.UnitId:D8}",
+                        BankName = !string.IsNullOrWhiteSpace(unit.BankName) ? unit.BankName : "State Bank of India",
+                        IFSCCode = !string.IsNullOrWhiteSpace(unit.IFSCCode) ? unit.IFSCCode : "SBIN0001234",
+                        Balance = dto.AccountBalance,
+                        LastUpdated = DateTime.UtcNow
+                    };
+                    _context.UnitBankAccounts.Add(unitBankAccount);
+                }
+                else
+                {
+                    existingBankAcc.AccountNumber = !string.IsNullOrWhiteSpace(unit.AccountNumber) ? unit.AccountNumber : existingBankAcc.AccountNumber;
+                    existingBankAcc.BankName = !string.IsNullOrWhiteSpace(unit.BankName) ? unit.BankName : existingBankAcc.BankName;
+                    existingBankAcc.IFSCCode = !string.IsNullOrWhiteSpace(unit.IFSCCode) ? unit.IFSCCode : existingBankAcc.IFSCCode;
+                    existingBankAcc.Balance = dto.AccountBalance;
+                    existingBankAcc.LastUpdated = DateTime.UtcNow;
+                }
+                await _context.SaveChangesAsync();
 
                 // 5. Create members & credentials
                 var createdUsers = new List<ApplicationUser>();
@@ -235,12 +285,20 @@ namespace Sahayi.Api.Controllers
         {
             try
             {
-                var units = await _context.AyalkoottamUnits
+                await EnsureUnitBankAccountsBackfilledAsync(_context);
+                var bankAccounts = await _context.UnitBankAccounts.ToListAsync();
+                var rawUnits = await _context.AyalkoottamUnits
                     .Include(u => u.Ward)
                     .Include(u => u.Users)
                         .ThenInclude(u => u.UserRole)
                     .OrderByDescending(u => u.CreatedDate)
-                    .Select(u => new
+                    .ToListAsync();
+
+                var units = rawUnits.Select(u => {
+                    var bankAcc = bankAccounts.FirstOrDefault(b => b.UnitId == u.UnitId);
+                    decimal balance = (bankAcc != null) ? bankAcc.Balance : u.AccountBalance;
+
+                    return new
                     {
                         id = u.UnitId,
                         name = u.UnitName,
@@ -249,13 +307,13 @@ namespace Sahayi.Api.Controllers
                         accountNumber = u.AccountNumber,
                         bankName = u.BankName,
                         ifscCode = u.IFSCCode,
-                        accountBalance = u.AccountBalance,
+                        accountBalance = balance,
                         formationDate = u.CreatedDate.ToString("yyyy-MM-dd"),
                         contact = u.PrimaryContactPhone,
                         members = u.Users.Count,
                         status = u.IsActive ? "Active" : "Inactive",
                         lastAudit = "New Registration",
-                        savings = (double)(u.AccountBalance / 100000.0m),
+                        savings = (double)(balance / 100000.0m),
                         membersList = u.Users.Select(m => new
                         {
                             id = m.UserId,
@@ -265,8 +323,9 @@ namespace Sahayi.Api.Controllers
                             roleId = m.RoleId,
                             role = m.UserRole != null ? m.UserRole.RoleName : (m.RoleId == 2 ? "President" : m.RoleId == 3 ? "Secretary" : m.RoleId == 4 ? "Treasurer" : "Member")
                         })
-                    })
-                    .ToListAsync();
+                    };
+                }).ToList();
+
                 return Ok(units);
             }
             catch (Exception ex)
@@ -280,6 +339,7 @@ namespace Sahayi.Api.Controllers
         {
             try
             {
+                await EnsureUnitBankAccountsBackfilledAsync(_context);
                 var unit = await _context.AyalkoottamUnits
                     .Include(u => u.Ward)
                     .Include(u => u.Users)
@@ -288,6 +348,9 @@ namespace Sahayi.Api.Controllers
 
                 if (unit == null)
                     return NotFound(new { message = "Ayalkoottam unit not found." });
+
+                var bankAcc = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == id);
+                decimal balance = (bankAcc != null) ? bankAcc.Balance : unit.AccountBalance;
 
                 return Ok(new
                 {
@@ -298,13 +361,13 @@ namespace Sahayi.Api.Controllers
                     accountNumber = unit.AccountNumber,
                     bankName = unit.BankName,
                     ifscCode = unit.IFSCCode,
-                    accountBalance = unit.AccountBalance,
+                    accountBalance = balance,
                     formationDate = unit.CreatedDate.ToString("yyyy-MM-dd"),
                     contact = unit.PrimaryContactPhone,
                     members = unit.Users.Count,
                     status = unit.IsActive ? "Active" : "Inactive",
                     lastAudit = "New Registration",
-                    savings = (double)(unit.AccountBalance / 100000.0m),
+                    savings = (double)(balance / 100000.0m),
                     membersList = unit.Users.Select(m => new
                     {
                         id = m.UserId,
@@ -366,6 +429,7 @@ namespace Sahayi.Api.Controllers
         {
             try
             {
+                await EnsureUnitBankAccountsBackfilledAsync(_context);
                 var unitsQuery = _context.AyalkoottamUnits
                     .Include(u => u.Ward)
                     .Include(u => u.Users)
@@ -390,11 +454,11 @@ namespace Sahayi.Api.Controllers
                 var unitAnalytics = units.Select(unit =>
                 {
                     var bankAcc = unitBankAccounts.FirstOrDefault(b => b.UnitId == unit.UnitId);
-                    decimal bankBalance = bankAcc?.Balance ?? unit.AccountBalance;
+                    decimal bankBalance = (bankAcc != null) ? bankAcc.Balance : unit.AccountBalance;
 
                     var unitSavingsTxns = savingsTransactions.Where(s => s.UnitId == unit.UnitId).ToList();
                     decimal savingsCollected = unitSavingsTxns.Sum(s => s.Amount);
-                    decimal totalSavings = bankBalance + savingsCollected;
+                    decimal totalSavings = bankBalance;
                     double savingsLakhs = (double)(totalSavings / 100000.0m);
 
                     var unitLoans = loanApplications.Where(l => l.UnitId == unit.UnitId).ToList();

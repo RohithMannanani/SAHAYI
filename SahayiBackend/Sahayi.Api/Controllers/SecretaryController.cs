@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sahayi.Api.Data;
 using Sahayi.Api.DTOs;
+using Sahayi.Api.Dtos;
 using Sahayi.Api.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Sahayi.Api.Controllers
@@ -167,30 +170,8 @@ namespace Sahayi.Api.Controllers
                     }).ToList();
                 }
 
-                // Fetch Pending Loans for Unit
-                var pendingLoansList = await _context.LoanApplications
-                    .Where(l => l.UnitId == targetUnitId && (l.Status == "Pending" || l.Status == "pending"))
-                    .Include(l => l.User)
-                    .ToListAsync();
-
+                // Pending loan approvals are now managed by Treasurer
                 var loanItems = new List<SecretaryLoanItemDto>();
-                if (pendingLoansList.Any())
-                {
-                    loanItems = pendingLoansList.Select(l => new SecretaryLoanItemDto
-                    {
-                        Id = l.LoanId,
-                        UserId = l.UserId,
-                        Name = l.User?.FullName ?? "Applicant",
-                        Amount = $"₹{l.AmountRequested:N0}",
-                        Purpose = l.Purpose,
-                        IconType = l.Purpose.ToLower().Contains("business") || l.Purpose.ToLower().Contains("shop") ? "store" : "bank",
-                        ApplicantId = $"AK-{l.LoanId:D3}",
-                        TrustScore = "9.2",
-                        MembershipYears = "3 Years",
-                        ExistingDues = "₹0",
-                        Status = "pending"
-                    }).ToList();
-                }
 
                 // Calculate Financial Summary Stats
                 decimal totalCollection = await _context.SavingsTransactions
@@ -215,11 +196,21 @@ namespace Sahayi.Api.Controllers
                         .Where(s => s.UnitId == targetUnitId && s.PaymentMode.Contains("Bank Deposited"))
                         .SumAsync(s => (decimal?)s.Amount) ?? 0.00m;
 
+                    decimal totalDisbursedLoans = await _context.LoanApplications
+                        .Where(l => l.UnitId == targetUnitId && (l.Status == "Disbursed" || l.Status == "Closed"))
+                        .SumAsync(l => (decimal?)l.AmountRequested) ?? 0.00m;
+
+                    decimal totalLoanRepayments = await _context.LoanApplications
+                        .Where(l => l.UnitId == targetUnitId)
+                        .SelectMany(l => l.LoanRepayments)
+                        .SumAsync(r => (decimal?)r.AmountPaid) ?? 0.00m;
+
                     string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
                     string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
                     string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
 
-                    decimal expectedMinBalance = depositedTotal;
+                    decimal initialBalance = unit?.AccountBalance ?? 0.00m;
+                    decimal expectedMinBalance = initialBalance + depositedTotal - totalDisbursedLoans + totalLoanRepayments;
 
                     if (bankAccount == null)
                     {
@@ -238,8 +229,6 @@ namespace Sahayi.Api.Controllers
                     else
                     {
                         bool needSave = false;
-                        // Always sync the bank balance to exactly match deposited total
-                        // (corrects any previously inflated balance from old logic)
                         if (bankAccount.Balance != expectedMinBalance)
                         {
                             bankAccount.Balance = expectedMinBalance;
@@ -281,7 +270,7 @@ namespace Sahayi.Api.Controllers
                     SecretaryName = secretaryUser?.FullName ?? "Unit Secretary",
                     SecretaryPhone = secretaryUser?.PhoneNumber ?? "",
                     SecretaryHouseName = secretaryUser?.HouseName ?? "",
-                    TotalWeeklyCollection = totalCollection,
+                    TotalWeeklyCollection = bankAccount?.Balance ?? totalCollection,
                     DisbursedLoansTotal = disbursedTotal,
                     PendingDuesCount = pendingDuesCount,
                     BankAccount = bankAccountDto,
@@ -548,15 +537,34 @@ namespace Sahayi.Api.Controllers
         {
             try
             {
-                int targetUnitId = unitId ?? 0;
-                if (targetUnitId == 0)
+                int targetUserId = dto.UserId;
+                int targetUnitId = unitId ?? dto.UnitId ?? 0;
+                if (targetUnitId == 0 && targetUserId > 0)
                 {
-                    var user = await _context.ApplicationUsers.FindAsync(dto.UserId);
+                    var user = await _context.ApplicationUsers.FindAsync(targetUserId);
                     if (user?.UnitId != null) targetUnitId = user.UnitId.Value;
                 }
 
+                if (targetUnitId <= 0 || !await _context.AyalkoottamUnits.AnyAsync(u => u.UnitId == targetUnitId))
+                {
+                    var firstUnit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive)
+                                    ?? await _context.AyalkoottamUnits.FirstOrDefaultAsync();
+                    targetUnitId = firstUnit?.UnitId ?? 1;
+                }
+
+                if (targetUserId <= 0 || !await _context.ApplicationUsers.AnyAsync(u => u.UserId == targetUserId))
+                {
+                    var firstUser = await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.UnitId == targetUnitId && u.IsActive)
+                                    ?? await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.IsActive)
+                                    ?? await _context.ApplicationUsers.FirstOrDefaultAsync();
+                    if (firstUser != null)
+                    {
+                        targetUserId = firstUser.UserId;
+                    }
+                }
+
                 DateTime txDate = DateTime.UtcNow;
-                string inputDateStr = !string.IsNullOrWhiteSpace(dto.PaidDate) ? dto.PaidDate : dto.Date;
+                string? inputDateStr = !string.IsNullOrWhiteSpace(dto.PaidDate) ? dto.PaidDate : dto.Date;
                 if (!string.IsNullOrWhiteSpace(inputDateStr) && DateTime.TryParse(inputDateStr, out var parsedDate))
                 {
                     txDate = parsedDate;
@@ -565,10 +573,10 @@ namespace Sahayi.Api.Controllers
                 var week = await SavingsController.EnsureWeekExistsAsync(_context, targetUnitId, txDate, dto.SavingsWeekId);
                 int weekIdVal = week.Id;
 
-                if (dto.UserId > 0)
+                if (targetUserId > 0)
                 {
                     var existingTx = await _context.SavingsTransactions
-                        .FirstOrDefaultAsync(s => s.UserId == dto.UserId && s.SavingsWeekId == weekIdVal);
+                        .FirstOrDefaultAsync(s => s.UserId == targetUserId && s.SavingsWeekId == weekIdVal);
 
                     if (existingTx != null)
                     {
@@ -582,14 +590,14 @@ namespace Sahayi.Api.Controllers
 
                 var savingsTx = new SavingsTransaction
                 {
-                    UserId = dto.UserId,
+                    UserId = targetUserId,
                     UnitId = targetUnitId,
                     SavingsWeekId = weekIdVal,
                     Amount = dto.Amount > 0 ? dto.Amount : 100,
                     PaymentMode = mode,
                     TransactionDate = txDate,
                     ReceiptNumber = $"REC-{(mode.Equals("Online", StringComparison.OrdinalIgnoreCase) ? "RZP" : "CASH")}-{DateTime.UtcNow.Ticks.ToString()[^8..]}",
-                    RecordedBy = dto.UserId
+                    RecordedBy = targetUserId
                 };
 
                 _context.SavingsTransactions.Add(savingsTx);
