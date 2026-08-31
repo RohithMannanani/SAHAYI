@@ -33,9 +33,12 @@ function useCountUp(target, duration = 2000, suffix = '') {
   return { count, ref };
 }
 
-function ImpactSection() {
-  const members = useCountUp(12000);
-  const assets = useCountUp(10);
+function ImpactSection({ metrics }) {
+  const targetMembers = metrics && metrics.totalMembers > 0 ? metrics.totalMembers : 42;
+  const targetSavings = metrics && metrics.totalSavings > 0 ? metrics.totalSavings : 4200;
+
+  const members = useCountUp(targetMembers);
+  const assets = useCountUp(Math.max(1, Math.round(targetSavings / 1000)));
 
   return (
     <section className="impact-section" id="community">
@@ -43,23 +46,23 @@ function ImpactSection() {
         <div className="impact-grid">
           {/* Left */}
           <div className="impact-left" ref={members.ref}>
-            <span style={{ color: 'rgba(255, 255, 255, 1)',fontSize: '18px'}}className="section-tag impact-tag">OUR IMPACT</span>
-            <h2 className="section-heading" style={{ color: '#ffffffff' }}>
-              Scale your impact beyond the neighborhood.
+            <span style={{ color: 'rgba(255, 255, 255, 1)', fontSize: '18px' }} className="section-tag impact-tag">OUR IMPACT</span>
+            <h2 className="section-heading" style={{ color: '#ffffff' }}>
+              Empowering Communities Across Panchayath Wards.
             </h2>
-            <p style={{ color: 'rgba(255, 255, 255, 1)', fontSize: '0.95rem', lineHeight: 1.75, marginTop: 12 }}>
-              Join over 1,000+ communities across the region that have transformed to digital stewardship.
-              Increased savings rates by 40% on average in the first year.
+            <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.95rem', lineHeight: 1.75, marginTop: 12 }}>
+              Connecting Ayalkoottam units and members into a unified digital ecosystem.
+              Real-time transparent weekly savings, automated bank deposits, and instant decision support.
             </p>
             <div className="impact-stats">
               <div className="impact-stat">
-                <div className="impact-stat__val">{members.count.toLocaleString()}+</div>
-                <div className="impact-stat__label">Active Members</div>
+                <div className="impact-stat__val">{members.count}+</div>
+                <div className="impact-stat__label">Active Registered Members</div>
               </div>
               <div className="impact-divider" />
               <div className="impact-stat" ref={assets.ref}>
-                <div className="impact-stat__val">₹{assets.count}Cr+</div>
-                <div className="impact-stat__label">Total Assets Managed</div>
+                <div className="impact-stat__val">₹{targetSavings.toLocaleString('en-IN')}</div>
+                <div className="impact-stat__label">Total Community Savings</div>
               </div>
             </div>
           </div>

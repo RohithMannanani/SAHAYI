@@ -20,13 +20,14 @@ function FinancialsView({
   const [collapsedWeeks, setCollapsedWeeks] = useState({});
 
   const undepositedCashList = savingsLogs.filter(s =>
-    s.status === 'Paid' && (s.paymentMode === 'Cash' || (!s.paymentMode || s.paymentMode === '-'))
+    s.status === 'Paid' &&
+    !(s.paymentMode || '').toLowerCase().includes('bank deposited') &&
+    !(s.paymentMode || '').toLowerCase().includes('in bank')
   );
   const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-  const onlineAndDepositedTotalFromLogs = savingsLogs
+  const depositedTotalFromLogs = savingsLogs
     .filter(s => s.status === 'Paid' && (
-      (s.paymentMode || '').toLowerCase().includes('online') ||
       (s.paymentMode || '').toLowerCase().includes('bank deposited') ||
       (s.paymentMode || '').toLowerCase().includes('in bank')
     ))
@@ -34,7 +35,7 @@ function FinancialsView({
 
   const effectiveBankBalance = Math.max(
     parseFloat(unitBankAccount?.balance || 0),
-    onlineAndDepositedTotalFromLogs
+    depositedTotalFromLogs
   );
 
   // Get weekly collection logs grouped and sorted in DESCENDING order of dates & weeks

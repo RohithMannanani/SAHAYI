@@ -3,6 +3,7 @@ import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { loginUser } from '../../services/api';
 import ForgotPasswordModal from '../../components/Auth/ForgotPasswordModal';
 import ForceChangePasswordModal from '../../components/Auth/ForceChangePasswordModal';
+import sahayiLogo from '../../assets/images/sahayi_logo.jpg';
 import './Login.css';
 
 // Role → route map (mirrors the switch in handleSubmit)
@@ -104,10 +105,8 @@ function Login() {
       <main className="login-center">
         {/* Brand */}
         <header className="login-brand">
-          <div className="login-brand__icon" aria-label="Sahayi logo">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="white" />
-            </svg>
+          <div className="login-brand__icon" aria-label="Sahayi logo" style={{ background: 'transparent', padding: 0, boxShadow: 'none' }}>
+            <img src={sahayiLogo} alt="SAHAYI Logo" style={{ width: '64px', height: '64px', borderRadius: '14px', objectFit: 'cover', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }} />
           </div>
           <h1 className="login-brand__name">SAHAYI</h1>
           <p className="login-brand__tagline">Empowering community growth together</p>

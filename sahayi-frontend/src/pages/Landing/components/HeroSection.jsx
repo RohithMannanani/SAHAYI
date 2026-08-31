@@ -1,9 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Play, TrendingUp } from 'lucide-react';
+import heroCommunityImage from '../../../assets/images/images.jpg';
 import './HeroSection.css';
 
-function HeroSection() {
+function HeroSection({ metrics }) {
+  const savingsDisplay = metrics && metrics.totalSavings > 0
+    ? (metrics.savingsLakhs > 0 ? `₹${metrics.savingsLakhs}L` : `₹${metrics.totalSavings.toLocaleString('en-IN')}`)
+    : '₹4,200';
+
   return (
     <section className="hero" id="home">
       <div className="container hero__grid">
@@ -11,7 +16,7 @@ function HeroSection() {
         <div className="hero__content">
           <div className="hero__tag fade-up">
             <span className="tag-dot" />
-            All-in-one Neighbourhood Tool
+            Kudumbashree Ayalkoottam Management
           </div>
 
           <h1 className="hero__title fade-up delay-1">
@@ -29,12 +34,12 @@ function HeroSection() {
               Get Started Today
               <ArrowRight size={16} />
             </Link>
-            <button className="btn-outline">
+            <Link to="/login" className="btn-outline">
               <span className="play-icon">
                 <Play size={13} fill="currentColor" />
               </span>
-              Watch Demo
-            </button>
+              Portal Login
+            </Link>
           </div>
         </div>
 
@@ -42,8 +47,8 @@ function HeroSection() {
         <div className="hero__image-wrap fade-up delay-2">
           <div className="hero__image-frame">
             <img
-              src="/community_hero.png"
-              alt="Community members collaborating"
+              src={heroCommunityImage}
+              alt="Kudumbashree Community Collaboration"
               className="hero__img"
             />
             {/* Floating stats card */}
@@ -52,10 +57,10 @@ function HeroSection() {
                 <TrendingUp size={16} />
               </div>
               <div>
-                <div className="stats-card__label">Active Savings</div>
-                <div className="stats-card__value">₹2.4L</div>
+                <div className="stats-card__label">Active Total Savings</div>
+                <div className="stats-card__value">{savingsDisplay}</div>
               </div>
-              <div className="stats-card__badge">↑ 12%</div>
+              <div className="stats-card__badge">Live DB</div>
             </div>
           </div>
 

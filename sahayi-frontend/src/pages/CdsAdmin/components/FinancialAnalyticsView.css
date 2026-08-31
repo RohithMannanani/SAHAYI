@@ -1,0 +1,322 @@
+.cds-fin-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.cds-fin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.cds-fin-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cds-fin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.cds-fin-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cds-fin-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cds-fin-card--savings .cds-fin-card__icon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.cds-fin-card--bank .cds-fin-card__icon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.cds-fin-card--collected .cds-fin-card__icon {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.cds-fin-card--loans .cds-fin-card__icon {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.cds-fin-card__tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.cds-fin-card__label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.cds-fin-card__value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.cds-fin-card__sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+/* Wards Grid */
+.cds-fin-wards-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.cds-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.cds-ward-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.cds-ward-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.cds-ward-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.cds-ward-card__badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.cds-ward-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cds-ward-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.cds-ward-metric {
+  display: flex;
+  justify-content: space-between;
+  color: #475569;
+}
+
+.cds-ward-metric__value--highlight {
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Table styling */
+.cds-table-container {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.cds-table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cds-table-toolbar__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cds-table-toolbar__controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cds-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.cds-search-box input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #0f172a;
+  width: 180px;
+}
+
+.cds-filter-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+}
+
+.cds-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cds-data-table th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cds-data-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.cds-data-table tr:hover {
+  background: #f8fafc;
+}
+
+.cds-unit-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cds-unit-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cds-unit-name-text {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cds-unit-sub-text {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.cds-bank-cell {
+  font-size: 12px;
+}
+
+.cds-bank-name {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.cds-bank-acc {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.cds-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cds-status-badge--active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.cds-status-badge--inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.cds-status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cds-loading-state,
+.cds-empty-state {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}

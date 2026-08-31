@@ -641,7 +641,7 @@ verified from SahayiDb Database.
         {/* ── Page Footer ── */}
         <footer className="mem-footer">
           <div className="mem-footer__left">
-            <div className="mem-footer__brand">Ayalkoottam Connect</div>
+            <div className="mem-footer__brand">SHAYI</div>
             <div className="mem-footer__copy">© 2026 Ayalkoottam Management System. Empowering local communities.</div>
           </div>
           <div className="mem-footer__links">
@@ -715,7 +715,7 @@ verified from SahayiDb Database.
       {/* ── Weekly Savings Payment Modal ── */}
       {showPaymentModal && (
         <PaymentMethodModal
-          item={{
+          item={selectedWeekItem || {
             id: currentUser?.userId || dashboardData?.userId || 0,
             userId: currentUser?.userId || dashboardData?.userId || 0,
             name: memberName,
@@ -728,9 +728,13 @@ verified from SahayiDb Database.
             unitId: currentUser?.unitId || dashboardData?.unitId || 0,
             unitName: unitName
           }}
-          onClose={() => setShowPaymentModal(false)}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedWeekItem(null);
+          }}
           onSuccess={(item, method, paymentId) => {
             setShowPaymentModal(false);
+            setSelectedWeekItem(null);
             if (method === 'Online') {
               showToast(`Weekly savings deposit of ₹100 paid online!`);
             } else {
@@ -751,7 +755,8 @@ verified from SahayiDb Database.
           savingsLogs={dashboardData?.savingsLogs || []}
           currentUserId={currentUser?.userId || dashboardData?.userId}
           onClose={() => setShowHistoryModal(false)}
-          onRecordPayment={() => {
+          onRecordPayment={(targetItem) => {
+            setSelectedWeekItem(targetItem);
             setShowHistoryModal(false);
             setShowPaymentModal(true);
           }}

@@ -29,7 +29,7 @@ function TrustSection() {
             Rooted in Trust, Driven by Data
           </h2>
           <p className="section-subheading">
-            Application Connect was born from the need to modernize the traditional neighborhood group structure.
+            SAHAYI was born from the need to modernize the traditional Kudumbashree Ayalkoottam neighborhood group structure.
             We provide the tools that allow leaders to focus on growth while our system handles the complexity of financial transparency.
           </p>
         </div>

@@ -30,7 +30,14 @@ const features = [
   },
 ];
 
-function FeaturesSection() {
+function FeaturesSection({ metrics }) {
+  const poolDisplay = metrics && metrics.totalSavings > 0
+    ? (metrics.savingsLakhs > 0 ? `₹${metrics.savingsLakhs}L` : `₹${metrics.totalSavings.toLocaleString('en-IN')}`)
+    : '₹4,200';
+
+  const memberDisplay = metrics && metrics.totalMembers > 0 ? metrics.totalMembers : 42;
+  const attendanceDisplay = metrics && metrics.attendanceRate > 0 ? `${metrics.attendanceRate}%` : '87.5%';
+
   return (
     <section className="features-section" id="features">
       <div className="container">
@@ -48,7 +55,7 @@ function FeaturesSection() {
               </div>
               <h3 className="feature-card__title">{features[0].label}</h3>
               <p className="feature-card__desc">{features[0].desc}</p>
-              <a href="#" className="feature-link">
+              <a href="#about" className="feature-link">
                 Learn more <ArrowRight size={14} />
               </a>
             </div>
@@ -63,16 +70,16 @@ function FeaturesSection() {
               </div>
               <div className="mock-stats-row">
                 <div className="mock-stat">
-                  <div className="mock-stat__val">₹1.2Cr</div>
-                  <div className="mock-stat__label">Total Pool</div>
+                  <div className="mock-stat__val">{poolDisplay}</div>
+                  <div className="mock-stat__label">Savings Pool</div>
                 </div>
                 <div className="mock-stat">
-                  <div className="mock-stat__val">342</div>
+                  <div className="mock-stat__val">{memberDisplay}</div>
                   <div className="mock-stat__label">Members</div>
                 </div>
                 <div className="mock-stat">
-                  <div className="mock-stat__val">98.4%</div>
-                  <div className="mock-stat__label">Recovery</div>
+                  <div className="mock-stat__val">{attendanceDisplay}</div>
+                  <div className="mock-stat__label">Attendance</div>
                 </div>
               </div>
             </div>
@@ -87,7 +94,7 @@ function FeaturesSection() {
               <h3 className="feature-card__title">{features[1].label}</h3>
               <p className="feature-card__desc">{features[1].desc}</p>
               <div className="mock-meeting-pill">
-                <span className="meeting-dot" /> Next Meeting: Thu 7 PM
+                <span className="meeting-dot" /> Weekly Ayalkoottam Meetings
               </div>
             </div>
 
@@ -99,9 +106,9 @@ function FeaturesSection() {
               <p className="feature-card__desc" style={{ color: 'rgba(255,255,255,0.7)' }}>{features[2].desc}</p>
               <div className="mock-loan-progress">
                 <div className="loan-bar">
-                  <div className="loan-bar__fill" style={{ width: '72%' }} />
+                  <div className="loan-bar__fill" style={{ width: '100%' }} />
                 </div>
-                <span className="loan-pct">72% repaid</span>
+                <span className="loan-pct">Endorsed & Tracked</span>
               </div>
             </div>
           </div>

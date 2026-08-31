@@ -209,6 +209,9 @@ namespace Sahayi.Api.Controllers
                     string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
                     string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
 
+                    decimal initialBalance = unit?.AccountBalance ?? 0.00m;
+                    decimal expectedMinBalance = initialBalance + onlineAndDepositedTotal;
+
                     if (bankAccount == null)
                     {
                         bankAccount = new UnitBankAccount
@@ -217,7 +220,7 @@ namespace Sahayi.Api.Controllers
                             AccountNumber = accNum,
                             BankName = bankName,
                             IFSCCode = ifsc,
-                            Balance = onlineAndDepositedTotal,
+                            Balance = expectedMinBalance,
                             LastUpdated = DateTime.UtcNow
                         };
                         _context.UnitBankAccounts.Add(bankAccount);
@@ -226,9 +229,9 @@ namespace Sahayi.Api.Controllers
                     else
                     {
                         bool needSave = false;
-                        if (bankAccount.Balance < onlineAndDepositedTotal)
+                        if (bankAccount.Balance < expectedMinBalance)
                         {
-                            bankAccount.Balance = onlineAndDepositedTotal;
+                            bankAccount.Balance = expectedMinBalance;
                             needSave = true;
                         }
                         if (!string.IsNullOrWhiteSpace(unit?.BankName) && bankAccount.BankName != unit.BankName)

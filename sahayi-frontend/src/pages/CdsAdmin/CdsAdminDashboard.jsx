@@ -7,9 +7,11 @@ import CdsAdminSidebar from './components/CdsAdminSidebar';
 import CdsAdminHeader from './components/CdsAdminHeader';
 import SystemOverview from './components/SystemOverview';
 import UnitRegistryView from './components/UnitRegistryView';
-import PlaceholderView from './components/PlaceholderView';
+import FinancialAnalyticsView from './components/FinancialAnalyticsView';
+import MeetingAttendanceView from './components/MeetingAttendanceView';
+import ReportsView from './components/ReportsView';
 import CdsAdminFooter from './components/CdsAdminFooter';
-import { fetchShgUnits, toggleShgUnitStatus, fetchWardsList } from '../../services/api';
+import { fetchShgUnits, toggleShgUnitStatus, fetchWardsList, fetchCdsAnalytics } from '../../services/api';
 
 function CdsAdminDashboard() {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ function CdsAdminDashboard() {
   const [selectedWard, setSelectedWard] = useState('');
   const [wardDropdownOpen, setWardDropdownOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [selectedWardFilter, setSelectedWardFilter] = useState('ALL');
 
   // Synchronize browser history popstate event for dynamic back navigation
   useEffect(() => {
@@ -49,9 +52,10 @@ function CdsAdminDashboard() {
     setSelectedUnit(unit);
   };
 
-  // Lists state
+  // Lists and Analytics state
   const [ayalkoottamList, setAyalkoottamList] = useState([]);
   const [wardsList, setWardsList] = useState([]);
+  const [cdsAnalytics, setCdsAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal & Wizard state
@@ -75,12 +79,16 @@ function CdsAdminDashboard() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [wardsRes, unitsRes] = await Promise.all([
+      const [wardsRes, unitsRes, analyticsRes] = await Promise.all([
         fetchWardsList(),
-        fetchShgUnits()
+        fetchShgUnits(),
+        fetchCdsAnalytics()
       ]);
 
-      setWardsList(wardsRes.data);
+      setWardsList(wardsRes.data || []);
+      if (analyticsRes && analyticsRes.data) {
+        setCdsAnalytics(analyticsRes.data);
+      }
 
       // Set default selected ward to first ward in database if any
       if (wardsRes.data && wardsRes.data.length > 0) {
@@ -88,7 +96,7 @@ function CdsAdminDashboard() {
         setSelectedWard(`Ward ${firstWard.wardNumber}`);
       }
 
-      const mappedUnits = unitsRes.data.map(unit => {
+      const mappedUnits = (unitsRes.data || []).map(unit => {
         const { initials, cls } = getUnitInitialsAndClass(unit.name);
         return {
           ...unit,
@@ -112,6 +120,7 @@ function CdsAdminDashboard() {
     const { initials, cls } = getUnitInitialsAndClass(newUnit.name);
     const enrichedUnit = { ...newUnit, initials, cls };
     setAyalkoottamList(prev => [enrichedUnit, ...prev]);
+    loadData();
   };
 
   const handleToggleStatus = async (id, newStatus) => {
@@ -124,6 +133,7 @@ function CdsAdminDashboard() {
         }
         return item;
       }));
+      loadData();
     } catch (err) {
       console.error("Failed to toggle status in backend database:", err);
       alert("Failed to update status on server.");
@@ -158,11 +168,11 @@ function CdsAdminDashboard() {
     return matchesSearch && matchesWard;
   });
 
-  const totalUnitsCount = ayalkoottamList.length;
-  const totalMembersCount = ayalkoottamList.reduce((sum, unit) => sum + (unit.members || 0), 0);
-  const activeUnitsCount = ayalkoottamList.filter(unit => unit.status === 'Active').length;
+  const totalUnitsCount = cdsAnalytics?.overall?.totalUnits ?? ayalkoottamList.length;
+  const totalMembersCount = cdsAnalytics?.overall?.totalMembers ?? ayalkoottamList.reduce((sum, unit) => sum + (unit.members || 0), 0);
+  const activeUnitsCount = cdsAnalytics?.overall?.activeUnits ?? ayalkoottamList.filter(unit => unit.status === 'Active').length;
   const activePercentage = totalUnitsCount > 0 ? Math.round((activeUnitsCount / totalUnitsCount) * 100) : 0;
-  const totalSavingsLakhs = ayalkoottamList.reduce((sum, unit) => sum + (unit.savings || 0), 0);
+  const totalSavingsLakhs = cdsAnalytics?.overall?.cdsSavingsLakhs ?? ayalkoottamList.reduce((sum, unit) => sum + (unit.savings || 0), 0);
 
   const recentActivities = ayalkoottamList.slice(0, 4).map(unit => ({
     dot: unit.status === 'Active' ? 'green' : 'red',
@@ -231,6 +241,7 @@ function CdsAdminDashboard() {
                   wardDropdownOpen={wardDropdownOpen}
                   setWardDropdownOpen={setWardDropdownOpen}
                   ayalkoottamList={ayalkoottamList}
+                  cdsAnalytics={cdsAnalytics}
                   recentActivities={recentActivities}
                 />
               )}
@@ -252,10 +263,32 @@ function CdsAdminDashboard() {
                 />
               )}
 
-              {(activeNav === 'financials' || activeNav === 'meetings' || activeNav === 'reports') && (
-                <PlaceholderView
-                  activeNav={activeNav}
-                  setActiveNav={setActiveNav}
+              {activeNav === 'financials' && (
+                <FinancialAnalyticsView
+                  cdsAnalytics={cdsAnalytics}
+                  wardsList={wardsList}
+                  selectedWardFilter={selectedWardFilter}
+                  setSelectedWardFilter={setSelectedWardFilter}
+                  isLoading={isLoading}
+                />
+              )}
+
+              {activeNav === 'meetings' && (
+                <MeetingAttendanceView
+                  cdsAnalytics={cdsAnalytics}
+                  wardsList={wardsList}
+                  selectedWardFilter={selectedWardFilter}
+                  setSelectedWardFilter={setSelectedWardFilter}
+                  isLoading={isLoading}
+                />
+              )}
+
+              {activeNav === 'reports' && (
+                <ReportsView
+                  cdsAnalytics={cdsAnalytics}
+                  wardsList={wardsList}
+                  selectedWardFilter={selectedWardFilter}
+                  setSelectedWardFilter={setSelectedWardFilter}
                 />
               )}
             </>

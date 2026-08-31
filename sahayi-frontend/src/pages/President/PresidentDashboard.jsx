@@ -116,7 +116,7 @@ function PresidentDashboard() {
         <div>
           <div className="pres-sidebar__brand">SAHAYI</div>
           <nav className="pres-sidebar__nav">
-            <div 
+            <div
               className={`pres-nav-item ${activeTab === 'dashboard' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('dashboard')}
             >
@@ -124,7 +124,7 @@ function PresidentDashboard() {
               <span>Dashboard</span>
             </div>
 
-            <div 
+            <div
               className={`pres-nav-item ${activeTab === 'members' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('members')}
             >
@@ -132,7 +132,7 @@ function PresidentDashboard() {
               <span>Members</span>
             </div>
 
-            <div 
+            <div
               className={`pres-nav-item ${activeTab === 'financials' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('financials')}
             >
@@ -140,7 +140,7 @@ function PresidentDashboard() {
               <span>Financials</span>
             </div>
 
-            <div 
+            <div
               className={`pres-nav-item ${activeTab === 'meetings' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('meetings')}
             >
@@ -148,7 +148,7 @@ function PresidentDashboard() {
               <span>Meetings</span>
             </div>
 
-            <div 
+            <div
               className={`pres-nav-item ${activeTab === 'reports' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('reports')}
             >
@@ -182,7 +182,7 @@ function PresidentDashboard() {
       <div className="pres-main">
         {/* Header Navbar */}
         <header className="pres-header">
-          <div className="pres-header__title">Ayalkoottam Connect - Presidential Portal</div>
+          <div className="pres-header__title">SHAYI - Presidential Portal</div>
 
           <div className="pres-header__right">
             <div className="pres-search-bar">
@@ -195,9 +195,9 @@ function PresidentDashboard() {
               <span className="pres-header__badge" />
             </button>
 
-            <img 
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" 
-              alt="President Avatar" 
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120"
+              alt="President Avatar"
               className="pres-user-avatar"
             />
           </div>
@@ -273,11 +273,11 @@ function PresidentDashboard() {
               </div>
 
               {/* ── WEEKLY SAVINGS HISTORY CARD (CLICKABLE) ── */}
-              <div 
-                className="pres-card" 
+              <div
+                className="pres-card"
                 onClick={() => setShowHistoryModal(true)}
-                style={{ 
-                  cursor: 'pointer', 
+                style={{
+                  cursor: 'pointer',
                   borderLeft: '5px solid #10b981',
                   transition: 'all 0.25s ease',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
@@ -293,13 +293,13 @@ function PresidentDashboard() {
                       Click to view detailed breakdown of all <strong>Paid Payments</strong> and <strong>Pending Dues</strong> week by week.
                     </p>
                   </div>
-                  <span style={{ 
-                    backgroundColor: '#dcfce7', 
-                    color: '#15803d', 
-                    fontSize: '0.75rem', 
-                    fontWeight: 700, 
-                    padding: '6px 14px', 
-                    borderRadius: '20px' 
+                  <span style={{
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    padding: '6px 14px',
+                    borderRadius: '20px'
                   }}>
                     View Paid & Pending &rarr;
                   </span>
@@ -516,9 +516,9 @@ function PresidentDashboard() {
                           <td>
                             <div className="pres-trust-score">
                               <div className="pres-trust-bar">
-                                <div 
-                                  className="pres-trust-fill" 
-                                  style={{ width: `${((loan.trustScore || 8.5) / 10) * 100}%`, background: '#0c2c1a' }} 
+                                <div
+                                  className="pres-trust-fill"
+                                  style={{ width: `${((loan.trustScore || 8.5) / 10) * 100}%`, background: '#0c2c1a' }}
                                 />
                               </div>
                               <span className="pres-trust-score-val">{loan.trustScore || 8.5}</span>

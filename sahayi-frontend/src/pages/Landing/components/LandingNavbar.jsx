@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Settings, Menu, X } from 'lucide-react';
+import sahayiLogo from '../../../assets/images/sahayi_logo.jpg';
 import './LandingNavbar.css';
 
 function LandingNavbar() {
@@ -18,7 +19,7 @@ function LandingNavbar() {
       <div className="landing-nav__inner container">
         {/* Logo */}
         <a href="#home" className="landing-nav__logo">
-          <span className="logo-mark">S</span>
+          <img src={sahayiLogo} alt="SAHAYI Logo" style={{ height: '36px', width: '36px', borderRadius: '8px', objectFit: 'cover' }} />
           <span className="logo-text">SAHAYI</span>
         </a>
 

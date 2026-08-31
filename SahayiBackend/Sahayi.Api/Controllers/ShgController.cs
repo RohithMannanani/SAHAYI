@@ -77,6 +77,7 @@ namespace Sahayi.Api.Controllers
                     AccountNumber = dto.AccountNumber,
                     BankName = dto.BankName,
                     IFSCCode = dto.IFSCCode,
+                    AccountBalance = dto.AccountBalance,
                     CreatedDate = DateTime.UtcNow,
                     IsActive = true
                 };
@@ -84,14 +85,14 @@ namespace Sahayi.Api.Controllers
                 _context.AyalkoottamUnits.Add(unit);
                 await _context.SaveChangesAsync();
 
-                // Create associated UnitBankAccount record with real bank details
+                // Create associated UnitBankAccount record with real bank details and initial balance
                 var unitBankAccount = new UnitBankAccount
                 {
                     UnitId = unit.UnitId,
                     AccountNumber = unit.AccountNumber,
                     BankName = unit.BankName,
                     IFSCCode = unit.IFSCCode,
-                    Balance = 0.00m,
+                    Balance = dto.AccountBalance,
                     LastUpdated = DateTime.UtcNow
                 };
                 _context.UnitBankAccounts.Add(unitBankAccount);
@@ -357,6 +358,172 @@ namespace Sahayi.Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error updating unit status.", details = ex.Message });
+            }
+        }
+
+        [HttpGet("cds-analytics")]
+        public async Task<IActionResult> GetCdsAnalytics([FromQuery] int? wardId)
+        {
+            try
+            {
+                var unitsQuery = _context.AyalkoottamUnits
+                    .Include(u => u.Ward)
+                    .Include(u => u.Users)
+                    .AsQueryable();
+
+                if (wardId.HasValue && wardId.Value > 0)
+                {
+                    unitsQuery = unitsQuery.Where(u => u.WardId == wardId.Value);
+                }
+
+                var units = await unitsQuery.OrderBy(u => u.WardId).ThenBy(u => u.UnitName).ToListAsync();
+
+                var unitBankAccounts = await _context.UnitBankAccounts.ToListAsync();
+                var savingsTransactions = await _context.SavingsTransactions.ToListAsync();
+                var loanApplications = await _context.LoanApplications
+                    .Include(l => l.LoanRepayments)
+                    .ToListAsync();
+                var meetings = await _context.Meetings
+                    .Include(m => m.Attendances)
+                    .ToListAsync();
+
+                var unitAnalytics = units.Select(unit =>
+                {
+                    var bankAcc = unitBankAccounts.FirstOrDefault(b => b.UnitId == unit.UnitId);
+                    decimal bankBalance = bankAcc?.Balance ?? unit.AccountBalance;
+
+                    var unitSavingsTxns = savingsTransactions.Where(s => s.UnitId == unit.UnitId).ToList();
+                    decimal savingsCollected = unitSavingsTxns.Sum(s => s.Amount);
+                    decimal totalSavings = bankBalance + savingsCollected;
+                    double savingsLakhs = (double)(totalSavings / 100000.0m);
+
+                    var unitLoans = loanApplications.Where(l => l.UnitId == unit.UnitId).ToList();
+                    decimal loansDisbursed = unitLoans
+                        .Where(l => l.Status == "Approved" || l.Status == "Disbursed" || l.Status == "Active" || l.Status == "Closed" || l.Status == "Endorsed")
+                        .Sum(l => l.AmountRequested);
+                    decimal loanRepayments = unitLoans
+                        .SelectMany(l => l.LoanRepayments ?? new List<LoanRepayment>())
+                        .Sum(r => r.AmountPaid);
+                    decimal outstandingBalance = Math.Max(0m, loansDisbursed - loanRepayments);
+
+                    var unitMeetings = meetings.Where(m => m.UnitId == unit.UnitId).ToList();
+                    int totalMeetings = unitMeetings.Count;
+                    int completedMeetings = unitMeetings.Count(m => m.IsCompleted);
+
+                    var attendances = unitMeetings.SelectMany(m => m.Attendances ?? new List<Attendance>()).ToList();
+                    int totalAttendance = attendances.Count;
+                    int present = attendances.Count(a => a.IsPresent);
+                    int absent = attendances.Count(a => !a.IsPresent);
+                    int late = 0;
+                    double attendanceRate = totalAttendance > 0 ? Math.Round((present * 100.0) / totalAttendance, 1) : 0.0;
+
+                    var lastMeeting = unitMeetings.OrderByDescending(m => m.MeetingDate).FirstOrDefault();
+
+                    return new
+                    {
+                        unitId = unit.UnitId,
+                        unitName = unit.UnitName,
+                        wardId = unit.WardId,
+                        wardNumber = unit.Ward != null ? unit.Ward.WardNumber : 0,
+                        wardName = unit.Ward != null ? unit.Ward.WardName : "Unknown Ward",
+                        wardFormatted = unit.Ward != null ? $"Ward {unit.Ward.WardNumber}, {unit.Ward.WardName}" : "N/A",
+                        isActive = unit.IsActive,
+                        status = unit.IsActive ? "Active" : "Inactive",
+                        accountNumber = unit.AccountNumber,
+                        bankName = unit.BankName,
+                        ifscCode = unit.IFSCCode,
+                        memberCount = unit.Users.Count,
+                        bankBalance = bankBalance,
+                        savingsCollected = savingsCollected,
+                        totalSavings = totalSavings,
+                        savingsLakhs = Math.Round(savingsLakhs, 2),
+                        loansDisbursed = loansDisbursed,
+                        loanRepayments = loanRepayments,
+                        outstandingBalance = outstandingBalance,
+                        totalMeetings = totalMeetings,
+                        completedMeetings = completedMeetings,
+                        totalAttendanceRecords = totalAttendance,
+                        presentCount = present,
+                        lateCount = late,
+                        absentCount = absent,
+                        attendanceRate = attendanceRate,
+                        lastMeetingDate = lastMeeting != null ? lastMeeting.MeetingDate.ToString("yyyy-MM-dd") : "No Meetings Yet"
+                    };
+                }).ToList();
+
+                int totalUnits = unitAnalytics.Count;
+                int activeUnits = unitAnalytics.Count(u => u.isActive);
+                int totalMembers = unitAnalytics.Sum(u => u.memberCount);
+
+                decimal cdsBankBalance = unitAnalytics.Sum(u => u.bankBalance);
+                decimal cdsSavingsCollected = unitAnalytics.Sum(u => u.savingsCollected);
+                decimal cdsTotalSavings = unitAnalytics.Sum(u => u.totalSavings);
+                double cdsSavingsLakhs = Math.Round((double)(cdsTotalSavings / 100000.0m), 2);
+
+                decimal cdsLoansDisbursed = unitAnalytics.Sum(u => u.loansDisbursed);
+                decimal cdsLoanRepayments = unitAnalytics.Sum(u => u.loanRepayments);
+                decimal cdsOutstandingBalance = unitAnalytics.Sum(u => u.outstandingBalance);
+
+                int cdsTotalMeetings = unitAnalytics.Sum(u => u.totalMeetings);
+                int cdsCompletedMeetings = unitAnalytics.Sum(u => u.completedMeetings);
+                int cdsTotalAttendance = unitAnalytics.Sum(u => u.totalAttendanceRecords);
+                int cdsPresent = unitAnalytics.Sum(u => u.presentCount);
+                int cdsLate = unitAnalytics.Sum(u => u.lateCount);
+                int cdsAbsent = unitAnalytics.Sum(u => u.absentCount);
+                double cdsOverallAttendanceRate = cdsTotalAttendance > 0
+                    ? Math.Round(((cdsPresent + cdsLate) * 100.0) / cdsTotalAttendance, 1)
+                    : 0.0;
+
+                var wardSummaries = unitAnalytics
+                    .GroupBy(u => new { u.wardId, u.wardNumber, u.wardName })
+                    .Select(g => new
+                    {
+                        wardId = g.Key.wardId,
+                        wardNumber = g.Key.wardNumber,
+                        wardName = g.Key.wardName,
+                        wardFormatted = $"Ward {g.Key.wardNumber}, {g.Key.wardName}",
+                        unitCount = g.Count(),
+                        memberCount = g.Sum(u => u.memberCount),
+                        totalSavings = g.Sum(u => u.totalSavings),
+                        savingsLakhs = Math.Round((double)(g.Sum(u => u.totalSavings) / 100000.0m), 2),
+                        loansDisbursed = g.Sum(u => u.loansDisbursed),
+                        totalMeetings = g.Sum(u => u.totalMeetings),
+                        attendanceRate = g.Sum(u => u.totalAttendanceRecords) > 0
+                            ? Math.Round(((g.Sum(u => u.presentCount) + g.Sum(u => u.lateCount)) * 100.0) / g.Sum(u => u.totalAttendanceRecords), 1)
+                            : 0.0
+                    })
+                    .OrderBy(w => w.wardNumber)
+                    .ToList();
+
+                return Ok(new
+                {
+                    overall = new
+                    {
+                        totalUnits,
+                        activeUnits,
+                        totalMembers,
+                        cdsBankBalance,
+                        cdsSavingsCollected,
+                        cdsTotalSavings,
+                        cdsSavingsLakhs,
+                        cdsLoansDisbursed,
+                        cdsLoanRepayments,
+                        cdsOutstandingBalance,
+                        cdsTotalMeetings,
+                        cdsCompletedMeetings,
+                        cdsTotalAttendance,
+                        cdsPresent,
+                        cdsLate,
+                        cdsAbsent,
+                        cdsOverallAttendanceRate
+                    },
+                    units = unitAnalytics,
+                    wards = wardSummaries
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving CDS analytics.", details = ex.Message });
             }
         }
     }

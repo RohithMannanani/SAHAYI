@@ -12,16 +12,23 @@ function SystemOverview({
   wardDropdownOpen,
   setWardDropdownOpen,
   ayalkoottamList,
+  cdsAnalytics,
   recentActivities
 }) {
   const selectedWardObj = wardsList.find(w => `Ward ${w.wardNumber}` === selectedWard);
+
+  const analyticsUnits = cdsAnalytics?.units || [];
   const wardUnits = selectedWardObj
-    ? ayalkoottamList.filter(u => u.wardId === selectedWardObj.wardId)
+    ? ayalkoottamList.map(u => {
+        const matchingAnalytics = analyticsUnits.find(au => au.unitId === u.id);
+        const savingsLakhs = matchingAnalytics ? matchingAnalytics.savingsLakhs : (u.savings || 0);
+        return { ...u, savingsLakhs };
+      }).filter(u => u.wardId === selectedWardObj.wardId)
     : [];
 
   const totalAyalkoottams = wardUnits.length;
   const totalMembers = wardUnits.reduce((s, u) => s + (u.members || 0), 0);
-  const totalSavings = wardUnits.reduce((s, u) => s + (u.savings || 0), 0).toFixed(2);
+  const totalSavings = wardUnits.reduce((s, u) => s + (u.savingsLakhs || 0), 0).toFixed(2);
   const wardLocation = selectedWardObj ? selectedWardObj.wardName : "Unknown Region";
 
   return (
@@ -203,7 +210,7 @@ function SystemOverview({
                       <div className="cds-ward-unit-id">{unit.id}</div>
                     </td>
                     <td>{unit.members}</td>
-                    <td>₹{unit.savings.toFixed(2)}L</td>
+                    <td>₹{(unit.savingsLakhs ?? unit.savings ?? 0).toFixed(2)}L</td>
                     <td>
                       <span className={`cds-status-badge cds-status-badge--${unit.status === 'Active' ? 'active' : unit.status === 'Pending Audit' ? 'pending' : 'inactive'
                         }`}>

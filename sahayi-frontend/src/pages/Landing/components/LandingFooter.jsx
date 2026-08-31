@@ -46,7 +46,7 @@ function LandingFooter() {
 
         {/* Bottom bar */}
         <div className="footer-bottom">
-          <p>© 2025 Sahayi Community Management System. Empowering communities, one click at a time.</p>
+          <p>© 2026 Ayalkoottam Management System. Empowering local communities, one click at a time.</p>
           <div className="footer-bottom-links">
             <a href="#">Privacy Policy</a>
             <a href="#">Terms of Service</a>

@@ -262,4 +262,15 @@ export const clearSavingsData = async () => {
   return await api.post('/secretary/clear-savings-data');
 };
 
+// ========================================================
+// CDS ADMIN ANALYTICS APIs
+// ========================================================
+
+// Fetch CDS Level Analytics (GET /api/shg/cds-analytics)
+export const fetchCdsAnalytics = async (wardId) => {
+  const params = {};
+  if (wardId && !isNaN(Number(wardId))) params.wardId = Number(wardId);
+  return await api.get('/shg/cds-analytics', { params });
+};
+
 export default api;

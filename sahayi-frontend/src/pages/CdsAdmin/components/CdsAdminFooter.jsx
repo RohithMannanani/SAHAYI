@@ -5,7 +5,7 @@ function CdsAdminFooter() {
     <footer className="cds-footer">
       <div>
         <div className="cds-footer__brand">SAHAYI</div>
-        <div className="cds-footer__sub">© 2024 Ayalkoottam Management System. Empowering local communities.</div>
+        <div className="cds-footer__sub">© 2026 Ayalkoottam Management System. Empowering local communities.</div>
       </div>
       <div className="cds-footer__links">
         <a href="#">Privacy Policy</a>

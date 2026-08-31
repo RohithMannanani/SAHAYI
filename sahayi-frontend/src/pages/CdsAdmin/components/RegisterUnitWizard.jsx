@@ -508,7 +508,7 @@ function RegisterUnitWizard({
     const wardDisplay = selectedWardObj ? `Ward ${selectedWardObj.wardNumber}, ${selectedWardObj.wardName}` : `Ward ${unitForm.ward}`;
 
     const balanceNum = parseFloat(unitForm.accountBalance) || 0;
-    const savingsInLakhs = (balanceNum / 100000).toFixed(2);
+    const savingsInLakhs = balanceNum / 100000;
 
     const newUnit = {
       id: `AK-2026-${String(Math.floor(Math.random() * 900) + 100)}`,
@@ -527,7 +527,7 @@ function RegisterUnitWizard({
       membersList: members,
       status: 'Active',
       lastAudit: registrationType === 'existing' ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'New Registration',
-      savings: parseFloat(savingsInLakhs)
+      savings: savingsInLakhs
     };
 
     try {
