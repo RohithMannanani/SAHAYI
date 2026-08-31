@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TreasurerDashboard.css';
+import { fetchSecretaryDashboard, fetchSavingsWeeks, fetchUnitBankAccount, depositCashToBank } from '../../services/api';
+import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -9,18 +11,28 @@ const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidt
   </svg>
 );
 
-const transactions = [
-  { id: 1, name: 'Meera Krishnan', date: 'Oct 24, 2023', type: 'Repayment',   typeColor: 'repayment', amount: '₹5,200', status: 'Success' },
-  { id: 2, name: 'Suresh Nair',    date: 'Oct 23, 2023', type: 'New Loan',    typeColor: 'loan',      amount: '₹2500',  status: 'Success' },
-  { id: 3, name: 'Anita Philip',   date: 'Oct 23, 2023', type: 'Monthly Fee', typeColor: 'fee',       amount: '₹1,500', status: 'Pending' },
-  { id: 4, name: 'Rajesh Kumar',   date: 'Oct 22, 2023', type: 'Repayment',   typeColor: 'repayment', amount: '₹3,400', status: 'Success' },
-];
-
 function TreasurerDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('treasurer_active_tab') || 'financials';
   });
+
+  // Dynamic States for SahayiDb data
+  const [isLoading, setIsLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [unitBank, setUnitBank] = useState(null);
+  const [savingsWeeks, setSavingsWeeks] = useState([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const currentUser = React.useMemo(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab) {
@@ -30,13 +42,50 @@ function TreasurerDashboard() {
 
   useEffect(() => {
     const handlePopState = () => {
-      if (activeTab !== 'financials') {
+      if (showHistoryModal) {
+        setShowHistoryModal(false);
+      } else if (activeTab !== 'financials') {
         setActiveTab('financials');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [activeTab]);
+  }, [showHistoryModal, activeTab]);
+
+  // Load real financial data from SahayiDb backend
+  const loadTreasurerData = async () => {
+    setIsLoading(true);
+    const unitId = currentUser?.unitId || 1;
+    const userId = currentUser?.userId || 0;
+
+    try {
+      const [dashRes, weeksRes, bankRes] = await Promise.allSettled([
+        fetchSecretaryDashboard(unitId, userId),
+        fetchSavingsWeeks(unitId),
+        fetchUnitBankAccount(unitId)
+      ]);
+
+      if (dashRes.status === 'fulfilled' && dashRes.value?.data) {
+        setDashboardData(dashRes.value.data);
+      }
+
+      if (weeksRes.status === 'fulfilled' && weeksRes.value?.data) {
+        setSavingsWeeks(weeksRes.value.data || []);
+      }
+
+      if (bankRes.status === 'fulfilled' && bankRes.value?.data) {
+        setUnitBank(bankRes.value.data);
+      }
+    } catch (err) {
+      console.error('Failed to load treasurer financial data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTreasurerData();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -48,6 +97,30 @@ function TreasurerDashboard() {
     window.location.replace('/login');
   };
 
+  // Extract live transactions from database logs
+  const liveTransactions = React.useMemo(() => {
+    const logs = dashboardData?.savingsLogs || [];
+    return logs.map((item, idx) => ({
+      id: item.id || idx + 1,
+      name: item.name || 'Member',
+      date: item.date || item.paidDate || new Date().toISOString().split('T')[0],
+      type: item.paymentMode === 'Cash' ? 'Cash Savings' : 'Online Savings',
+      typeColor: item.paymentMode === 'Cash' ? 'fee' : 'repayment',
+      amount: `₹${parseFloat(item.amount || 100).toFixed(2)}`,
+      status: item.status || 'Paid'
+    }));
+  }, [dashboardData]);
+
+  // Filter transactions by search query
+  const filteredTransactions = liveTransactions.filter(tx =>
+    tx.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const availableBalance = unitBank?.balance || dashboardData?.totalWeeklyCollection || 0;
+  const disbursedLoans = dashboardData?.disbursedLoansTotal || 0;
+  const totalMembersCount = dashboardData?.members?.length || 15;
+
   return (
     <div className="tr-container">
       {/* ── Left Sidebar ── */}
@@ -55,9 +128,9 @@ function TreasurerDashboard() {
         <div>
           {/* Brand */}
           <div className="tr-sidebar__brand">
-            <div className="tr-brand-title">CSD</div>
-            <div className="tr-brand-title">Admin</div>
-            <div className="tr-brand-sub">Community Growth</div>
+            <div className="tr-brand-title">SAHAYI</div>
+            <div className="tr-brand-title">Treasurer</div>
+            <div className="tr-brand-sub">Financial Control</div>
           </div>
 
           {/* Nav Links */}
@@ -106,9 +179,9 @@ function TreasurerDashboard() {
 
         {/* Sidebar Footer */}
         <div className="tr-sidebar__footer">
-          <button className="tr-btn-new-record">
+          <button className="tr-btn-new-record" onClick={() => setShowHistoryModal(true)}>
             <Icon d="M12 5v14M5 12h14" size={16} stroke="#ffffff" />
-            <span>New Record</span>
+            <span>Savings Log</span>
           </button>
 
           <div className="tr-sidebar__divider" />
@@ -129,21 +202,22 @@ function TreasurerDashboard() {
       <div className="tr-main">
         {/* Header */}
         <header className="tr-header">
-          <div className="tr-header__title">Financial Dashboard</div>
+          <div className="tr-header__title">Financial & Treasury Portal</div>
 
           <div className="tr-header__right">
             <div className="tr-search-bar">
               <Icon d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" size={15} stroke="#809986" />
-              <input type="text" placeholder="Search transactions..." />
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
             </div>
 
-            <button className="tr-header__icon-btn">
+            <button className="tr-header__icon-btn" onClick={() => setShowHistoryModal(true)}>
               <Icon d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" size={17} />
               <span className="tr-header__badge" />
-            </button>
-
-            <button className="tr-header__icon-btn">
-              <Icon d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" size={17} />
             </button>
 
             <img
@@ -156,7 +230,6 @@ function TreasurerDashboard() {
 
         {/* ── Page Content ── */}
         <div className="tr-content">
-
           {/* ── Top Cards Row ── */}
           <div className="tr-top-cards">
             {/* Card 1: Total Fund / Available Balance */}
@@ -165,17 +238,19 @@ function TreasurerDashboard() {
                 <div className="tr-fin-icon">
                   <Icon d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z" size={20} />
                 </div>
-                <span className="tr-total-fund-badge">Total Fund</span>
+                <span className="tr-total-fund-badge">Unit Bank Fund</span>
               </div>
               <div className="tr-fin-card__label">Available Balance</div>
-              <div className="tr-fin-card__value">₹4,82,450</div>
+              <div className="tr-fin-card__value">
+                ₹{availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
               <div className="tr-fin-card__trend">
                 <Icon d="M23 6l-9.5 9.5-5-5L1 18" size={12} stroke="#2e8b46" />
-                <span>+12.5% from last month</span>
+                <span>{unitBank?.bankName || 'Sahayi Co-operative Bank'}</span>
               </div>
             </div>
 
-            {/* Card 2: Active Loans */}
+            {/* Card 2: Active Loans Disbursed */}
             <div className="tr-fin-card tr-fin-card--loans">
               <div className="tr-fin-card__head">
                 <div className="tr-fin-icon tr-fin-icon--loan">
@@ -184,32 +259,85 @@ function TreasurerDashboard() {
                 <span className="tr-fin-card__label-sm">Active Loans</span>
               </div>
               <div className="tr-loans-amounts">
-                <span className="tr-loans-out">₹2,15,000 Out</span>
-                <span className="tr-loans-target">Target: ₹3,00,000</span>
+                <span className="tr-loans-out">₹{disbursedLoans.toLocaleString('en-IN')} Disbursed</span>
               </div>
               <div className="tr-loans-progress-wrap">
                 <div className="tr-loans-progress-bar">
-                  <div className="tr-loans-progress-fill" style={{ width: '72%' }} />
+                  <div className="tr-loans-progress-fill" style={{ width: '65%' }} />
                 </div>
               </div>
-              <div className="tr-loans-members">42 Active Members</div>
-              <button className="tr-loans-link">View Details →</button>
+              <div className="tr-loans-members">{totalMembersCount} Active Unit Members</div>
             </div>
 
-            {/* Card 3: Record Repayment (Dark CTA) */}
-            <div className="tr-fin-card tr-fin-card--cta tr-fin-card--dark">
+            {/* Card 3: WEEKLY SAVINGS HISTORY CARD (PROMINENT CLICKABLE CTA) */}
+            <div
+              className="tr-fin-card tr-fin-card--cta tr-fin-card--dark"
+              onClick={() => setShowHistoryModal(true)}
+              style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #0c382e 0%, #175244 100%)' }}
+            >
               <div className="tr-cta-icon">
-                <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z" size={28} stroke="#ffffff" />
+                <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 0 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={28} stroke="#ffffff" />
               </div>
-              <div className="tr-cta-label">Record Repayment</div>
+              <div className="tr-cta-label" style={{ fontSize: '1rem', fontWeight: 700 }}>
+                Weekly Savings History
+              </div>
+              <span style={{ color: '#a7f3d0', fontSize: '0.75rem', marginTop: '4px' }}>
+                View Paid & Pending Payments &rarr;
+              </span>
             </div>
 
-            {/* Card 4: Generate Receipt */}
-            <div className="tr-fin-card tr-fin-card--cta">
+            {/* Card 4: Inspect Paid & Pending Dues */}
+            <div
+              className="tr-fin-card tr-fin-card--cta"
+              onClick={() => setShowHistoryModal(true)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="tr-cta-icon tr-cta-icon--light">
                 <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 2v6h6" size={28} stroke="#1b432c" />
               </div>
-              <div className="tr-cta-label tr-cta-label--light">Generate Receipt</div>
+              <div className="tr-cta-label tr-cta-label--light">Audit Weekly Dues</div>
+            </div>
+          </div>
+
+          {/* ── WEEKLY SAVINGS HISTORY SUMMARY CARD ── */}
+          <div
+            onClick={() => setShowHistoryModal(true)}
+            style={{
+              marginTop: '1.25rem',
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '1.25rem 1.5rem',
+              border: '1.5px solid #10b981',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.1)',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0c382e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 0 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={18} stroke="#10b981" />
+                Weekly Savings History Card
+              </h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.825rem', color: '#64748b' }}>
+                Inspect complete weekly collection records, filter by week, and manage <strong>Paid</strong> vs <strong>Pending</strong> member payments.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{
+                backgroundColor: '#10b981',
+                color: '#ffffff',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '0.825rem',
+                fontWeight: 700
+              }}>
+                Open Paid & Pending Payments &rarr;
+              </span>
             </div>
           </div>
 
@@ -220,11 +348,8 @@ function TreasurerDashboard() {
               <div className="tr-table-head">
                 <h2 className="tr-table-title">Latest Financial Transactions</h2>
                 <div className="tr-table-actions">
-                  <button className="tr-icon-btn">
-                    <Icon d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" size={15} />
-                  </button>
-                  <button className="tr-icon-btn">
-                    <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" size={15} />
+                  <button className="tr-icon-btn" onClick={() => setShowHistoryModal(true)}>
+                    <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 0 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={15} />
                   </button>
                 </div>
               </div>
@@ -240,28 +365,38 @@ function TreasurerDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map(tx => (
-                    <tr key={tx.id}>
-                      <td className="tr-td-name">{tx.name}</td>
-                      <td className="tr-td-date">{tx.date}</td>
-                      <td>
-                        <span className={`tr-type-badge tr-type-badge--${tx.typeColor}`}>{tx.type}</span>
-                      </td>
-                      <td className={`tr-td-amount ${tx.typeColor === 'loan' ? 'tr-td-amount--loan' : ''}`}>
-                        {tx.amount}
-                      </td>
-                      <td>
-                        <span className={`tr-status-badge tr-status-badge--${tx.status.toLowerCase()}`}>
-                          {tx.status}
-                        </span>
+                  {filteredTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem' }}>
+                        No transactions recorded yet.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredTransactions.map(tx => (
+                      <tr key={tx.id}>
+                        <td className="tr-td-name">{tx.name}</td>
+                        <td className="tr-td-date">{tx.date}</td>
+                        <td>
+                          <span className={`tr-type-badge tr-type-badge--${tx.typeColor}`}>{tx.type}</span>
+                        </td>
+                        <td className="tr-td-amount">
+                          {tx.amount}
+                        </td>
+                        <td>
+                          <span className={`tr-status-badge tr-status-badge--${tx.status.toLowerCase()}`}>
+                            {tx.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
 
               <div className="tr-table-footer">
-                <button className="tr-view-all">View All Transactions</button>
+                <button className="tr-view-all" onClick={() => setShowHistoryModal(true)}>
+                  View All Savings & Paid/Pending Details &rarr;
+                </button>
               </div>
             </div>
 
@@ -273,72 +408,16 @@ function TreasurerDashboard() {
                   <div className="tr-report-icon">
                     <Icon d="M18 20V10M12 20V4M6 20v-6" size={16} />
                   </div>
-                  <span className="tr-report-title">Report Center</span>
+                  <span className="tr-report-title">Audit Center</span>
                 </div>
                 <p className="tr-report-desc">
                   Generate comprehensive financial audits and growth statements for the community council.
                 </p>
 
-                {/* Report Items */}
-                <div className="tr-report-items">
-                  <div className="tr-report-item">
-                    <div className="tr-report-item__left">
-                      <div className="tr-report-item__icon">
-                        <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 2v6h6" size={15} />
-                      </div>
-                      <div>
-                        <div className="tr-report-item__name">Monthly Statement</div>
-                        <div className="tr-report-item__sub">Last updated: 2 days ago</div>
-                      </div>
-                    </div>
-                    <Icon d="M9 18l6-6-6-6" size={15} stroke="#828a85" />
-                  </div>
-
-                  <div className="tr-report-item">
-                    <div className="tr-report-item__left">
-                      <div className="tr-report-item__icon">
-                        <Icon d="M23 6l-9.5 9.5-5-5L1 18" size={15} />
-                      </div>
-                      <div>
-                        <div className="tr-report-item__name">Loan Performance</div>
-                        <div className="tr-report-item__sub">Portfolio health report</div>
-                      </div>
-                    </div>
-                    <Icon d="M9 18l6-6-6-6" size={15} stroke="#828a85" />
-                  </div>
-
-                  <div className="tr-report-item">
-                    <div className="tr-report-item__left">
-                      <div className="tr-report-item__icon">
-                        <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 2v6h6" size={15} />
-                      </div>
-                      <div>
-                        <div className="tr-report-item__name">Annual Audit</div>
-                        <div className="tr-report-item__sub">FY 2023-24 Draft</div>
-                      </div>
-                    </div>
-                    <Icon d="M9 18l6-6-6-6" size={15} stroke="#828a85" />
-                  </div>
-                </div>
-
-                <button className="tr-btn-generate-report">
+                <button className="tr-btn-generate-report" onClick={() => setShowHistoryModal(true)}>
                   <Icon d="M18 20V10M12 20V4M6 20v-6" size={16} stroke="#ffffff" />
-                  Generate Custom Report
+                  View Weekly Savings Audit
                 </button>
-              </div>
-
-              {/* Collective Progress Card */}
-              <div className="tr-collective-card">
-                <div className="tr-collective-label">Collective Progress</div>
-                <p className="tr-collective-desc">
-                  Empowering 12 new families this quarter through micro-loans.
-                </p>
-                <div className="tr-collective-avatars">
-                  <div className="tr-avatar-circle" style={{ background: '#c5cfc6' }}>SM</div>
-                  <div className="tr-avatar-circle" style={{ background: '#b0bbb1', marginLeft: '-10px' }}>RK</div>
-                  <div className="tr-avatar-circle" style={{ background: '#9aaa9b', marginLeft: '-10px' }}>AP</div>
-                  <div className="tr-avatar-more">+15 others</div>
-                </div>
               </div>
             </div>
           </div>
@@ -348,7 +427,7 @@ function TreasurerDashboard() {
         <footer className="tr-footer">
           <div>
             <div className="tr-footer-brand">Ayalkoottam Connect</div>
-            <div>&#169; 2024 Ayalkoottam Management System. Empowering local communities.</div>
+            <div>&#169; 2026 Ayalkoottam Management System. Empowering local communities.</div>
           </div>
           <div className="tr-footer__links">
             <a href="#">Privacy Policy</a>
@@ -357,6 +436,15 @@ function TreasurerDashboard() {
           </div>
         </footer>
       </div>
+
+      {/* ── Weekly Savings History Modal ── */}
+      {showHistoryModal && (
+        <WeeklySavingsHistoryModal
+          savingsWeeks={savingsWeeks}
+          savingsLogs={dashboardData?.savingsLogs || []}
+          onClose={() => setShowHistoryModal(false)}
+        />
+      )}
     </div>
   );
 }

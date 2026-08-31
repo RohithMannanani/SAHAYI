@@ -185,23 +185,30 @@ export function getWeeklyCollectionLogs(savingsLogs = [], allMembers = []) {
   if (Array.isArray(allMembers) && allMembers.length > 0) {
     weekMap.forEach((group, weekKey) => {
       allMembers.forEach((mem) => {
-        const memUserId = mem.userId || mem.id;
-        const exists = group.items.some(
-          item =>
-            (item.userId && memUserId && String(item.userId) === String(memUserId)) ||
-            (item.id && memUserId && String(item.id) === String(memUserId)) ||
-            (item.name && mem.name && item.name.toLowerCase().trim() === mem.name.toLowerCase().trim())
-        );
+        const memUserId = mem.userId || mem.UserId;
+        const memMemberId = (mem.memberId || mem.MemberId || '').toLowerCase().trim();
+        const memName = (mem.name || mem.Name || '').toLowerCase().trim();
+
+        const exists = group.items.some(item => {
+          const itemUserId = item.userId || item.UserId;
+          const itemMemberId = (item.memberId || item.MemberId || '').toLowerCase().trim();
+          const itemName = (item.name || item.Name || '').toLowerCase().trim();
+
+          if (itemUserId && memUserId && String(itemUserId) === String(memUserId)) return true;
+          if (itemMemberId && memMemberId && itemMemberId === memMemberId) return true;
+          if (itemName && memName && itemName === memName) return true;
+          return false;
+        });
 
         if (!exists) {
           group.items.push({
-            id: `pending-${memUserId || Math.random()}-${weekKey}`,
+            id: `pending-${memUserId || memMemberId || Math.random()}-${weekKey}`,
             userId: memUserId,
             savingsWeekId: null,
             weekKey: weekKey,
             weekTitle: group.weekTitle,
             name: mem.name,
-            memberId: mem.memberId || `AK-${memUserId}`,
+            memberId: mem.memberId || (memUserId ? `AK-${memUserId}` : 'AK-MEM'),
             amount: '100.00',
             status: 'Pending',
             paymentMode: '-',
