@@ -31,7 +31,7 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
     amountRequested: '',
     purpose: '',
     tenureMonths: 12,
-    interestRate: 6.0
+    interestRate: 1.0
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -85,9 +85,10 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
     setPayModalLoan(loan);
     const outstanding = loan.outstandingBalance || 0;
     const monthlyPrincipal = Math.round(loan.amountRequested / Math.max(1, loan.tenureMonths));
-    const monthlyInterest = Math.round(outstanding * ((loan.interestRate || 6) / 100) / 12);
-    const suggestedEmi = Math.min(outstanding, monthlyPrincipal + monthlyInterest) || 1200;
-    setInstallmentInput(suggestedEmi.toString());
+    const principalDue = Math.min(outstanding, monthlyPrincipal);
+    const monthlyInterest = Math.round(outstanding * ((loan.interestRate || 1) / 100));
+    const suggestedEmi = principalDue + monthlyInterest;
+    setInstallmentInput(suggestedEmi > 0 ? suggestedEmi.toString() : '1200');
     setShowPayModal(true);
   };
 
@@ -148,7 +149,7 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
 
       await loanService.applyForLoan(payload);
       setSuccessMsg('Loan application submitted successfully!');
-      setFormData({ amountRequested: '', purpose: '', tenureMonths: 12, interestRate: 6.0 });
+      setFormData({ amountRequested: '', purpose: '', tenureMonths: 12, interestRate: 1.0 });
       fetchData();
     } catch (err) {
       setError(err.message || 'Failed to submit loan application');
@@ -594,42 +595,57 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
             </div>
 
             <form onSubmit={handlePayInstallmentSubmit} style={{ padding: '20px' }}>
-              {/* Financial KPI Summary Box */}
-              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Net Outstanding Balance</span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#dc2626' }}>
-                    ₹{(payModalLoan.outstandingBalance || 0).toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Interest Rate</span>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#047857' }}>
-                    {payModalLoan.interestRate || 6}% p.a.
-                  </span>
-                </div>
-              </div>
+              {(() => {
+                const outstanding = payModalLoan.outstandingBalance || 0;
+                const interestDue = Math.round(outstanding * ((payModalLoan.interestRate || 1) / 100));
+                const maxPayable = outstanding + interestDue;
+                return (
+                  <>
+                    {/* Financial KPI Summary Box */}
+                    <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Net Outstanding Balance</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#dc2626' }}>
+                          ₹{outstanding.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Interest Due ({payModalLoan.interestRate || 1}%)</span>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#d97706' }}>
+                          ₹{interestDue.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Max Total Payoff</span>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#047857' }}>
+                          ₹{maxPayable.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
 
-              {/* Installment Amount Input */}
-              <div className="mem-form-group" style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Installment Payment Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  max={payModalLoan.outstandingBalance || 200000}
-                  step="any"
-                  value={installmentInput}
-                  onChange={e => setInstallmentInput(e.target.value)}
-                  required
-                  className="mem-input"
-                  style={{ width: '100%', padding: '12px', fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-                />
-                <small style={{ color: '#64748b', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
-                  Amount will be split automatically into monthly interest due and principal repayment.
-                </small>
-              </div>
+                    {/* Installment Amount Input */}
+                    <div className="mem-form-group" style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                        Installment Payment Amount (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        max={maxPayable > 0 ? maxPayable : 200000}
+                        step="any"
+                        value={installmentInput}
+                        onChange={e => setInstallmentInput(e.target.value)}
+                        required
+                        className="mem-input"
+                        style={{ width: '100%', padding: '12px', fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                      />
+                      <small style={{ color: '#64748b', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+                        Amount will be split automatically into monthly interest due (₹{interestDue}) and principal repayment (₹{Math.max(0, Math.round((parseFloat(installmentInput) || 0) - interestDue))}).
+                      </small>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Payment Mode Selector */}
               <div className="mem-form-group" style={{ marginBottom: '24px' }}>

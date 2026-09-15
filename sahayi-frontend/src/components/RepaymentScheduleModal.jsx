@@ -68,7 +68,7 @@ const RepaymentScheduleModal = ({ loanId, isOpen, onClose }) => {
               Kudumbashree Reducing Balance Repayment Schedule
             </h4>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#a7f3d0' }}>
-              Fixed Monthly Principal + 1% Dynamic Monthly Interest Model (12% p.a.)
+              Fixed Monthly Principal + Dynamic Monthly Interest Model (1% / mo per ₹100)
             </p>
           </div>
           <button
@@ -127,7 +127,7 @@ const RepaymentScheduleModal = ({ loanId, isOpen, onClose }) => {
                 <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Interest Rate</span>
                   <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', marginTop: '2px' }}>
-                    {scheduleData.interestRate}% p.a. (1% / mo)
+                    {scheduleData.interestRate}% / mo
                   </div>
                 </div>
 

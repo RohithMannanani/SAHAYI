@@ -176,7 +176,7 @@ namespace Sahayi.Api.Controllers
                     decimal totalPaid = activeLoanEntity.LoanRepayments.Sum(r => r.AmountPaid);
                     decimal remaining = Math.Max(0, activeLoanEntity.AmountRequested - totalPaid);
                     decimal monthlyPrincipal = Math.Round(activeLoanEntity.AmountRequested / Math.Max(1, activeLoanEntity.TenureMonths), 2);
-                    decimal monthlyInterest = Math.Round(remaining * 0.02m, 2);
+                    decimal monthlyInterest = Math.Round(remaining * (activeLoanEntity.InterestRate / 100m), 2);
                     decimal monthlyTotal = monthlyPrincipal + monthlyInterest;
 
                     string displayStatus = activeLoanEntity.Status switch
@@ -619,7 +619,7 @@ namespace Sahayi.Api.Controllers
                     return BadRequest(new { message = "Loan is already fully repaid." });
                 }
 
-                decimal monthlyInterestDue = Math.Round((outstandingBalance * (loan.InterestRate / 100m)) / 12m, 2);
+                decimal monthlyInterestDue = Math.Round(outstandingBalance * (loan.InterestRate / 100m), 2);
 
                 decimal principalPaid = dto.AmountPaid - monthlyInterestDue;
                 if (principalPaid < 0)

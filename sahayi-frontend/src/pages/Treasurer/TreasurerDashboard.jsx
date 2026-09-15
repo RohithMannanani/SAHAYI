@@ -472,7 +472,7 @@ function TreasurerDashboard() {
       amount: parseFloat(l.amount || 0).toFixed(2),
       purpose: l.purpose || 'Personal / Micro Enterprise',
       tenureMonths: l.tenureMonths || 12,
-      interestRate: l.interestRate || '4%',
+      interestRate: l.interestRate ? (typeof l.interestRate === 'number' || !l.interestRate.toString().includes('%') ? `${l.interestRate}% / mo` : l.interestRate) : '1% / mo',
       status: l.status || 'Active',
       applicationDate: l.applicationDate || l.date || '-'
     }));

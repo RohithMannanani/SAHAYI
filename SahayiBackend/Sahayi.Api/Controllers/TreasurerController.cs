@@ -242,8 +242,8 @@ namespace Sahayi.Api.Controllers
                 }
 
                 // Kudumbashree Diminishing/Reducing Balance Model:
-                // Dynamic Monthly Interest = Math.Round((remainingBalance * (loan.InterestRate / 100m)) / 12m, 2)
-                decimal interestDue = Math.Round((remainingBalance * (loan.InterestRate / 100m)) / 12m, 2);
+                // Dynamic Monthly Interest = Math.Round(remainingBalance * (loan.InterestRate / 100m), 2)
+                decimal interestDue = Math.Round(remainingBalance * (loan.InterestRate / 100m), 2);
                 decimal totalInstallmentDue = fixedPrincipal + interestDue;
 
                 var dto = new LoanInstallmentDueDto
@@ -295,7 +295,7 @@ namespace Sahayi.Api.Controllers
                     decimal opening = currentBalance;
                     // On final tenure month, fixed principal equals full remaining balance
                     decimal principal = (month == loan.TenureMonths) ? opening : Math.Min(basePrincipal, opening);
-                    decimal interest = Math.Round((opening * (loan.InterestRate / 100m)) / 12m, 2);
+                    decimal interest = Math.Round(opening * (loan.InterestRate / 100m), 2);
                     decimal totalPayment = principal + interest;
                     decimal closing = Math.Max(0m, opening - principal);
 
@@ -368,8 +368,8 @@ namespace Sahayi.Api.Controllers
                 }
 
                 // Kudumbashree standard: Monthly Reducing / Diminishing Balance Interest
-                // Monthly Interest Due = Math.Round((Outstanding Balance * (InterestRate / 100m)) / 12m, 2)
-                decimal monthlyInterestDue = Math.Round((outstandingBalance * (loan.InterestRate / 100m)) / 12m, 2);
+                // Monthly Interest Due = Math.Round(Outstanding Balance * (InterestRate / 100m), 2)
+                decimal monthlyInterestDue = Math.Round(outstandingBalance * (loan.InterestRate / 100m), 2);
                 
                 if (dto.AmountPaid < monthlyInterestDue)
                 {

@@ -133,7 +133,7 @@ const TreasurerLoanOps = () => {
       setInstallmentDueInfo(dueInfo);
       setAmountPaid((dueInfo.totalInstallmentDue || 0).toString());
     } catch (err) {
-      const monthlyInterestDue = Math.round((loan.outstandingBalance * (loan.interestRate / 100)) / 12);
+      const monthlyInterestDue = Math.round(loan.outstandingBalance * ((loan.interestRate || 1) / 100));
       const monthlyPrincipal = Math.round(loan.amountRequested / loan.tenureMonths);
       const suggestedTotal = monthlyPrincipal + monthlyInterestDue;
       
@@ -365,7 +365,7 @@ const TreasurerLoanOps = () => {
                       <td style={{ padding: '16px', fontWeight: 600, color: '#0f172a' }}>{loan.memberName}</td>
                       <td style={{ padding: '16px', color: '#334155' }}>₹{loan.amountRequested.toLocaleString()}</td>
                       <td style={{ padding: '16px', fontWeight: 700, color: '#ef4444' }}>₹{loan.outstandingBalance.toLocaleString()}</td>
-                      <td style={{ padding: '16px', color: '#334155' }}>{loan.interestRate}% pa (1%/mo)</td>
+                      <td style={{ padding: '16px', color: '#334155' }}>{loan.interestRate || 1}% / mo</td>
                       <td style={{ padding: '16px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                           <button 
