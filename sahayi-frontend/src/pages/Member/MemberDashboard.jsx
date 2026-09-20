@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MemberDashboard.css';
 import { fetchMemberDashboard, applyMemberLoan, fetchSavingsWeeks } from '../../services/api';
+import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
 
@@ -17,7 +18,8 @@ function MemberDashboard() {
 
   // Modal States & Data States
   const [activeTab, setActiveTab] = useState(() => {
-    return sessionStorage.getItem('member_active_tab') || 'dashboard';
+    const saved = sessionStorage.getItem('member_active_tab');
+    return (saved && saved !== 'financials') ? saved : 'dashboard';
   });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -230,6 +232,17 @@ verified from SahayiDb Database.
 
   const notifications = dashboardData?.notifications || [];
 
+  // Compute current week Monday–Sunday for the date range pill
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const weekStartStr = formatDateToDDMMYYYY(monday.toISOString().split('T')[0]);
+  const weekEndStr = formatDateToDDMMYYYY(sunday.toISOString().split('T')[0]);
+
   return (
     <div className="mem-container">
       {/* Toast Bar */}
@@ -253,11 +266,12 @@ verified from SahayiDb Database.
             </div>
 
             <div
-              className={`mem-nav-item ${activeTab === 'financials' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('financials')}
+              className="mem-nav-item"
+              onClick={() => setShowHistoryModal(true)}
+              title="View my own weekly savings history and dues"
             >
-              <Icon d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" size={17} />
-              <span>Financials</span>
+              <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={17} />
+              <span>View Own Savings</span>
             </div>
 
             <div
@@ -317,12 +331,6 @@ verified from SahayiDb Database.
             >
               Dashboard
             </span>
-            <span
-              className={`mem-header__nav-link ${activeTab === 'financials' ? 'mem-header__nav-link--active' : ''}`}
-              onClick={() => setActiveTab('financials')}
-            >
-              Financials
-            </span>
           </nav>
 
           <div className="mem-header__right">
@@ -341,124 +349,6 @@ verified from SahayiDb Database.
             <div className="mem-loading-container">
               <div className="mem-spinner" />
               <span>Loading member financial summary from SahayiDb...</span>
-            </div>
-          ) : activeTab === 'financials' ? (
-            /* ── FINANCIALS TAB VIEW ── */
-            <div className="mem-financials-tab-view" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0c382e', margin: 0 }}>
-                  Financial Ledger & Weekly Savings History
-                </h2>
-                <button
-                  type="button"
-                  className="mem-btn-primary"
-                  onClick={() => setShowHistoryModal(true)}
-                >
-                  View All Paid & Pending Payments &rarr;
-                </button>
-              </div>
-
-              {/* ── WEEKLY SAVINGS HISTORY CARD (CLICKABLE) ── */}
-              <div
-                className="mem-card"
-                onClick={() => setShowHistoryModal(true)}
-                style={{
-                  cursor: 'pointer',
-                  borderLeft: '5px solid #10b981',
-                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.12)',
-                  transition: 'all 0.25s ease'
-                }}
-              >
-                <div className="mem-card__head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h2 className="mem-card__title" style={{ color: '#0c382e', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={20} stroke="#10b981" />
-                      Weekly Savings History Card
-                    </h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-                      Click to open full history of your weekly deposits, paid status, and pending dues.
-                    </p>
-                  </div>
-                  <span style={{
-                    backgroundColor: '#dcfce7',
-                    color: '#15803d',
-                    fontSize: '0.775rem',
-                    fontWeight: 700,
-                    padding: '6px 14px',
-                    borderRadius: '20px'
-                  }}>
-                    Inspect Paid & Pending &rarr;
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginTop: '16px' }}>
-                  <div style={{ backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Total Savings</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0c382e', marginTop: '2px' }}>
-                      ₹{totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-
-                  <div style={{ backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Current Week Status</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: isWeeklyPaid ? '#16a34a' : '#b45309', marginTop: '2px' }}>
-                      {isWeeklyPaid ? 'Paid' : 'Pending'}
-                    </div>
-                  </div>
-
-                  <div style={{ backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Pending Dues</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
-                      {pendingWeeksCount} Week{pendingWeeksCount > 1 ? 's' : ''}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Weekly Ledger Table */}
-              <div className="mem-card">
-                <div className="mem-card__head">
-                  <h2 className="mem-card__title">Weekly Savings Ledger</h2>
-                </div>
-                <div style={{ overflowX: 'auto', marginTop: '12px' }}>
-                  <table className="mem-repay-table">
-                    <thead>
-                      <tr>
-                        <th>Week Range</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Payment Mode</th>
-                        <th>Paid Date</th>
-                        <th>Receipt No.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {weeklyHistoryRows.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem' }}>
-                            No weekly savings records available.
-                          </td>
-                        </tr>
-                      ) : (
-                        weeklyHistoryRows.map((row, idx) => (
-                          <tr key={row.weekKey || idx}>
-                            <td style={{ fontWeight: 600, color: '#1e293b' }}>{row.weekTitle}</td>
-                            <td style={{ fontWeight: 700, color: '#0f172a' }}>₹{parseFloat(row.amount).toFixed(2)}</td>
-                            <td>
-                              <span className={`mem-status mem-status--${row.status === 'Paid' ? 'paid' : 'pending'}`}>
-                                {row.status}
-                              </span>
-                            </td>
-                            <td>{row.paymentMode || '-'}</td>
-                            <td>{row.paidDate || '-'}</td>
-                            <td style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{row.receiptNumber || '-'}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           ) : (
             /* ── MAIN DASHBOARD VIEW ── */
@@ -495,7 +385,7 @@ verified from SahayiDb Database.
                       </>
                     ) : (
                       <>
-                        <Icon d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" size={15} stroke="#ffffff" />
+                        <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={15} stroke="#ffffff" />
                         <span>Pay Weekly Savings</span>
                       </>
                     )}
@@ -507,55 +397,49 @@ verified from SahayiDb Database.
                 </div>
               </div>
 
-              {/* ── Section: Weekly Savings Deposit Payment ── */}
-              <div className="mem-savings-pay-banner">
-                <div className="mem-savings-pay-info">
-                  <div className={`mem-savings-pay-tag ${isWeeklyPaid ? 'mem-savings-pay-tag--paid' : ''}`}>
-                    {isWeeklyPaid ? '✓ PAID FOR THIS WEEK' : 'WEEKLY SAVINGS DEPOSIT'}
+              {/* ── Section: Weekly Savings Deposit Payment (hidden when paid) ── */}
+              {!isWeeklyPaid && (
+                <div className="mem-savings-pay-banner">
+                  <div className="mem-savings-pay-info">
+                    <div className="mem-savings-pay-tag">WEEKLY SAVINGS DEPOSIT</div>
+
+                    {/* Week date range pill */}
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(255,255,255,0.12)',
+                      borderRadius: '6px',
+                      padding: '3px 10px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      color: '#a7f3d0',
+                      marginBottom: '4px'
+                    }}>
+                      <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={12} stroke="#a7f3d0" />
+                      {weekStartStr} → {weekEndStr}
+                    </div>
+
+                    <h3 className="mem-savings-pay-title">Deposit Your Weekly Savings</h3>
+                    <p className="mem-savings-pay-desc">
+                      Keep your community unit active and build your future. Pay your weekly ₹100 deposit securely online via Razorpay or log cash deposit.
+                    </p>
                   </div>
-                  <h3 className="mem-savings-pay-title">
-                    {isWeeklyPaid ? 'Weekly Savings Paid' : 'Deposit Your Weekly Savings'}
-                  </h3>
-                  <p className="mem-savings-pay-desc">
-                    {isWeeklyPaid
-                      ? `Great job! Your weekly ₹100 deposit is recorded as Paid${lastPaymentDate ? ` on ${lastPaymentDate}` : ''}. Next deposit will open next week.`
-                      : 'Keep your community unit active and build your future. Pay your weekly ₹100 deposit securely online via Razorpay or log cash deposit.'}
-                  </p>
-                </div>
-                <div className="mem-savings-pay-action">
-                  <div className="mem-savings-pay-amount-box">
-                    <span className="mem-savings-pay-amount-label">
-                      {isWeeklyPaid ? 'Status' : 'Weekly Dues'}
-                    </span>
-                    <span className={`mem-savings-pay-amount-val ${isWeeklyPaid ? 'mem-savings-pay-amount-val--paid' : ''}`}>
-                      {isWeeklyPaid ? 'Paid' : '₹100.00'}
-                    </span>
+                  <div className="mem-savings-pay-action">
+                    <div className="mem-savings-pay-amount-box">
+                      <span className="mem-savings-pay-amount-label">Weekly Dues</span>
+                      <span className="mem-savings-pay-amount-val">₹100.00</span>
+                    </div>
+                    <button
+                      className="mem-btn-pay-now"
+                      onClick={() => setShowPaymentModal(true)}
+                    >
+                      <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={16} stroke="#0C382E" />
+                      <span>Pay ₹100 Now</span>
+                    </button>
                   </div>
-                  <button
-                    className={`mem-btn-pay-now ${isWeeklyPaid ? 'mem-btn-pay-now--paid' : ''}`}
-                    disabled={isWeeklyPaid}
-                    onClick={() => {
-                      if (isWeeklyPaid) {
-                        showToast('Weekly savings deposit for this week is already paid!', 'success');
-                      } else {
-                        setShowPaymentModal(true);
-                      }
-                    }}
-                  >
-                    {isWeeklyPaid ? (
-                      <>
-                        <Icon d="M20 6L9 17l-5-5" size={16} stroke="#047857" strokeWidth={2.5} />
-                        <span>✓ Deposit Paid</span>
-                      </>
-                    ) : (
-                      <>
-                        <Icon d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" size={16} stroke="#0C382E" />
-                        <span>Pay ₹100 Now</span>
-                      </>
-                    )}
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* ── Top Row: Savings + Loan Status ── */}
               <div className="mem-top-row">

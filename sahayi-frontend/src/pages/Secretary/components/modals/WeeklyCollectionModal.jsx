@@ -23,7 +23,7 @@ function WeeklyCollectionModal({ unitId, savingsLogs = [], allMembers = [], onDe
   // Compute logs from server API response or fallback to local helper
   const weeklyLogs = serverWeeks ? serverWeeks.map(w => ({
     weekKey: `week-${w.weekNumber}-${w.startDate}`,
-    weekTitle: w.weekTitle || `Week ${w.weekNumber} (${w.startDate} – ${w.endDate})`,
+    weekTitle: (w.weekTitle || `${w.startDate || ''} – ${w.endDate || ''}`).replace(/^(?:Week\s*\d+|Current\s*Week|Week\s*Collection)\s*\((.*)\)$/i, '$1').replace(/^Week\s*\d+\s*-?\s*/i, '').trim(),
     totalCollected: w.totalCollected || 0,
     paidCount: w.paidCount || 0,
     pendingCount: w.pendingCount || 0,

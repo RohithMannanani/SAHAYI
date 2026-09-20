@@ -6,13 +6,13 @@ import './SecretaryDashboard.css';
 // API Services
 import {
   fetchSecretaryDashboard,
+  fetchSavingsWeeks,
   registerSecretaryMember,
   scheduleSecretaryMeeting,
   updateSecretaryMeeting,
   completeSecretaryMeeting,
   recordSecretarySavings,
   payCashSavings,
-  payOnlineSavings,
   depositCashToBank,
   verifySecretaryLoan,
   saveSecretaryAttendance,
@@ -39,6 +39,7 @@ import ScheduleMeetingModal from './components/modals/ScheduleMeetingModal';
 import RecordAttendanceModal from './components/modals/RecordAttendanceModal';
 import LoanDetailModal from './components/modals/LoanDetailModal';
 import SavingsHistoryModal from './components/modals/SavingsHistoryModal';
+import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
 import CalendarModal from './components/modals/CalendarModal';
 import EditSavingsModal from './components/modals/EditSavingsModal';
 import EditMeetingModal from './components/modals/EditMeetingModal';
@@ -72,6 +73,7 @@ function SecretaryDashboard() {
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [selectedAttendanceMeeting, setSelectedAttendanceMeeting] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showOwnSavingsModal, setShowOwnSavingsModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [selectedLoanDetail, setSelectedLoanDetail] = useState(null);
   const [selectedMemberDetail, setSelectedMemberDetail] = useState(null);
@@ -95,11 +97,12 @@ function SecretaryDashboard() {
         setEditingSavings(null);
       } else if (editingMeeting) {
         setEditingMeeting(null);
-      } else if (showRegisterModal || showMeetingModal || showAttendanceModal || showHistoryModal || showCalendarModal) {
+      } else if (showRegisterModal || showMeetingModal || showAttendanceModal || showHistoryModal || showOwnSavingsModal || showCalendarModal) {
         setShowRegisterModal(false);
         setShowMeetingModal(false);
         setShowAttendanceModal(false);
         setShowHistoryModal(false);
+        setShowOwnSavingsModal(false);
         setShowCalendarModal(false);
       } else if (activeTab !== 'dashboard') {
         setActiveTab('dashboard');
@@ -107,7 +110,7 @@ function SecretaryDashboard() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [paymentMemberItem, selectedLoanDetail, selectedMemberDetail, editingSavings, showRegisterModal, showMeetingModal, showAttendanceModal, showHistoryModal, showCalendarModal, activeTab]);
+  }, [paymentMemberItem, selectedLoanDetail, selectedMemberDetail, editingSavings, showRegisterModal, showMeetingModal, showAttendanceModal, showHistoryModal, showOwnSavingsModal, showCalendarModal, activeTab]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -149,6 +152,7 @@ function SecretaryDashboard() {
 
   // Dynamic Data States (Fetched from SahayiDb)
   const [savingsLogs, setSavingsLogs] = useState([]);
+  const [savingsWeeks, setSavingsWeeks] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [loans, setLoans] = useState([]);
   const [attendanceList, setAttendanceList] = useState([]);
@@ -167,7 +171,8 @@ function SecretaryDashboard() {
           unitId: u?.unitId && !isNaN(Number(u.unitId)) ? Number(u.unitId) : null,
           unitName: u?.unitName || '',
           secretaryName: u?.fullName || '',
-          secretaryPhone: u?.phoneNumber || ''
+          secretaryPhone: u?.phoneNumber || '',
+          secretaryHouseName: u?.houseName || ''
         };
       }
     } catch (e) {
@@ -177,7 +182,8 @@ function SecretaryDashboard() {
       unitId: null,
       unitName: '',
       secretaryName: '',
-      secretaryPhone: ''
+      secretaryPhone: '',
+      secretaryHouseName: ''
     };
   });
 
@@ -197,9 +203,17 @@ function SecretaryDashboard() {
     setCurrentUser(userObj);
 
     try {
-      const res = await fetchSecretaryDashboard(userObj?.unitId, userObj?.userId);
-      const data = res.data;
-      if (data) {
+      const [dashRes, weeksRes] = await Promise.allSettled([
+        fetchSecretaryDashboard(userObj?.unitId, userObj?.userId),
+        fetchSavingsWeeks(userObj?.unitId || 1)
+      ]);
+
+      if (weeksRes.status === 'fulfilled' && weeksRes.value?.data) {
+        setSavingsWeeks(weeksRes.value.data || []);
+      }
+
+      if (dashRes.status === 'fulfilled' && dashRes.value?.data) {
+        const data = dashRes.value.data;
         const combinedLogs = [...(data.savingsLogs || [])];
         if (Array.isArray(data.allSavingsLogs)) {
           data.allSavingsLogs.forEach(histItem => {
@@ -237,12 +251,22 @@ function SecretaryDashboard() {
           disbursedLoans: data.disbursedLoansTotal || 0,
           pendingDues: data.pendingDuesCount || 0
         });
+        const activeHouseName = data.secretaryHouseName || userObj?.houseName || '';
         setUnitInfo({
           unitId: data.unitId,
           unitName: data.unitName || userObj?.unitName || '',
           secretaryName: data.secretaryName || userObj?.fullName || '',
-          secretaryPhone: data.secretaryPhone || userObj?.phoneNumber || ''
+          secretaryPhone: data.secretaryPhone || userObj?.phoneNumber || '',
+          secretaryHouseName: activeHouseName
         });
+
+        if (activeHouseName && (!userObj?.houseName || userObj.houseName !== activeHouseName)) {
+          const updatedUserObj = { ...(userObj || {}), houseName: activeHouseName };
+          setCurrentUser(updatedUserObj);
+          try {
+            localStorage.setItem('user', JSON.stringify(updatedUserObj));
+          } catch (e) {}
+        }
       }
     } catch (err) {
       console.error('Failed to load secretary dashboard data from database:', err);
@@ -400,7 +424,17 @@ function SecretaryDashboard() {
     const targetSavingsWeekId = item.savingsWeekId || null;
 
     try {
-      let res;
+      if (paymentModeStr === 'Online') {
+        // The PaymentMethodModal already recorded the transaction via verifyRazorpayPayment
+        // (or its payOnlineSavings fallback). Calling payOnlineSavings again here would create
+        // a duplicate SavingsTransaction and previously caused an unintended UnitBankAccount credit.
+        setPaymentMemberItem(null);
+        showToast(`Online payment of \u20b9${amountVal.toFixed(2)} completed for ${item.name}!`);
+        loadDashboardData();
+        return;
+      }
+
+      // Cash payment only — record via backend
       const payload = {
         userId: targetUserId,
         amount: amountVal,
@@ -409,12 +443,7 @@ function SecretaryDashboard() {
         date: paymentDate,
         savingsWeekId: targetSavingsWeekId
       };
-
-      if (paymentModeStr === 'Online') {
-        res = await payOnlineSavings({ ...payload, razorpayPaymentId: paymentId }, unitInfo?.unitId);
-      } else {
-        res = await payCashSavings(payload, unitInfo?.unitId);
-      }
+      await payCashSavings(payload, unitInfo?.unitId);
 
       setPaymentMemberItem(null);
       if (paymentModeStr === 'Online') {
@@ -793,6 +822,7 @@ function SecretaryDashboard() {
           setActiveTab={setActiveTab}
           unitInfo={unitInfo}
           onLogout={handleLogout}
+          onOpenOwnSavings={() => setShowOwnSavingsModal(true)}
         />
 
         {/* Main Content Area Views */}
@@ -842,6 +872,7 @@ function SecretaryDashboard() {
               financials={financials}
               unitBankAccount={unitBankAccount}
               savingsLogs={savingsLogs}
+              savingsWeeks={savingsWeeks}
               allMembers={attendanceList}
               onDepositCashToBank={handleDepositCashToBank}
               onDepositAllCashToBank={handleDepositAllCashToBank}
@@ -866,7 +897,16 @@ function SecretaryDashboard() {
           )}
 
           {activeTab === 'settings' && (
-            <SettingsView unitInfo={unitInfo} />
+            <SettingsView
+              unitInfo={unitInfo}
+              setUnitInfo={setUnitInfo}
+              currentUser={currentUser}
+              setCurrentUser={setCurrentUser}
+              unitBankAccount={unitBankAccount}
+              onShowToast={showToast}
+              onLogout={handleLogout}
+              onReloadData={loadDashboardData}
+            />
           )}
         </main>
       </div>
@@ -930,6 +970,15 @@ function SecretaryDashboard() {
           savingsLogs={savingsLogs}
           onDepositCashToBank={handleDepositCashToBank}
           onClose={() => setShowHistoryModal(false)}
+        />
+      )}
+
+      {showOwnSavingsModal && (
+        <WeeklySavingsHistoryModal
+          savingsWeeks={savingsWeeks}
+          savingsLogs={savingsLogs || []}
+          currentUserId={currentUser?.userId}
+          onClose={() => setShowOwnSavingsModal(false)}
         />
       )}
 

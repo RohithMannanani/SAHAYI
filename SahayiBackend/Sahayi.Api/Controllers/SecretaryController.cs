@@ -64,8 +64,16 @@ namespace Sahayi.Api.Controllers
                 }
 
                 // Fetch Secretary info
-                var secretaryUser = unit.Users.FirstOrDefault(u => u.RoleId == 3 || u.UserRole?.RoleName == "Secretary")
+                ApplicationUser? secretaryUser = null;
+                if (userId.HasValue && userId.Value != 0)
+                {
+                    secretaryUser = unit.Users.FirstOrDefault(u => u.UserId == userId.Value);
+                }
+                if (secretaryUser == null)
+                {
+                    secretaryUser = unit.Users.FirstOrDefault(u => u.RoleId == 3 || u.UserRole?.RoleName == "Secretary")
                                    ?? unit.Users.FirstOrDefault();
+                }
 
                 // Fetch Unit Members
                 var unitUsers = unit.Users.Where(u => u.IsActive).ToList();
@@ -195,22 +203,23 @@ namespace Sahayi.Api.Controllers
 
                 int pendingDuesCount = savingsLogs.Count(s => s.Status == "Pending");
 
-                // Fetch Unit Bank Account Details & Sync with Online / Bank Deposited Transactions
+                // Fetch Unit Bank Account Details & Sync ONLY with explicitly deposited transactions
                 UnitBankAccount? bankAccount = null;
                 if (targetUnitId > 0)
                 {
                     bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
 
-                    decimal onlineAndDepositedTotal = await _context.SavingsTransactions
-                        .Where(s => s.UnitId == targetUnitId && (s.PaymentMode == "Online" || s.PaymentMode.Contains("Bank Deposited")))
+                    // Only count transactions that were explicitly deposited to the bank by
+                    // the secretary/treasurer. Online (Razorpay) payments sit in hand until deposited.
+                    decimal depositedTotal = await _context.SavingsTransactions
+                        .Where(s => s.UnitId == targetUnitId && s.PaymentMode.Contains("Bank Deposited"))
                         .SumAsync(s => (decimal?)s.Amount) ?? 0.00m;
 
                     string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
                     string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
                     string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
 
-                    decimal initialBalance = unit?.AccountBalance ?? 0.00m;
-                    decimal expectedMinBalance = initialBalance + onlineAndDepositedTotal;
+                    decimal expectedMinBalance = depositedTotal;
 
                     if (bankAccount == null)
                     {
@@ -229,7 +238,9 @@ namespace Sahayi.Api.Controllers
                     else
                     {
                         bool needSave = false;
-                        if (bankAccount.Balance < expectedMinBalance)
+                        // Always sync the bank balance to exactly match deposited total
+                        // (corrects any previously inflated balance from old logic)
+                        if (bankAccount.Balance != expectedMinBalance)
                         {
                             bankAccount.Balance = expectedMinBalance;
                             needSave = true;
@@ -269,6 +280,7 @@ namespace Sahayi.Api.Controllers
                     UnitName = unit.UnitName,
                     SecretaryName = secretaryUser?.FullName ?? "Unit Secretary",
                     SecretaryPhone = secretaryUser?.PhoneNumber ?? "",
+                    SecretaryHouseName = secretaryUser?.HouseName ?? "",
                     TotalWeeklyCollection = totalCollection,
                     DisbursedLoansTotal = disbursedTotal,
                     PendingDuesCount = pendingDuesCount,

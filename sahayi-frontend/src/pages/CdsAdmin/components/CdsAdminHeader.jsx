@@ -1,6 +1,6 @@
 import React from 'react';
 
-function CdsAdminHeader({ searchQuery, setSearchQuery, initials, user }) {
+function CdsAdminHeader({ searchQuery, setSearchQuery, initials, user, onOpenSettings }) {
   return (
     <header className="cds-header">
       <span className="cds-header__logo">SAHAYI</span>
@@ -30,9 +30,9 @@ function CdsAdminHeader({ searchQuery, setSearchQuery, initials, user }) {
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" />
           </svg>
         </button>
-        <div className="cds-header__user">
+        <div className="cds-header__user" onClick={onOpenSettings} title="Open Admin Settings">
           <div className="cds-header__avatar">{initials}</div>
-          <span className="cds-header__username">{user.fullName || 'CDS Admin'}</span>
+          <span className="cds-header__username">{user?.fullName || 'CDS Admin'}</span>
         </div>
       </div>
     </header>

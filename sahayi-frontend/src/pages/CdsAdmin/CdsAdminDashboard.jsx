@@ -10,6 +10,7 @@ import UnitRegistryView from './components/UnitRegistryView';
 import FinancialAnalyticsView from './components/FinancialAnalyticsView';
 import MeetingAttendanceView from './components/MeetingAttendanceView';
 import ReportsView from './components/ReportsView';
+import CdsAdminSettingsView from './components/CdsAdminSettingsView';
 import CdsAdminFooter from './components/CdsAdminFooter';
 import { fetchShgUnits, toggleShgUnitStatus, fetchWardsList, fetchCdsAnalytics } from '../../services/api';
 
@@ -19,6 +20,17 @@ function CdsAdminDashboard() {
   const [activeNav, setActiveNav] = useState(() => {
     return sessionStorage.getItem('cds_admin_active_nav') || 'dashboard';
   });
+
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}'); }
+    catch { return {}; }
+  });
+
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     if (activeNav) {
@@ -140,11 +152,6 @@ function CdsAdminDashboard() {
     }
   };
 
-  const user = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || '{}'); }
-    catch { return {}; }
-  })();
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -184,17 +191,24 @@ function CdsAdminDashboard() {
   const navItems = [
     { key: 'dashboard', label: 'Dashboard', icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
     { key: 'unit', label: 'Unit', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 010 7.75' },
-    { key: 'financials', label: 'Financials', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
+    { key: 'financials', label: 'Financials', icon: 'M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6' },
     { key: 'meetings', label: 'Meetings', icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
     { key: 'reports', label: 'Reports', icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8' },
   ];
 
-  const initials = user.fullName
+  const initials = user?.fullName
     ? user.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : 'CA';
 
   return (
     <div className="cds-root">
+      {/* Toast Notification Banner */}
+      {toast && (
+        <div className={`cds-toast cds-toast--${toast.type}`}>
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Sidebar */}
       <CdsAdminSidebar
         activeNav={activeNav}
@@ -213,6 +227,10 @@ function CdsAdminDashboard() {
           setSearchQuery={setSearchQuery}
           initials={initials}
           user={user}
+          onOpenSettings={() => {
+            setActiveNav('settings');
+            setSelectedUnit(null);
+          }}
         />
 
         {/* Dynamic Content Views */}
@@ -289,6 +307,16 @@ function CdsAdminDashboard() {
                   wardsList={wardsList}
                   selectedWardFilter={selectedWardFilter}
                   setSelectedWardFilter={setSelectedWardFilter}
+                />
+              )}
+
+              {activeNav === 'settings' && (
+                <CdsAdminSettingsView
+                  user={user}
+                  setUser={setUser}
+                  wardsList={wardsList}
+                  ayalkoottamList={ayalkoottamList}
+                  onShowToast={showToast}
                 />
               )}
             </>

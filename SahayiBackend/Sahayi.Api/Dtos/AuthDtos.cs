@@ -53,10 +53,23 @@ namespace Sahayi.Api.DTOs
         public int UserId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
+        public string HouseName { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
         public int RoleId { get; set; }
         public int? UnitId { get; set; }
         public string? UnitName { get; set; }
         public bool IsPasswordChanged { get; set; }
+    }
+
+    // Request payload for updating user profile details
+    public class UpdateUserProfileDto
+    {
+        [Required]
+        public int UserId { get; set; }
+
+        public string? FullName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? HouseName { get; set; }
+        public string? Username { get; set; }
     }
 }

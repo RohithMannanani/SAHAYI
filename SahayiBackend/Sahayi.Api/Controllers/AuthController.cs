@@ -85,11 +85,97 @@ namespace Sahayi.Api.Controllers
                 UserId = user.UserId,
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
+                HouseName = user.HouseName ?? string.Empty,
                 RoleName = user.UserRole?.RoleName ?? string.Empty,
                 RoleId = user.RoleId,
                 UnitId = user.UnitId,
                 UnitName = user.AyalkoottamUnit?.UnitName,
                 IsPasswordChanged = user.IsPasswordChanged
+            });
+        }
+
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _context.ApplicationUsers.FindAsync(dto.UserId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User account not found." });
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.OldPassword))
+            {
+                if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, user.PasswordHash))
+                {
+                    return BadRequest(new { message = "Current password entered is incorrect." });
+                }
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.IsPasswordChanged = true;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Password updated successfully!" });
+        }
+
+        [HttpPost("update-profile")]
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _context.ApplicationUsers.FindAsync(dto.UserId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User account not found." });
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.PhoneNumber) && dto.PhoneNumber != user.PhoneNumber)
+            {
+                if (await _context.ApplicationUsers.AnyAsync(u => u.UserId != dto.UserId && u.PhoneNumber == dto.PhoneNumber))
+                {
+                    return BadRequest(new { message = "Phone number is already registered to another account." });
+                }
+                user.PhoneNumber = dto.PhoneNumber.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                user.FullName = dto.FullName.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.HouseName))
+            {
+                user.HouseName = dto.HouseName.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Username) && dto.Username != user.Username)
+            {
+                if (await _context.ApplicationUsers.AnyAsync(u => u.UserId != dto.UserId && u.Username == dto.Username))
+                {
+                    return BadRequest(new { message = "Username is already taken by another account." });
+                }
+                user.Username = dto.Username.Trim();
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Profile details updated successfully!",
+                user = new
+                {
+                    userId = user.UserId,
+                    fullName = user.FullName,
+                    phoneNumber = user.PhoneNumber,
+                    houseName = user.HouseName,
+                    username = user.Username
+                }
             });
         }
 

@@ -2,6 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { X, CheckCircle2, Clock, Search, Filter, Calendar, CreditCard, Landmark } from 'lucide-react';
 import './WeeklySavingsHistoryModal.css';
 
+const cleanWeekTitle = (title) => {
+  if (!title) return '';
+  let s = String(title).trim();
+  s = s.replace(/^(?:Week\s*\d+|Current\s*Week|Week\s*Collection)\s*\((.*)\)$/i, '$1').trim();
+  s = s.replace(/^Week\s*\d+\s*-?\s*/i, '').trim();
+  return s || title;
+};
+
 function WeeklySavingsHistoryModal({
   savingsWeeks = [],
   savingsLogs = [],
@@ -10,7 +18,7 @@ function WeeklySavingsHistoryModal({
   onRecordPayment,
   onDepositCash
 }) {
-  const [activeTab, setActiveTab] = useState('paid'); // 'paid' | 'pending'
+  const [activeTab, setActiveTab] = useState('paid'); // 'paid' or 'pending'
   const [selectedWeekId, setSelectedWeekId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -20,16 +28,18 @@ function WeeklySavingsHistoryModal({
 
     if (Array.isArray(savingsWeeks) && savingsWeeks.length > 0) {
       savingsWeeks.forEach(w => {
-        const weekTitle = w.weekTitle || `Week ${w.weekNumber || ''}`;
+        const rawTitle = w.weekTitle || (w.startDate && w.endDate ? `${w.startDate} – ${w.endDate}` : '');
+        const weekTitle = cleanWeekTitle(rawTitle);
         const weekId = w.id || w.savingsWeekId || w.weekNumber;
         const weekAmount = w.amount || 100;
 
         if (Array.isArray(w.members)) {
           w.members.forEach(m => {
+            const memUserId = m.userId ?? m.UserId ?? m.id;
             list.push({
-              id: `${weekId}-${m.userId || m.memberId || m.name}`,
-              userId: m.userId,
-              memberId: m.memberId || `M-${m.userId || '00' + Math.floor(Math.random()*10)}`,
+              id: `${weekId}-${memUserId || m.memberId || m.name}`,
+              userId: memUserId,
+              memberId: m.memberId || `M-${memUserId ? String(memUserId).padStart(3, '0') : '001'}`,
               name: m.name || m.fullName || 'Member',
               weekId: String(weekId),
               weekTitle,
@@ -48,13 +58,14 @@ function WeeklySavingsHistoryModal({
     // Fallback or augment with savingsLogs if savingsWeeks was empty
     if (list.length === 0 && Array.isArray(savingsLogs) && savingsLogs.length > 0) {
       savingsLogs.forEach(s => {
+        const memUserId = s.userId ?? s.UserId ?? s.id;
         list.push({
-          id: s.id || `${s.userId}-${s.date || Math.random()}`,
-          userId: s.userId || s.id,
-          memberId: s.memberId || `M-${s.userId || '001'}`,
+          id: s.id || `${memUserId}-${s.date || Math.random()}`,
+          userId: memUserId,
+          memberId: s.memberId || `M-${memUserId ? String(memUserId).padStart(3, '0') : '001'}`,
           name: s.name || 'Member',
           weekId: 'all',
-          weekTitle: s.weekTitle || `Week Collection (${s.date || 'Recorded'})`,
+          weekTitle: cleanWeekTitle(s.weekTitle || s.date || 'Recorded'),
           amount: s.amount || 100,
           status: (s.status || 'Pending').toLowerCase() === 'paid' ? 'Paid' : 'Pending',
           paidDate: s.paidDate || s.date || '-',
@@ -68,7 +79,50 @@ function WeeklySavingsHistoryModal({
     // If currentUserId is specified, filter ONLY payments belonging to the logged-in user
     if (currentUserId && !isNaN(Number(currentUserId)) && Number(currentUserId) > 0) {
       const targetIdStr = String(currentUserId);
-      return list.filter(p => String(p.userId) === targetIdStr);
+      const userPayments = list.filter(p => String(p.userId) === targetIdStr);
+
+      // Check current week date range (Monday - Sunday)
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + diffToMonday);
+      monday.setHours(0, 0, 0, 0);
+
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      const currentWeekTitle = `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+      // Check if user has paid for current week
+      const hasPaidCurrentWeek = userPayments.some(p => {
+        if (p.status !== 'Paid') return false;
+        if (!p.paidDate || p.paidDate === '-') return false;
+        const pDate = new Date(p.paidDate);
+        return !isNaN(pDate.getTime()) && pDate >= monday && pDate <= sunday;
+      });
+
+      const hasPendingEntry = userPayments.some(p => p.status === 'Pending');
+
+      if (!hasPaidCurrentWeek && !hasPendingEntry) {
+        userPayments.unshift({
+          id: `curr-pending-${targetIdStr}`,
+          userId: Number(currentUserId),
+          memberId: userPayments[0]?.memberId || `M-${targetIdStr.padStart(3, '0')}`,
+          name: userPayments[0]?.name || 'Member',
+          weekId: 'current-pending',
+          weekTitle: currentWeekTitle,
+          amount: 100,
+          status: 'Pending',
+          paidDate: '-',
+          paymentMode: '-',
+          receiptNumber: '-',
+          savingsWeekId: null
+        });
+      }
+
+      return userPayments;
     }
 
     return list;

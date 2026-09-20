@@ -196,42 +196,9 @@ namespace Sahayi.Api.Controllers
                             RecordedBy = dto.UserId.Value
                         };
 
+                        // Record the savings transaction (online payment — bank credit is NOT done here;
+                        // only the secretary's explicit "Deposit Cash to Bank" action updates UnitBankAccount).
                         _context.SavingsTransactions.Add(savingsTx);
-
-                        // Credit Unit Bank Account balance for Online payments
-                        if (targetUnitId > 0)
-                        {
-                            var unitInfo = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.UnitId == targetUnitId);
-                            var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
-
-                            string accNum = !string.IsNullOrWhiteSpace(unitInfo?.AccountNumber) ? unitInfo.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
-                            string bankName = !string.IsNullOrWhiteSpace(unitInfo?.BankName) ? unitInfo.BankName : "Sahayi Co-operative Bank";
-                            string ifsc = !string.IsNullOrWhiteSpace(unitInfo?.IFSCCode) ? unitInfo.IFSCCode : "SHY0001001";
-
-                            if (bankAccount == null)
-                            {
-                                bankAccount = new UnitBankAccount
-                                {
-                                    UnitId = targetUnitId,
-                                    AccountNumber = accNum,
-                                    BankName = bankName,
-                                    IFSCCode = ifsc,
-                                    Balance = 0.00m,
-                                    LastUpdated = DateTime.UtcNow
-                                };
-                                _context.UnitBankAccounts.Add(bankAccount);
-                            }
-                            else
-                            {
-                                if (!string.IsNullOrWhiteSpace(unitInfo?.BankName)) bankAccount.BankName = unitInfo.BankName;
-                                if (!string.IsNullOrWhiteSpace(unitInfo?.IFSCCode)) bankAccount.IFSCCode = unitInfo.IFSCCode;
-                                if (!string.IsNullOrWhiteSpace(unitInfo?.AccountNumber)) bankAccount.AccountNumber = unitInfo.AccountNumber;
-                            }
-
-                            bankAccount.Balance += amountVal;
-                            bankAccount.LastUpdated = DateTime.UtcNow;
-                        }
-
                         await _context.SaveChangesAsync();
                     }
                 }

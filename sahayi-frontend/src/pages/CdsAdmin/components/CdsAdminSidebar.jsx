@@ -38,7 +38,13 @@ function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecord
       </button>
 
       <div className="cds-sidebar__bottom">
-        <button className="cds-nav-item" onClick={() => { }}>
+        <button
+          className={`cds-nav-item${activeNav === 'settings' ? ' active' : ''}`}
+          onClick={() => {
+            setActiveNav('settings');
+            if (setSelectedUnit) setSelectedUnit(null);
+          }}
+        >
           <Icon d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" size={16} />
           <span>Settings</span>
         </button>

@@ -3,13 +3,14 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
+  PiggyBank,
   Calendar,
   BarChart3,
   Settings,
   LogOut
 } from 'lucide-react';
 
-function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout }) {
+function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenOwnSavings }) {
   return (
     <aside className="sec-sidebar">
       <div className="sec-sidebar__top">
@@ -48,6 +49,19 @@ function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout }) {
               <span>Financials</span>
             </div>
           </button>
+
+          {onOpenOwnSavings && (
+            <button
+              className="sec-nav-item"
+              onClick={onOpenOwnSavings}
+              title="View my own personal weekly savings history"
+            >
+              <div className="sec-nav-item__left">
+                <PiggyBank size={19} style={{ color: '#10b981' }} />
+                <span>View Own Savings</span>
+              </div>
+            </button>
+          )}
 
           <button
             className={`sec-nav-item ${activeTab === 'meetings' ? 'sec-nav-item--active' : ''}`}

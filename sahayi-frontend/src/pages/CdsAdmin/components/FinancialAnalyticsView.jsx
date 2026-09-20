@@ -72,7 +72,7 @@ function FinancialAnalyticsView({
           <div className="cds-fin-card__header">
             <div className="cds-fin-card__icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                <path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" />
               </svg>
             </div>
             <span className="cds-fin-card__tag">CDS Consolidated</span>

@@ -178,7 +178,7 @@ function SystemOverview({
             <div className="cds-ward-stat">
               <div className="cds-ward-stat__icon cds-ward-stat__icon--teal">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2a6e5a" strokeWidth="2" strokeLinecap="round">
-                  <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                  <path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" />
                 </svg>
               </div>
               <div>

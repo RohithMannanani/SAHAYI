@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Landmark, CheckCircle2, Calendar, ChevronDown, ChevronUp, ArrowDownCircle, Search, CreditCard } from 'lucide-react';
 import { getWeeklyCollectionLogs } from '../../utils/weeklyCollectionUtils';
 import { formatDateToDDMMYYYY } from '../../utils/formatTime';
@@ -8,6 +8,7 @@ function FinancialsView({
   financials,
   unitBankAccount,
   savingsLogs = [],
+  savingsWeeks = [],
   allMembers = [],
   onDepositCashToBank,
   onDepositAllCashToBank,
@@ -16,8 +17,13 @@ function FinancialsView({
 }) {
   const [showWeeklyLog, setShowWeeklyLog] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showOwnModal, setShowOwnModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedWeeks, setCollapsedWeeks] = useState({});
+  const currentUserId = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}')?.userId; }
+    catch { return null; }
+  })();
 
   const undepositedCashList = savingsLogs.filter(s =>
     s.status === 'Paid' &&
@@ -25,6 +31,8 @@ function FinancialsView({
     !(s.paymentMode || '').toLowerCase().includes('in bank')
   );
   const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+  const undepositedOnlineCount = undepositedCashList.filter(s => (s.paymentMode || '').toLowerCase().includes('online')).length;
+  const undepositedCashCount = undepositedCashList.filter(s => !(s.paymentMode || '').toLowerCase().includes('online')).length;
 
   const depositedTotalFromLogs = savingsLogs
     .filter(s => s.status === 'Paid' && (
@@ -38,8 +46,42 @@ function FinancialsView({
     depositedTotalFromLogs
   );
 
+  const cleanTitle = (t) => {
+    if (!t) return '';
+    return String(t)
+      .replace(/^(?:Week\s*\d+|Current\s*Week|Week\s*Collection)\s*\((.*)\)$/i, '$1')
+      .replace(/^Week\s*\d+\s*-?\s*/i, '')
+      .trim();
+  };
+
   // Get weekly collection logs grouped and sorted in DESCENDING order of dates & weeks
-  const weeklyLogs = getWeeklyCollectionLogs(savingsLogs, allMembers);
+  // If server-side savingsWeeks exists, build full history for every created week
+  const weeklyLogs = useMemo(() => {
+    if (Array.isArray(savingsWeeks) && savingsWeeks.length > 0) {
+      return savingsWeeks.map(w => ({
+        weekKey: `week-${w.weekNumber || w.id}-${w.startDate}`,
+        weekTitle: cleanTitle(w.weekTitle || `${w.startDate || ''} – ${w.endDate || ''}`),
+        mondayStr: w.startDate,
+        sundayStr: w.endDate,
+        totalCollected: w.totalCollected || 0,
+        paidCount: w.paidCount || 0,
+        pendingCount: w.pendingCount || 0,
+        items: (w.members || []).map(m => ({
+          id: m.transactionId || `tx-${m.userId}-${w.id || w.weekNumber}`,
+          userId: m.userId,
+          name: m.name,
+          memberId: m.memberId,
+          amount: m.amount || '100.00',
+          status: m.status || 'Pending',
+          paymentMode: m.paymentMode || '-',
+          paidDate: m.paidDate || '-',
+          date: m.paidDate || w.startDate,
+          savingsWeekId: w.id || w.savingsWeekId
+        }))
+      }));
+    }
+    return getWeeklyCollectionLogs(savingsLogs, allMembers);
+  }, [savingsWeeks, savingsLogs, allMembers]);
 
   const toggleWeekCollapse = (weekKey) => {
     setCollapsedWeeks(prev => ({
@@ -54,24 +96,46 @@ function FinancialsView({
 
   return (
     <div className="sec-subview">
-      <div className="sec-subview-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="sec-subview-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <h2>Financial Ledger & Dues Summary</h2>
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          style={{
-            backgroundColor: '#0c382e',
-            color: '#ffffff',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            fontSize: '0.825rem',
-            fontWeight: 700,
-            cursor: 'pointer'
-          }}
-        >
-          Inspect Paid & Pending Payments &rarr;
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setShowOwnModal(true)}
+            style={{
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <CreditCard size={15} />
+            <span>View My Own Savings</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            style={{
+              backgroundColor: '#0c382e',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Inspect Paid & Pending Payments &rarr;
+          </button>
+        </div>
       </div>
 
       <div className="sec-stats-row">
@@ -86,12 +150,15 @@ function FinancialsView({
         </div>
 
         <div className="sec-stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <span className="sec-stat-label">Cash Collected (In Hand)</span>
+          <span className="sec-stat-label">Collections In Hand (Not Yet in Bank)</span>
           <h3 className="sec-stat-value" style={{ color: '#d97706' }}>
             ₹{undepositedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </h3>
           <span className="sec-stat-sub">
-            {undepositedCashList.length} cash payments pending bank deposit
+            {undepositedCashCount > 0 && `${undepositedCashCount} cash`}
+            {undepositedCashCount > 0 && undepositedOnlineCount > 0 && ' + '}
+            {undepositedOnlineCount > 0 && `${undepositedOnlineCount} online`}
+            {undepositedCashList.length > 0 ? ' payment(s) pending bank deposit' : 'No pending deposits'}
           </span>
           {undepositedCashList.length > 0 && onDepositAllCashToBank && (
             <button
@@ -258,7 +325,7 @@ function FinancialsView({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Calendar size={16} style={{ color: '#6ee7b7' }} />
                       <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                        {weekGroup.weekTitle} ({formatDateToDDMMYYYY(weekGroup.mondayStr || weekGroup.weekKey)} to {formatDateToDDMMYYYY(weekGroup.sundayStr || weekGroup.weekKey)})
+                        {weekGroup.weekTitle}
                       </span>
                       {index === 0 && (
                         <span style={{
@@ -310,7 +377,9 @@ function FinancialsView({
                             const mode = item.paymentMode || item.paymentMethod || (item.status === 'Paid' ? 'Cash' : '-');
                             const isOnline = mode.toLowerCase().includes('online');
                             const isBankDeposited = mode.toLowerCase().includes('bank deposited') || mode.toLowerCase().includes('in bank');
-                            const isUndepositedCash = item.status === 'Paid' && (mode === 'Cash' || mode === 'cash' || mode === '-');
+                            const isUndepositedCash = item.status === 'Paid' && !isBankDeposited && !isOnline && (mode === 'Cash' || mode === 'cash' || mode === '-');
+                            const isUndepositedOnline = item.status === 'Paid' && isOnline && !isBankDeposited;
+                            const canDeposit = isUndepositedCash || isUndepositedOnline;
 
                             return (
                               <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.825rem' }}>
@@ -332,13 +401,13 @@ function FinancialsView({
                                   </span>
                                 </td>
                                 <td style={{ padding: '8px 10px' }}>
-                                  {isOnline ? (
+                                  {isOnline && !isBankDeposited ? (
                                     <span style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                      <CheckCircle2 size={12} /> Online 
+                                      <CheckCircle2 size={12} /> Online (In Hand)
                                     </span>
                                   ) : isBankDeposited ? (
                                     <span style={{ color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                      <CheckCircle2 size={12} /> Cash 
+                                      <CheckCircle2 size={12} /> {isOnline ? 'Online' : 'Cash'} ✓ In Bank
                                     </span>
                                   ) : isUndepositedCash ? (
                                     <span style={{ color: '#d97706', fontWeight: 600 }}>
@@ -349,12 +418,12 @@ function FinancialsView({
                                   )}
                                 </td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                                  {isUndepositedCash && onDepositCashToBank ? (
+                                  {canDeposit && onDepositCashToBank ? (
                                     <button
                                       type="button"
                                       onClick={() => onDepositCashToBank(item)}
                                       style={{
-                                        backgroundColor: '#0c382e',
+                                        backgroundColor: isUndepositedOnline ? '#0284c7' : '#0c382e',
                                         color: '#ffffff',
                                         border: 'none',
                                         padding: '3px 8px',
@@ -368,7 +437,7 @@ function FinancialsView({
                                       }}
                                     >
                                       <Landmark size={11} />
-                                      <span>Deposit</span>
+                                      <span>Deposit to Bank</span>
                                     </button>
                                   ) : item.status === 'Paid' ? (
                                     <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -416,8 +485,20 @@ function FinancialsView({
       {/* Weekly Savings History Modal */}
       {showModal && (
         <WeeklySavingsHistoryModal
+          savingsWeeks={savingsWeeks}
           savingsLogs={savingsLogs}
           onClose={() => setShowModal(false)}
+          onRecordPayment={onPayNow}
+          onDepositCash={onDepositCashToBank}
+        />
+      )}
+
+      {showOwnModal && (
+        <WeeklySavingsHistoryModal
+          savingsWeeks={savingsWeeks}
+          savingsLogs={savingsLogs}
+          currentUserId={currentUserId}
+          onClose={() => setShowOwnModal(false)}
           onRecordPayment={onPayNow}
           onDepositCash={onDepositCashToBank}
         />

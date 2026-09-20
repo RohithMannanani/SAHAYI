@@ -164,7 +164,7 @@ namespace Sahayi.Api.Controllers
                         savingsWeekId = w.Id,
                         unitId = w.UnitId,
                         weekNumber = w.WeekNumber,
-                        weekTitle = $"Week {w.WeekNumber} ({w.StartDate:MMM d} – {w.EndDate:MMM d, yyyy})",
+                        weekTitle = $"{w.StartDate:MMM d} – {w.EndDate:MMM d, yyyy}",
                         startDate = w.StartDate.ToString("yyyy-MM-dd"),
                         endDate = w.EndDate.ToString("yyyy-MM-dd"),
                         amount = w.Amount,
@@ -310,39 +310,9 @@ namespace Sahayi.Api.Controllers
 
                 _context.SavingsTransactions.Add(savingsTx);
 
-                // Credit Unit Bank Account balance for Online Payment
-                if (targetUnitId > 0)
-                {
-                    var unitInfo = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.UnitId == targetUnitId);
-                    var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
-
-                    string accNum = !string.IsNullOrWhiteSpace(unitInfo?.AccountNumber) ? unitInfo.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
-                    string bankName = !string.IsNullOrWhiteSpace(unitInfo?.BankName) ? unitInfo.BankName : "Sahayi Co-operative Bank";
-                    string ifsc = !string.IsNullOrWhiteSpace(unitInfo?.IFSCCode) ? unitInfo.IFSCCode : "SHY0001001";
-
-                    if (bankAccount == null)
-                    {
-                        bankAccount = new UnitBankAccount
-                        {
-                            UnitId = targetUnitId,
-                            AccountNumber = accNum,
-                            BankName = bankName,
-                            IFSCCode = ifsc,
-                            Balance = 0.00m,
-                            LastUpdated = DateTime.UtcNow
-                        };
-                        _context.UnitBankAccounts.Add(bankAccount);
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrWhiteSpace(unitInfo?.BankName)) bankAccount.BankName = unitInfo.BankName;
-                        if (!string.IsNullOrWhiteSpace(unitInfo?.IFSCCode)) bankAccount.IFSCCode = unitInfo.IFSCCode;
-                        if (!string.IsNullOrWhiteSpace(unitInfo?.AccountNumber)) bankAccount.AccountNumber = unitInfo.AccountNumber;
-                    }
-
-                    bankAccount.Balance += amountVal;
-                    bankAccount.LastUpdated = DateTime.UtcNow;
-                }
+                // NOTE: UnitBankAccount is NOT credited here for online payments.
+                // Bank balance is only updated when the secretary/treasurer explicitly
+                // deposits via the deposit-cash-to-bank endpoint.
 
                 await _context.SaveChangesAsync();
 
@@ -376,8 +346,10 @@ namespace Sahayi.Api.Controllers
                 var bankAccount = await _context.UnitBankAccounts
                     .FirstOrDefaultAsync(b => b.UnitId == unitId);
 
-                decimal onlineAndDepositedTotal = await _context.SavingsTransactions
-                    .Where(s => s.UnitId == unitId && (s.PaymentMode == "Online" || s.PaymentMode.Contains("Bank Deposited")))
+                // Only count explicitly deposited transactions — NOT online (Razorpay) payments.
+                // Online payments sit as collected funds until the secretary deposits them to the bank.
+                decimal depositedTotal = await _context.SavingsTransactions
+                    .Where(s => s.UnitId == unitId && s.PaymentMode.Contains("Bank Deposited"))
                     .SumAsync(s => (decimal?)s.Amount) ?? 0.00m;
 
                 string accNum = !string.IsNullOrWhiteSpace(unitInfo?.AccountNumber) ? unitInfo.AccountNumber : $"SB-UNIT-{unitId:D4}";
@@ -392,7 +364,7 @@ namespace Sahayi.Api.Controllers
                         AccountNumber = accNum,
                         BankName = bankName,
                         IFSCCode = ifsc,
-                        Balance = onlineAndDepositedTotal,
+                        Balance = depositedTotal,
                         LastUpdated = DateTime.UtcNow
                     };
                     _context.UnitBankAccounts.Add(bankAccount);
@@ -401,9 +373,10 @@ namespace Sahayi.Api.Controllers
                 else
                 {
                     bool updated = false;
-                    if (bankAccount.Balance < onlineAndDepositedTotal)
+                    // Always sync to exactly the deposited total (corrects previously inflated balance)
+                    if (bankAccount.Balance != depositedTotal)
                     {
-                        bankAccount.Balance = onlineAndDepositedTotal;
+                        bankAccount.Balance = depositedTotal;
                         updated = true;
                     }
                     if (!string.IsNullOrWhiteSpace(unitInfo?.BankName) && bankAccount.BankName != unitInfo.BankName)
@@ -458,7 +431,10 @@ namespace Sahayi.Api.Controllers
                     if (tx != null)
                     {
                         if (targetUnitId == 0) targetUnitId = tx.UnitId;
-                        tx.PaymentMode = "Cash (Bank Deposited)";
+                        // Preserve the original payment mode prefix (Cash or Online)
+                        bool wasOnline = !string.IsNullOrWhiteSpace(tx.PaymentMode) &&
+                                         tx.PaymentMode.StartsWith("Online", StringComparison.OrdinalIgnoreCase);
+                        tx.PaymentMode = wasOnline ? "Online (Bank Deposited)" : "Cash (Bank Deposited)";
                     }
                 }
 

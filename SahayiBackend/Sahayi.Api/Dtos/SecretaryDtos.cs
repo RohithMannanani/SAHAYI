@@ -163,6 +163,7 @@ namespace Sahayi.Api.DTOs
         public string UnitName { get; set; } = string.Empty;
         public string SecretaryName { get; set; } = string.Empty;
         public string SecretaryPhone { get; set; } = string.Empty;
+        public string SecretaryHouseName { get; set; } = string.Empty;
         public decimal TotalWeeklyCollection { get; set; }
         public decimal DisbursedLoansTotal { get; set; }
         public int PendingDuesCount { get; set; }

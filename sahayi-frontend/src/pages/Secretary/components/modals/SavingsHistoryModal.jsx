@@ -34,8 +34,19 @@ function SavingsHistoryModal({ savingsLogs, onDepositCashToBank, onClose }) {
                   const validDate = isNaN(d.getTime()) ? new Date() : d;
                   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                   const monthStr = log.month || `${monthNames[validDate.getMonth()]} ${validDate.getFullYear()}`;
-                  const weekNum = Math.ceil(validDate.getDate() / 7);
-                  const weekStr = log.week || `Week ${weekNum}`;
+                  const getWeekRangeStr = (dateObj) => {
+                    const day = dateObj.getDay();
+                    const diffToMonday = dateObj.getDate() - day + (day === 0 ? -6 : 1);
+                    const monday = new Date(dateObj.getFullYear(), dateObj.getMonth(), diffToMonday);
+                    const sunday = new Date(monday);
+                    sunday.setDate(monday.getDate() + 6);
+                    return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                  };
+                  const rawWeek = log.weekTitle || log.week || getWeekRangeStr(validDate);
+                  const weekStr = String(rawWeek)
+                    .replace(/^(?:Week\s*\d+|Current\s*Week|Week\s*Collection)\s*\((.*)\)$/i, '$1')
+                    .replace(/^Week\s*\d+\s*-?\s*/i, '')
+                    .trim();
                   return { month: monthStr, week: weekStr };
                 };
                 const { month: logMonth, week: logWeek } = getDetails(item);

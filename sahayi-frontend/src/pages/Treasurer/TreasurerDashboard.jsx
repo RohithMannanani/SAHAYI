@@ -48,6 +48,7 @@ function TreasurerDashboard() {
   const [savingsWeeks, setSavingsWeeks] = useState([]);
   const [savingsLogs, setSavingsLogs] = useState([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showOwnSavingsModal, setShowOwnSavingsModal] = useState(false);
   const [paymentMemberItem, setPaymentMemberItem] = useState(null);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,13 +80,15 @@ function TreasurerDashboard() {
         setPaymentMemberItem(null);
       } else if (showHistoryModal) {
         setShowHistoryModal(false);
+      } else if (showOwnSavingsModal) {
+        setShowOwnSavingsModal(false);
       } else if (activeTab !== 'financials') {
         setActiveTab('financials');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [paymentMemberItem, showHistoryModal, activeTab]);
+  }, [paymentMemberItem, showHistoryModal, showOwnSavingsModal, activeTab]);
 
   // Load real financial data from SahayiDb backend
   const loadTreasurerData = async () => {
@@ -256,7 +259,42 @@ function TreasurerDashboard() {
 
   // Calculated Financial Metrics
   const membersList = dashboardData?.members || [];
-  const weeklyLogs = getWeeklyCollectionLogs(savingsLogs, membersList);
+
+  const cleanTitle = (t) => {
+    if (!t) return '';
+    return String(t)
+      .replace(/^(?:Week\s*\d+|Current\s*Week|Week\s*Collection)\s*\((.*)\)$/i, '$1')
+      .replace(/^Week\s*\d+\s*-?\s*/i, '')
+      .trim();
+  };
+
+  const weeklyLogs = React.useMemo(() => {
+    if (Array.isArray(savingsWeeks) && savingsWeeks.length > 0) {
+      return savingsWeeks.map(w => ({
+        weekKey: `week-${w.weekNumber || w.id}-${w.startDate}`,
+        weekTitle: cleanTitle(w.weekTitle || `${w.startDate || ''} – ${w.endDate || ''}`),
+        mondayStr: w.startDate,
+        sundayStr: w.endDate,
+        totalCollected: w.totalCollected || 0,
+        paidCount: w.paidCount || 0,
+        pendingCount: w.pendingCount || 0,
+        items: (w.members || []).map(m => ({
+          id: m.transactionId || `tx-${m.userId}-${w.id || w.weekNumber}`,
+          userId: m.userId,
+          name: m.name,
+          memberId: m.memberId,
+          amount: m.amount || '100.00',
+          status: m.status || 'Pending',
+          paymentMode: m.paymentMode || '-',
+          paidDate: m.paidDate || '-',
+          date: m.paidDate || w.startDate,
+          savingsWeekId: w.id || w.savingsWeekId
+        }))
+      }));
+    }
+    return getWeeklyCollectionLogs(savingsLogs, membersList);
+  }, [savingsWeeks, savingsLogs, membersList]);
+
   const currentWeekGroup = weeklyLogs[selectedWeekIndex] || weeklyLogs[0] || {
     weekTitle: 'Current Week',
     mondayStr: new Date().toISOString().split('T')[0],
@@ -269,13 +307,15 @@ function TreasurerDashboard() {
   const endDurationStr = formatDateToDDMMYYYY(currentWeekGroup.sundayStr || currentWeekGroup.weekKey);
   const durationText = `${startDurationStr} to ${endDurationStr}`;
 
-  // All paid payments that are NOT yet deposited into the bank show in "Cash Collected In Hand"
+  // All paid payments that are NOT yet deposited into the bank show in "Collections In Hand"
   const undepositedCashList = savingsLogs.filter(s =>
     s.status === 'Paid' &&
     !(s.paymentMode || '').toLowerCase().includes('bank deposited') &&
     !(s.paymentMode || '').toLowerCase().includes('in bank')
   );
   const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+  const undepositedOnlineCount = undepositedCashList.filter(s => (s.paymentMode || '').toLowerCase().includes('online')).length;
+  const undepositedCashCount = undepositedCashList.filter(s => !(s.paymentMode || '').toLowerCase().includes('online')).length;
 
   // Only payments that have been explicitly deposited into the bank are added to the bank balance
   const depositedTotalFromLogs = savingsLogs
@@ -363,8 +403,17 @@ function TreasurerDashboard() {
               className={`tr-nav-item ${activeTab === 'financials' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('financials')}
             >
-              <Icon d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" size={17} />
+              <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={17} />
               <span>Financials</span>
+            </div>
+
+            <div
+              className="tr-nav-item"
+              onClick={() => setShowOwnSavingsModal(true)}
+              title="View my own personal weekly savings history and dues"
+            >
+              <PiggyBank size={17} style={{ color: '#10b981' }} />
+              <span>View Own Savings</span>
             </div>
 
             <div
@@ -495,8 +544,13 @@ function TreasurerDashboard() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255, 255, 255, 0.1)', padding: '0.6rem 1rem', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
                   <div>
-                    <span style={{ fontSize: '0.7rem', opacity: 0.8, display: 'block', textTransform: 'uppercase' }}>Cash Collected In Hand</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.8, display: 'block', textTransform: 'uppercase' }}>Collections In Hand</span>
                     <strong style={{ fontSize: '1rem', color: '#fbbf24' }}>₹{undepositedTotal.toFixed(2)}</strong>
+                    {undepositedOnlineCount > 0 && (
+                      <span style={{ fontSize: '0.65rem', color: '#fcd34d', display: 'block', marginTop: '2px' }}>
+                        {undepositedCashCount > 0 ? `${undepositedCashCount} cash + ` : ''}{undepositedOnlineCount} online
+                      </span>
+                    )}
                   </div>
                   {undepositedCashList.length > 0 && (
                     <button
@@ -640,14 +694,20 @@ function TreasurerDashboard() {
                           const validDate = isNaN(d.getTime()) ? new Date() : d;
                           const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                           const monthStr = log.month || `${monthNames[validDate.getMonth()]} ${validDate.getFullYear()}`;
-                          const weekNum = currentWeekGroup.weekNumber || Math.ceil(validDate.getDate() / 7);
-                          const weekStr = log.week || `Week ${weekNum}`;
+                          const rawWeek = log.weekTitle || log.week || (currentWeekGroup.mondayStr && currentWeekGroup.sundayStr ? `${currentWeekGroup.mondayStr} – ${currentWeekGroup.sundayStr}` : null);
+                          const weekStr = String(rawWeek || `${validDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`)
+                            .replace(/^(?:Week\s*\d+|Current\s*Week|Week\s*Collection)\s*\((.*)\)$/i, '$1')
+                            .replace(/^Week\s*\d+\s*-?\s*/i, '')
+                            .trim();
                           return { month: monthStr, week: weekStr };
                         };
                         const { month: logMonth, week: logWeek } = getDetails(item);
                         const mode = item.paymentMode || item.paymentMethod || (item.status === 'Paid' ? 'Cash' : '-');
                         const isOnline = mode.toLowerCase().includes('online');
                         const isBankDeposited = mode.toLowerCase().includes('bank deposited') || mode.toLowerCase().includes('in bank');
+                        const isUndepositedCash = item.status === 'Paid' && !isBankDeposited && !isOnline;
+                        const isUndepositedOnline = item.status === 'Paid' && isOnline && !isBankDeposited;
+                        const canDeposit = isUndepositedCash || isUndepositedOnline;
 
                         return (
                           <tr key={item.id}>
@@ -665,22 +725,39 @@ function TreasurerDashboard() {
                               </span>
                             </td>
                             <td>
-                              {isOnline ? (
+                              {isOnline && !isBankDeposited ? (
                                 <span style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <CheckCircle2 size={13} /> Online
+                                  <CheckCircle2 size={13} /> Online (In Hand)
                                 </span>
                               ) : isBankDeposited ? (
                                 <span style={{ color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <CheckCircle2 size={13} /> Cash
+                                  <CheckCircle2 size={13} /> {isOnline ? 'Online' : 'Cash'} ✓ In Bank
                                 </span>
                               ) : (
                                 mode
                               )}
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              {item.status === 'Paid' ? (
+                              {item.status === 'Paid' && canDeposit ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDepositCashToBank(item)}
+                                  style={{
+                                    backgroundColor: isUndepositedOnline ? '#0284c7' : '#0f172a',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '5px 14px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Deposit to Bank
+                                </button>
+                              ) : item.status === 'Paid' ? (
                                 <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.825rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <CheckCircle2 size={14} /> Paid
+                                  <CheckCircle2 size={14} /> In Bank
                                 </span>
                               ) : (
                                 <button
@@ -721,11 +798,12 @@ function TreasurerDashboard() {
               }}
               unitBankAccount={unitBank}
               savingsLogs={savingsLogs}
+              savingsWeeks={savingsWeeks}
               allMembers={membersList}
               onDepositCashToBank={handleDepositCashToBank}
               onDepositAllCashToBank={handleDepositAllCashToBank}
               onRecordSavings={handleRecordSavings}
-              onPayNow={handleRecordSavings}
+              onPayNow={setPaymentMemberItem}
             />
           )}
 
@@ -863,6 +941,18 @@ function TreasurerDashboard() {
           savingsWeeks={savingsWeeks}
           savingsLogs={savingsLogs}
           onClose={() => setShowHistoryModal(false)}
+          onRecordPayment={handleRecordSavings}
+          onDepositCash={handleDepositCashToBank}
+        />
+      )}
+
+      {/* ── My Own Savings History Modal ── */}
+      {showOwnSavingsModal && (
+        <WeeklySavingsHistoryModal
+          savingsWeeks={savingsWeeks}
+          savingsLogs={savingsLogs}
+          currentUserId={currentUser?.userId}
+          onClose={() => setShowOwnSavingsModal(false)}
           onRecordPayment={handleRecordSavings}
           onDepositCash={handleDepositCashToBank}
         />

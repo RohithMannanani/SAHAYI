@@ -39,6 +39,11 @@ export const updatePassword = async (payload) => {
   return await api.post('/auth/change-password', payload);
 };
 
+// Update User Profile API
+export const updateUserProfile = async (payload) => {
+  return await api.post('/auth/update-profile', payload);
+};
+
 // Fetch all Ayalkoottam Units
 export const fetchShgUnits = async () => {
   return await api.get('/shg');

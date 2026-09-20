@@ -58,6 +58,7 @@ function Login() {
         userId: data.userId,
         fullName: data.fullName,
         phoneNumber: data.phoneNumber,
+        houseName: data.houseName,
         roleName: data.roleName,
         roleId: data.roleId,
         unitId: data.unitId,

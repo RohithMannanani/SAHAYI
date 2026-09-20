@@ -1,0 +1,580 @@
+/* ============================================================
+   SAHAYI — CDS Admin Settings View Styling
+   ============================================================ */
+
+.cds-settings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ── Sub Navigation Tabs ── */
+.cds-settings-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8e3;
+  padding-bottom: 2px;
+  overflow-x: auto;
+}
+
+.cds-settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #6b8f72;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.cds-settings-tab:hover {
+  color: #1a2e1e;
+  background: #f0f5f1;
+}
+
+.cds-settings-tab.active {
+  color: #1e4731;
+  border-bottom-color: #1e4731;
+  font-weight: 600;
+  background: #e8f0e9;
+}
+
+.cds-settings-tab svg {
+  flex-shrink: 0;
+}
+
+/* ── Settings Grid Layout ── */
+.cds-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cds-card {
+  background: #ffffff;
+  border: 1px solid #e2e8e3;
+  border-radius: 12px;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cds-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a2e1e;
+  border-bottom: 1px solid #f0f4f1;
+  padding-bottom: 12px;
+}
+
+.cds-card-title svg {
+  color: #1e4731;
+}
+
+.cds-card-desc {
+  font-size: 13px;
+  color: #6b8f72;
+  line-height: 1.5;
+}
+
+/* ── Profile Summary Card ── */
+.cds-profile-summary-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 24px;
+  background: linear-gradient(135deg, #1e4731 0%, #2a6e38 100%);
+  color: #ffffff;
+  border: none;
+}
+
+.cds-profile-avatar-large {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.cds-avatar-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #57c270;
+  color: #1a2e1e;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1e4731;
+}
+
+.cds-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cds-profile-info h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.cds-role-tag {
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 3px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.cds-profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.cds-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  opacity: 0.9;
+}
+
+/* ── Forms & Input Wrappers ── */
+.cds-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cds-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .cds-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cds-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cds-form-group label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4a6652;
+}
+
+.cds-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cds-input-icon {
+  position: absolute;
+  left: 12px;
+  color: #8fa896;
+  pointer-events: none;
+}
+
+.cds-input-wrap input,
+.cds-select {
+  width: 100%;
+  padding: 9px 12px 9px 38px;
+  border-radius: 8px;
+  border: 1px solid #dde5de;
+  background: #ffffff;
+  font-size: 13px;
+  color: #1a2e1e;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cds-select {
+  padding-left: 12px;
+  cursor: pointer;
+}
+
+.cds-input-wrap input:focus,
+.cds-select:focus {
+  border-color: #2a6e38;
+  box-shadow: 0 0 0 3px rgba(42, 110, 56, 0.1);
+}
+
+.cds-input-wrap input:disabled {
+  background-color: #f3f6f3;
+  color: #6b8f72;
+  cursor: not-allowed;
+  border-color: #dde5de;
+}
+
+.cds-eye-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #8fa896;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.cds-eye-btn:hover {
+  color: #1a2e1e;
+}
+
+/* Password meter & match text */
+.cds-pass-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cds-pass-bar {
+  height: 4px;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  flex: 1;
+}
+
+.cds-pass-text {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 90px;
+}
+
+.cds-match-text {
+  margin-top: 4px;
+  font-size: 11.5px;
+}
+
+.cds-match-ok {
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.cds-match-err {
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+/* ── Buttons ── */
+.cds-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.cds-btn-primary {
+  padding: 10px 20px;
+  background: #1e4731;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.cds-btn-primary:hover {
+  background: #163926;
+  transform: translateY(-1px);
+}
+
+.cds-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cds-btn-secondary {
+  padding: 10px 18px;
+  background: #ffffff;
+  color: #1e4731;
+  border: 1px solid #1e4731;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+  width: fit-content;
+}
+
+.cds-btn-secondary:hover {
+  background: #e8f0e9;
+}
+
+.cds-btn-text {
+  background: none;
+  border: none;
+  color: #6b8f72;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+
+.cds-btn-text:hover {
+  color: #1a2e1e;
+  text-decoration: underline;
+}
+
+.cds-spin {
+  animation: cdsSpin 1s linear infinite;
+}
+
+@keyframes cdsSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── OTP Card Box ── */
+.cds-otp-card {
+  border-left: 4px solid #1e4731;
+}
+
+.cds-otp-box {
+  background: #f4f6f4;
+  border: 1px solid #dde5de;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-top: 10px;
+}
+
+.cds-otp-step p {
+  font-size: 13px;
+  color: #2a4030;
+  margin-bottom: 12px;
+}
+
+.cds-otp-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cds-otp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cds-otp-input {
+  letter-spacing: 4px;
+  font-weight: 700;
+  font-size: 15px !important;
+  padding-left: 12px !important;
+}
+
+/* ── Toggle Lists (Switch) ── */
+.cds-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cds-toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #fafbfa;
+  border: 1px solid #f0f4f1;
+  border-radius: 10px;
+  gap: 16px;
+}
+
+.cds-toggle-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1a2e1e;
+  display: block;
+}
+
+.cds-toggle-desc {
+  font-size: 12px;
+  color: #6b8f72;
+  margin-top: 2px;
+}
+
+/* Toggle Switch Styling */
+.cds-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.cds-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cds-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.cds-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .cds-slider {
+  background-color: #1e4731;
+}
+
+input:checked + .cds-slider:before {
+  transform: translateX(20px);
+}
+
+/* ── Info Grid (Jurisdiction & System) ── */
+.cds-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .cds-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cds-info-box {
+  background: #fafbfa;
+  border: 1px solid #e2e8e3;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cds-info-label {
+  font-size: 11.5px;
+  color: #8fa896;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cds-info-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a2e1e;
+}
+
+.cds-status-online {
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cds-online-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  display: inline-block;
+}
+
+/* ── Toast Alert Banner ── */
+.cds-toast {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 9999;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #1e4731;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: cdsToastSlide 0.3s ease-out forwards;
+}
+
+.cds-toast--error {
+  background: #dc2626;
+}
+
+@keyframes cdsToastSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

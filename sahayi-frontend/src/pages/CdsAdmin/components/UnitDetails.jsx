@@ -322,7 +322,7 @@ function UnitDetails({ unit, onBack, onStatusChange }) {
 
         <div className="cds-details-stat-card">
           <div className="cds-details-stat-icon cds-details-stat-icon--savings">
-            <Icon d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" size={22} stroke="#2a6e38" />
+            <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={22} stroke="#2a6e38" />
           </div>
           <div className="cds-details-stat-info">
             <span className="cds-details-stat-label">Account Balance</span>
