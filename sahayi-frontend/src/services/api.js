@@ -278,4 +278,4 @@ export const fetchCdsAnalytics = async (wardId) => {
   return await api.get('/shg/cds-analytics', { params });
 };
 
-export default api;
+export default api;

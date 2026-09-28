@@ -322,7 +322,7 @@ function PresidentDashboard() {
         {/* Header Navbar */}
         <header className="pres-header">
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="pres-header__title">SAHAYI - President Dashboard</div>
+            <div className="pres-header__title"> President Dashboard</div>
             <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
               <span>{currentUser?.fullName || currentUser?.name || 'President'}</span>
               <span style={{ opacity: 0.5 }}>•</span>
@@ -365,7 +365,7 @@ function PresidentDashboard() {
           {/* Top Banner */}
           <div className="pres-banner">
             <div>
-              <h1 className="pres-banner__title">President’s Dashboard</h1>
+             
               <p className="pres-banner__subtitle">
                 Overseeing community growth and financial stability for {dashboardData?.unitName || 'Ayalkoottam Unit'}.
               </p>

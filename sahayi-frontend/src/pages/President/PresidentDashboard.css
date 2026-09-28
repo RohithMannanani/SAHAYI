@@ -255,13 +255,7 @@
   gap: 12px;
 }
 
-.pres-banner__title {
-  font-size: 22px;
-  font-weight: 800;
-  color: #1a1a1a;
-  margin: 0;
-  letter-spacing: -0.5px;
-}
+
 
 .pres-banner__subtitle {
   font-size: 13px;

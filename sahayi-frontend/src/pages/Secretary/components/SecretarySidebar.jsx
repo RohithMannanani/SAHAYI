@@ -15,7 +15,7 @@ function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenO
     <aside className="sec-sidebar">
       <div className="sec-sidebar__top">
         <div className="sec-sidebar__header">
-          <h2 className="sec-sidebar__title">Dashboard</h2>
+          <h2 className="sec-sidebar__title">SAHAYI</h2>
           <p className="sec-sidebar__subtitle">{unitInfo.secretaryName}</p>
         </div>
 

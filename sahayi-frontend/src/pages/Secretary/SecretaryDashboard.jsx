@@ -806,23 +806,24 @@ function SecretaryDashboard() {
         </div>
       )}
 
-      {/* Top Navbar Header */}
-      <SecretaryHeader
+      {/* Left Sidebar Navigation */}
+      <SecretarySidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         unitInfo={unitInfo}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onShowToast={showToast}
-        onNavigateSettings={() => setActiveTab('settings')}
+        onLogout={handleLogout}
+        onOpenOwnSavings={() => setShowOwnSavingsModal(true)}
       />
 
-      <div className="sec-body-container">
-        {/* Left Sidebar Navigation */}
-        <SecretarySidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
+      {/* Main Container (Right of Sidebar) */}
+      <div className="sec-main">
+        {/* Top Navbar Header */}
+        <SecretaryHeader
           unitInfo={unitInfo}
-          onLogout={handleLogout}
-          onOpenOwnSavings={() => setShowOwnSavingsModal(true)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onShowToast={showToast}
+          onNavigateSettings={() => setActiveTab('settings')}
         />
 
         {/* Main Content Area Views */}
@@ -893,7 +894,18 @@ function SecretaryDashboard() {
           )}
 
           {activeTab === 'reports' && (
-            <ReportsView onShowToast={showToast} />
+            <ReportsView
+              unitInfo={unitInfo}
+              financials={financials}
+              savingsLogs={savingsLogs}
+              savingsWeeks={savingsWeeks}
+              attendanceList={attendanceList}
+              meetings={meetings}
+              loans={loans}
+              unitBankAccount={unitBankAccount}
+              currentUser={currentUser}
+              onShowToast={showToast}
+            />
           )}
 
           {activeTab === 'settings' && (
@@ -909,10 +921,10 @@ function SecretaryDashboard() {
             />
           )}
         </main>
-      </div>
 
-      {/* Footer Bar */}
-      <SecretaryFooter onShowToast={showToast} />
+        {/* Footer Bar */}
+        <SecretaryFooter onShowToast={showToast} />
+      </div>
 
       {/* Modals */}
       {showRegisterModal && (

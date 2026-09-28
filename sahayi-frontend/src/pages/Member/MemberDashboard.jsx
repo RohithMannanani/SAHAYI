@@ -322,24 +322,42 @@ verified from SahayiDb Database.
       <div className="mem-main">
         {/* ── Top Navbar ── */}
         <header className="mem-header">
-          <div className="mem-header__brand">SAHAYI</div>
-
-          <nav className="mem-header__nav">
-            <span
-              className={`mem-header__nav-link ${activeTab === 'dashboard' ? 'mem-header__nav-link--active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
-            >
-              Dashboard
-            </span>
-          </nav>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="mem-header__title">Member Dashboard</div>
+            <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <span>{memberName}</span>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span style={{ color: '#059669' }}>{unitName}</span>
+            </div>
+          </div>
 
           <div className="mem-header__right">
-            <img
-              src={dashboardData?.avatarUrl || "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=120"}
-              alt="Member Avatar"
-              className="mem-user-avatar"
-              title={`${memberName} (${unitName})`}
-            />
+            <div className="mem-search-bar">
+              <Icon d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" size={15} stroke="#809986" />
+              <input type="text" placeholder="Search members, loans..." />
+            </div>
+
+            <button className="mem-header__icon-btn" onClick={() => showToast('No new notifications')}>
+              <Icon d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" size={17} />
+              <span className="mem-header__badge" />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img
+                src={dashboardData?.avatarUrl || currentUser?.avatarUrl || "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=120"}
+                alt="Member Avatar"
+                className="mem-user-avatar"
+                title={`${memberName} (${unitName})`}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0c382e' }}>
+                  {memberName}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                  {unitName}
+                </span>
+              </div>
+            </div>
           </div>
         </header>
 
