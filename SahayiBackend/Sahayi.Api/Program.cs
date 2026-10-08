@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. Database Context Configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions =>
@@ -18,7 +19,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 maxRetryDelay: TimeSpan.FromSeconds(10),
                 errorNumbersToAdd: null);
             sqlOptions.CommandTimeout(60);
-        }));
+        });
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
 // 2. Register Custom Services for Dependency Injection
 builder.Services.AddHttpClient(); // 👈 Added for SMS Gateway HTTP calls
