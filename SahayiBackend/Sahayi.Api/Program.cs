@@ -67,7 +67,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://127.0.0.1:5173")
+        policy.SetIsOriginAllowed(origin => true) // Supports localhost and deployed frontend URLs (e.g. Vercel)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -81,12 +81,14 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Ensure DB Schema is up to date for LoanRepayments.PaymentMode
+// Automatically apply EF Core database migrations & ensure schema columns on startup
 using (var scope = app.Services.CreateScope())
 {
     try
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.Migrate();
+
         dbContext.Database.ExecuteSqlRaw(@"
             IF NOT EXISTS (
                 SELECT 1 FROM sys.columns 
@@ -114,19 +116,27 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 6. HTTP Request Pipeline Configuration
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sahayi API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseStaticFiles();
-app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
 // Middleware order matters: Authentication MUST come before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Health check endpoint for cloud uptime probes
+app.MapGet("/", () => Results.Ok(new
+{
+    Status = "Healthy",
+    Service = "Sahayi API",
+    Timestamp = DateTime.UtcNow
+}));
 
 app.MapControllers();
 app.MapHub<Sahayi.Api.Hubs.ChatHub>("/chathub");
