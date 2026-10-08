@@ -5,12 +5,14 @@ import { fetchMemberDashboard, applyMemberLoan, fetchSavingsWeeks, fetchUnitBank
 import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
+import ProfileDropdown from '../../components/common/ProfileDropdown';
 import MemberLoanPage from './MemberLoanPage';
 import MemberSavingsView from './MemberSavingsView';
 import UnitChat from '../../components/Chat/UnitChat';
 import MembersRegistryView from '../Secretary/components/views/MembersRegistryView';
 import MeetingsView from '../Secretary/components/views/MeetingsView';
 import SharedSettingsView from '../../components/Shared/SharedSettingsView';
+import GlobalSearchDropdown from '../../components/common/GlobalSearchDropdown';
 import loanService from '../../services/loanService';
 import { generateSavingsPassbookPdf } from '../../utils/passbookPdfGenerator';
 
@@ -29,6 +31,10 @@ function MemberDashboard() {
     const saved = sessionStorage.getItem('member_active_tab');
     return (saved && saved !== 'financials') ? saved : 'dashboard';
   });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return sessionStorage.getItem('mem_sidebar_collapsed') === 'true';
+  });
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedWeekItem, setSelectedWeekItem] = useState(null);
@@ -273,14 +279,30 @@ function MemberDashboard() {
         </div>
       )}
 
+      {/* ── Overlay for Drawer ── */}
+      <div 
+        className={`mem-drawer-overlay ${mobileDrawerOpen ? 'mem-drawer-overlay--visible' : ''}`}
+        onClick={() => setMobileDrawerOpen(false)}
+      />
+
       {/* ── Left Sidebar Navigation ── */}
-      <aside className="mem-sidebar">
+      <aside className={`mem-sidebar ${sidebarCollapsed ? 'mem-sidebar--collapsed' : ''} ${mobileDrawerOpen ? 'mem-sidebar--drawer-open' : ''}`}>
         <div>
-          <div className="mem-sidebar__brand">SAHAYI</div>
+          <div className="mem-sidebar__brand" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             {!sidebarCollapsed ? 'SAHAYI' : 'S'}
+             <div 
+               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+               title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+             >
+               <Icon d={sidebarCollapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} size={17} stroke="#aaa" strokeWidth={2.5} />
+             </div>
+          </div>
           <nav className="mem-sidebar__nav">
             <div
               className={`mem-nav-item ${activeTab === 'dashboard' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => { setActiveTab('dashboard'); setMobileDrawerOpen(false); }}
+              title={sidebarCollapsed ? "Dashboard" : ""}
             >
               <Icon d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" size={17} />
               <span>Dashboard</span>
@@ -288,7 +310,7 @@ function MemberDashboard() {
 
             <div
               className={`mem-nav-item ${activeTab === 'savings' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('savings')}
+              onClick={() => { setActiveTab('savings'); setMobileDrawerOpen(false); }}
               title="View unit savings and weekly payment history"
             >
               <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={17} />
@@ -297,7 +319,8 @@ function MemberDashboard() {
 
             <div
               className={`mem-nav-item ${activeTab === 'members' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('members')}
+              onClick={() => { setActiveTab('members'); setMobileDrawerOpen(false); }}
+              title={sidebarCollapsed ? "Members" : ""}
             >
               <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={17} />
               <span>Members</span>
@@ -305,7 +328,8 @@ function MemberDashboard() {
 
             <div
               className={`mem-nav-item ${activeTab === 'meetings' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('meetings')}
+              onClick={() => { setActiveTab('meetings'); setMobileDrawerOpen(false); }}
+              title={sidebarCollapsed ? "Meetings" : ""}
             >
               <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={17} />
               <span>Meetings</span>
@@ -313,7 +337,8 @@ function MemberDashboard() {
 
             <div
               className={`mem-nav-item ${activeTab === 'loans' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('loans')}
+              onClick={() => { setActiveTab('loans'); setMobileDrawerOpen(false); }}
+              title={sidebarCollapsed ? "Loans" : ""}
             >
               <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={17} />
               <span>Loans</span>
@@ -321,7 +346,8 @@ function MemberDashboard() {
 
             <div
               className={`mem-nav-item ${activeTab === 'chat' ? 'mem-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('chat')}
+              onClick={() => { setActiveTab('chat'); setMobileDrawerOpen(false); }}
+              title={sidebarCollapsed ? "Chats" : ""}
             >
               <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" size={17} />
               <span>Chats</span>
@@ -334,7 +360,8 @@ function MemberDashboard() {
 
           <div
             className={`mem-nav-item ${activeTab === 'settings' ? 'mem-nav-item--active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => { setActiveTab('settings'); setMobileDrawerOpen(false); }}
+            title={sidebarCollapsed ? "Settings" : ""}
           >
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
             <span>Settings</span>
@@ -346,85 +373,53 @@ function MemberDashboard() {
       <div className="mem-main">
         {/* ── Top Navbar ── */}
         <header className="mem-header">
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="mem-header__title">Member Dashboard</div>
-            <div
-              style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
-              onClick={() => setActiveTab('settings')}
-              title="Go to Settings"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              className="mem-header__hamburger"
+              onClick={() => setMobileDrawerOpen(true)}
+              title="Open Navigation"
             >
-              <span>{memberName}</span>
-              <span style={{ opacity: 0.5 }}>•</span>
-              <span style={{ color: '#059669' }}>{unitName}</span>
+              <Icon d="M3 12h18M3 6h18M3 18h18" size={24} />
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="mem-header__title">Member Dashboard</div>
+              <div
+                className="mem-header__subtitle"
+                style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
+                onClick={() => setActiveTab('settings')}
+                title="Go to Settings"
+              >
+                <span>{memberName}</span>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span style={{ color: '#059669' }}>{unitName}</span>
+              </div>
             </div>
           </div>
 
           <div className="mem-header__right">
-            <div className="mem-search-bar">
-              <Icon d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" size={15} stroke="#809986" />
-              <input type="text" placeholder="Search members, loans..." />
-            </div>
-
-            <button className="mem-header__icon-btn" onClick={() => showToast('No new notifications')}>
-              <Icon d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" size={17} />
-              <span className="mem-header__badge" />
-            </button>
-
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => setActiveTab('settings')}
-              title="Go to Settings"
-            >
-              <img
-                src={currentUser?.avatarUrl || dashboardData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=0C382E&color=fff`}
-                alt="Member Avatar"
-                className="mem-user-avatar"
-                onError={e => {
-                  e.target.onerror = null;
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=0C382E&color=fff`;
-                }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0c382e' }}>
-                  {memberName}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                  {unitName}
-                </span>
-              </div>
-            </div>
-
-            <button
-              className="mem-header__logout-btn"
-              onClick={handleLogout}
-              title="Logout"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #fee2e2',
-                backgroundColor: '#fef2f2',
-                color: '#dc2626',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                marginLeft: '8px'
+            <GlobalSearchDropdown 
+              className="mem-search-bar"
+              members={dashboardData?.members || dashboardData?.Members || []}
+              loans={dashboardData?.loans || []}
+              meetings={dashboardData?.meetings || dashboardData?.Meetings || []}
+              onSelectResult={(type, item) => {
+                if (type === 'member') setActiveTab('members');
+                else if (type === 'loan') setActiveTab('loans');
+                else if (type === 'meeting') setActiveTab('meetings');
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#fee2e2';
-                e.currentTarget.style.borderColor = '#fca5a5';
+            />
+
+
+            <ProfileDropdown
+              user={{
+                fullName: memberName,
+                avatarUrl: currentUser?.avatarUrl || dashboardData?.avatarUrl
               }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = '#fef2f2';
-                e.currentTarget.style.borderColor = '#fee2e2';
-              }}
-            >
-              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={15} />
-              <span>Logout</span>
-            </button>
+              role="Member"
+              unitName={unitName}
+              onNavigateSettings={() => setActiveTab('settings')}
+              onLogout={handleLogout}
+            />
           </div>
         </header>
 

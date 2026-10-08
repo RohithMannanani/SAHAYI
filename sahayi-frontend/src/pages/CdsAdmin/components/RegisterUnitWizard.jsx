@@ -491,6 +491,9 @@ function RegisterUnitWizard({
     const registrationData = {
       unitName: unitForm.name,
       wardId: parseInt(unitForm.ward, 10),
+      contact: unitForm.contact,
+      primaryContactPhone: unitForm.contact,
+      formationDate: unitForm.formationDate || null,
       accountNumber: unitForm.accountNumber,
       bankName: unitForm.bankName,
       ifscCode: unitForm.ifscCode,
@@ -535,6 +538,13 @@ function RegisterUnitWizard({
       const blob = new Blob([response.data], { type: 'application/pdf' });
       setRegisteredPdfBlob(blob);
 
+      const returnedUnitId = response.headers?.['x-unit-id'] || response.headers?.['X-Unit-Id'];
+      const registeredUnit = {
+        ...newUnit,
+        id: returnedUnitId ? parseInt(returnedUnitId, 10) : newUnit.id,
+        hasReceipt: true
+      };
+
       // Store PDF receipt in localStorage for fast local preview/download
       try {
         const reader = new FileReader();
@@ -549,14 +559,36 @@ function RegisterUnitWizard({
       }
 
       setIsSuccessModalOpen(true);
-      if (onRegisterSuccess) onRegisterSuccess({ ...newUnit, hasReceipt: true });
+      if (onRegisterSuccess) onRegisterSuccess(registeredUnit);
       localStorage.removeItem('cds_shg_draft'); // Clean up draft
     } catch (err) {
-      console.warn("Backend API unavailable or error occurred, using local fallback:", err);
-      // Fallback
-      setIsSuccessModalOpen(true);
-      if (onRegisterSuccess) onRegisterSuccess(newUnit);
-      localStorage.removeItem('cds_shg_draft');
+      console.error("Backend error registering unit:", err);
+
+      let serverErrorMessage = "";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const errorText = await err.response.data.text();
+          const parsed = JSON.parse(errorText);
+          serverErrorMessage = parsed.message || parsed.title || errorText;
+        } catch (_) {
+          // not json
+        }
+      } else if (err.response?.data?.message) {
+        serverErrorMessage = err.response.data.message;
+      }
+
+      if (serverErrorMessage) {
+        setFormErrors(prev => ({
+          ...prev,
+          submit: serverErrorMessage
+        }));
+      } else {
+        // Complete offline fallback only if backend completely unreachable
+        console.warn("Backend API unavailable or error occurred, using local fallback:", err);
+        setIsSuccessModalOpen(true);
+        if (onRegisterSuccess) onRegisterSuccess(newUnit);
+        localStorage.removeItem('cds_shg_draft');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1080,6 +1112,17 @@ function RegisterUnitWizard({
                       </div>
                     </div>
                   </div>
+
+                  {formErrors.submit && (
+                    <div className="cds-status-alert cds-status-alert--danger" style={{ marginBottom: '16px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <strong>Registration Failed: </strong>{formErrors.submit}
+                    </div>
+                  )}
 
                   <div className="cds-wizard-actions">
                     <button className="cds-wizard-btn cds-wizard-btn--secondary" onClick={() => setCurrentStep(2)}>&larr; Back: Members</button>

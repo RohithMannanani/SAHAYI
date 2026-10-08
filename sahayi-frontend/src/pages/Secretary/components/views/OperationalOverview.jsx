@@ -14,9 +14,10 @@ import {
   CheckCircle2,
   Trash2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
-import { formatTimeTo12Hr, formatDateToDDMMYYYY } from '../../utils/formatTime';
+import { formatTimeTo12Hr, formatDateToDDMMYYYY, isMeetingDatePassed } from '../../utils/formatTime';
 import { getWeeklyCollectionLogs } from '../../utils/weeklyCollectionUtils';
 
 function OperationalOverview({
@@ -44,6 +45,7 @@ function OperationalOverview({
   onEditMeeting,
   onMarkMeetingCompleted,
   onDeleteMeeting,
+  onShowMinutesModal,
   onNavigateMeetings
 }) {
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
@@ -79,7 +81,9 @@ function OperationalOverview({
   const endDurationStr = formatDateToDDMMYYYY(currentWeekGroup.sundayStr || currentWeekGroup.weekKey);
   const durationText = `${startDurationStr} to ${endDurationStr}`;
 
-  const upcomingMeetings = (meetings || []).filter(m => !m.isCompleted && m.tag !== 'COMPLETED');
+  const upcomingMeetings = (meetings || []).filter(
+    m => !m.isCompleted && m.tag !== 'COMPLETED' && !isMeetingDatePassed(m.date, m.time)
+  );
 
   return (
     <div className="sec-dashboard-view">
@@ -120,7 +124,9 @@ function OperationalOverview({
         <button
           className="sec-action-btn sec-action-btn--tertiary"
           onClick={() => {
-            const upcomingMeeting = (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED');
+            const upcomingMeeting = (meetings || []).find(
+              m => !m.isCompleted && m.tag !== 'COMPLETED' && !isMeetingDatePassed(m.date, m.time)
+            );
             onShowAttendanceModal(upcomingMeeting);
           }}
         >
@@ -181,6 +187,21 @@ function OperationalOverview({
                             style={{ color: '#2563eb' }}
                           >
                             <Edit size={14} />
+                          </button>
+                        )}
+
+                        {onShowMinutesModal && (
+                          <button
+                            type="button"
+                            className="sec-icon-action-btn"
+                            title="View & Edit Minutes of Meeting"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onShowMinutesModal(m);
+                            }}
+                            style={{ color: '#0c382e' }}
+                          >
+                            <FileText size={14} />
                           </button>
                         )}
 

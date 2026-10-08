@@ -310,6 +310,7 @@
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .mem-savings-table td {
@@ -317,6 +318,7 @@
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .mem-savings-table tr:last-child td {
@@ -401,7 +403,40 @@
   gap: 4px;
 }
 
+
 .mem-btn-download-sm:hover {
   background: #e2e8f0;
   color: #0f172a;
+}
+
+/* ================================================================
+   SAVINGS VIEW — RESPONSIVE BREAKPOINTS
+   ================================================================ */
+
+@media (max-width: 768px) {
+  .mem-savings-hero { flex-direction: column; gap: 16px; align-items: flex-start; padding: 18px 20px; }
+  .mem-savings-hero__title { font-size: 1.2rem; }
+  .mem-savings-hero__actions { flex-wrap: wrap; gap: 8px; width: 100%; }
+  .mem-savings-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .mem-savings-card { padding: 16px; }
+  .mem-savings-card__header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .mem-savings-tabs { flex-wrap: wrap; }
+  .mem-unit-week-summary { grid-template-columns: 1fr; gap: 8px; }
+  .mem-savings-filter-bar { flex-direction: column; align-items: flex-start; }
+  .mem-savings-input-search { width: 100%; min-width: unset; }
+  .mem-savings-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 480px) {
+  .mem-savings-hero { padding: 16px; }
+  .mem-savings-hero__title { font-size: 1rem; }
+  .mem-savings-stats-grid { grid-template-columns: 1fr; }
+  .mem-savings-stat-card__val { font-size: 1.25rem; }
+  .mem-savings-tabs { gap: 2px; }
+  .mem-savings-tab-btn { padding: 6px 10px; font-size: 0.78rem; }
+  /* Hide less important table columns on mobile */
+  .mem-savings-table th:nth-child(4),
+  .mem-savings-table td:nth-child(4),
+  .mem-savings-table th:nth-child(6),
+  .mem-savings-table td:nth-child(6) { display: none; }
 }

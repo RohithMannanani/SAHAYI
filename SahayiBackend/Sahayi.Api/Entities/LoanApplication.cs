@@ -39,6 +39,9 @@ namespace Sahayi.Api.Entities
         public int? ApprovedBy { get; set; }
 
         public DateTime? DisbursedDate { get; set; }
+ 
+        [Column(TypeName = "varchar(500)")]
+        public string? RejectionReason { get; set; }
 
         // Navigation Properties
         [ForeignKey("UserId")]

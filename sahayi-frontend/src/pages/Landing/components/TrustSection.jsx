@@ -22,7 +22,7 @@ const pillars = [
 
 function TrustSection() {
   return (
-    <section className="trust-section" id="about">
+    <section className="trust-section reveal-on-scroll" id="about">
       <div className="container trust-inner">
         <div className="trust-header">
           <h2 className="section-heading">

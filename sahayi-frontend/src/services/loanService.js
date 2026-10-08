@@ -167,22 +167,22 @@ const loanService = {
     }
   },
 
-  reviewSecretaryLoan: async (loanId, status) => {
+  reviewSecretaryLoan: async (loanId, status, reason = null) => {
     try {
-      const response = await api.post(`/president/review-loan/${loanId}`, { status });
+      const response = await api.post(`/president/review-secretary-loan/${loanId}`, { status, reason });
       return response.data;
     } catch {
-      const fallback = await api.post(`/treasurer/review-loan/${loanId}`, { status });
+      const fallback = await api.post(`/president/review-loan/${loanId}`, { status, reason });
       return fallback.data;
     }
   },
 
-  presidentReviewLoan: async (loanId, status) => {
+  presidentReviewLoan: async (loanId, status, reason = null) => {
     try {
-      const response = await api.post(`/president/review-loan/${loanId}`, { status });
+      const response = await api.post(`/president/review-loan/${loanId}`, { status, reason });
       return response.data;
     } catch {
-      const fallback = await api.post(`/treasurer/review-loan/${loanId}`, { status });
+      const fallback = await api.post(`/treasurer/review-loan/${loanId}`, { status, reason });
       return fallback.data;
     }
   }

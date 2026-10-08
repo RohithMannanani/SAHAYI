@@ -26,6 +26,9 @@ namespace Sahayi.Api.Dtos
         [Required]
         [RegularExpression("^(Approved|Rejected)$", ErrorMessage = "Status must be 'Approved' or 'Rejected'.")]
         public string Status { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Rejection reason cannot exceed 500 characters.")]
+        public string? Reason { get; set; }
     }
 
     public class RecordRepaymentDto
@@ -69,6 +72,7 @@ namespace Sahayi.Api.Dtos
         public int LoanId { get; set; }
         public int UserId { get; set; }
         public string MemberName { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
         public decimal AmountRequested { get; set; }
         public string Purpose { get; set; } = string.Empty;
         public int TenureMonths { get; set; }
@@ -77,6 +81,7 @@ namespace Sahayi.Api.Dtos
         public DateTime AppliedDate { get; set; }
         public string? ApprovedByName { get; set; }
         public DateTime? DisbursedDate { get; set; }
+        public string? RejectionReason { get; set; }
 
         // Computed Fields
         public decimal FineAmount { get; set; }
@@ -90,6 +95,8 @@ namespace Sahayi.Api.Dtos
     public class LoanRepaymentHistoryDto
     {
         public int RepaymentId { get; set; }
+        public int? LoanId { get; set; }
+        public string? BorrowerName { get; set; }
         public decimal AmountPaid { get; set; }
         public decimal PrincipalComponent { get; set; }
         public decimal InterestComponent { get; set; }

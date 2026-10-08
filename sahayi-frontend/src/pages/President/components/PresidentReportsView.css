@@ -1,0 +1,486 @@
+/* ── President Reports View Stylesheet ── */
+
+.pres-reports-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  animation: presReportsFadeIn 0.3s ease-in-out;
+}
+
+@keyframes presReportsFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Top Header & Actions ── */
+.pres-reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #ffffff;
+  padding: 20px 24px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pres-reports-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0c382e;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pres-reports-subtitle {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 6px 0 0 0;
+  line-height: 1.4;
+}
+
+.pres-reports-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pres-rep-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pres-rep-btn--outline {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.pres-rep-btn--outline:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.pres-rep-btn--primary {
+  background: #0c382e;
+  border: 1px solid #0c382e;
+  color: #ffffff;
+}
+
+.pres-rep-btn--primary:hover {
+  background: #155e4b;
+  border-color: #155e4b;
+}
+
+.pres-rep-btn--gold {
+  background: #f59e0b;
+  border: 1px solid #d97706;
+  color: #ffffff;
+}
+
+.pres-rep-btn--gold:hover {
+  background: #d97706;
+}
+
+/* ── Tab Navigation Bar ── */
+.pres-rep-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.pres-rep-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.pres-rep-tab-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.pres-rep-tab-btn--active {
+  background: #0c382e;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(12, 56, 46, 0.25);
+}
+
+.pres-rep-tab-btn--active svg {
+  stroke: #fde68a !important;
+}
+
+/* ── Filter & Search Bar ── */
+.pres-rep-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #ffffff;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.pres-rep-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 14px;
+  min-width: 280px;
+  flex: 1;
+  max-width: 480px;
+}
+
+.pres-rep-search-input-wrap input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.9rem;
+  width: 100%;
+  color: #1e293b;
+}
+
+.pres-rep-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pres-rep-select {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+/* ── Metrics Grid ── */
+.pres-rep-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.pres-rep-metric-card {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.pres-rep-metric-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pres-rep-metric-val {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #0c382e;
+  margin: 6px 0 2px 0;
+}
+
+.pres-rep-metric-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* ── Data Tables ── */
+.pres-rep-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.pres-rep-card-head {
+  padding: 18px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pres-rep-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0c382e;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pres-rep-table-wrap {
+  overflow-x: auto;
+}
+
+.pres-rep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.pres-rep-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pres-rep-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.pres-rep-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* ── Status Badges ── */
+.pres-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.pres-badge--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pres-badge--warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.pres-badge--info {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.pres-badge--danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.pres-badge--neutral {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* ── Executive Governance Statement Sheet ── */
+.pres-exec-statement {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 2px solid #0c382e;
+  padding: 32px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.pres-exec-header {
+  border-bottom: 2px solid #0c382e;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pres-exec-brand-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pres-exec-emblem {
+  width: 52px;
+  height: 52px;
+  background: #0c382e;
+  color: #fde68a;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.pres-exec-title-group h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #0c382e;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pres-exec-title-group p {
+  margin: 3px 0 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.pres-exec-meta {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.pres-exec-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.pres-exec-check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f8fafc;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.pres-exec-signatures {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px dashed #cbd5e1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.pres-sig-block {
+  text-align: center;
+  min-width: 200px;
+}
+
+.pres-sig-line {
+  border-top: 1.5px solid #334155;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.pres-sig-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0c382e;
+}
+
+.pres-sig-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.pres-rep-view-min-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0c382e;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.pres-rep-view-min-btn:hover {
+  background: #ecfdf5;
+  border-color: #059669;
+  color: #059669;
+}
+
+/* ── Print Specific Styles ── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .pres-print-target, .pres-print-target * {
+    visibility: visible;
+  }
+  .pres-print-target {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

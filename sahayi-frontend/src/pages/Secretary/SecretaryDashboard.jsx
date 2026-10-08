@@ -48,7 +48,8 @@ import EditSavingsModal from './components/modals/EditSavingsModal';
 import EditMeetingModal from './components/modals/EditMeetingModal';
 import MemberDetailModal from './components/modals/MemberDetailModal';
 import PaymentMethodModal from './components/modals/PaymentMethodModal';
-import { formatTimeTo12Hr } from './utils/formatTime';
+import MeetingMinutesModal from './components/modals/MeetingMinutesModal';
+import { formatTimeTo12Hr, isMeetingDatePassed } from './utils/formatTime';
 
 function SecretaryDashboard() {
   const navigate = useNavigate();
@@ -60,6 +61,10 @@ function SecretaryDashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('secretary_active_tab') || 'dashboard';
   });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return sessionStorage.getItem('sec_sidebar_collapsed') === 'true';
+  });
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [loanSubTab, setLoanSubTab] = useState('personal');
 
   useEffect(() => {
@@ -84,6 +89,7 @@ function SecretaryDashboard() {
   const [editingSavings, setEditingSavings] = useState(null);
   const [editingMeeting, setEditingMeeting] = useState(null);
   const [paymentMemberItem, setPaymentMemberItem] = useState(null);
+  const [selectedMinutesMeeting, setSelectedMinutesMeeting] = useState(null);
 
   // Toast Notification State
   const [toast, setToast] = useState(null);
@@ -101,6 +107,8 @@ function SecretaryDashboard() {
         setEditingSavings(null);
       } else if (editingMeeting) {
         setEditingMeeting(null);
+      } else if (selectedMinutesMeeting) {
+        setSelectedMinutesMeeting(null);
       } else if (showRegisterModal || showMeetingModal || showAttendanceModal || showHistoryModal || showOwnSavingsModal || showCalendarModal) {
         setShowRegisterModal(false);
         setShowMeetingModal(false);
@@ -108,13 +116,15 @@ function SecretaryDashboard() {
         setShowHistoryModal(false);
         setShowOwnSavingsModal(false);
         setShowCalendarModal(false);
+      } else if (mobileDrawerOpen) {
+        setMobileDrawerOpen(false);
       } else if (activeTab !== 'dashboard') {
         setActiveTab('dashboard');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [paymentMemberItem, selectedLoanDetail, selectedMemberDetail, editingSavings, showRegisterModal, showMeetingModal, showAttendanceModal, showHistoryModal, showOwnSavingsModal, showCalendarModal, activeTab]);
+  }, [paymentMemberItem, selectedLoanDetail, selectedMemberDetail, editingSavings, selectedMinutesMeeting, showRegisterModal, showMeetingModal, showAttendanceModal, showHistoryModal, showOwnSavingsModal, showCalendarModal, mobileDrawerOpen, activeTab]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -124,7 +134,7 @@ function SecretaryDashboard() {
   };
 
   const handleOpenAttendanceModal = (meeting = null) => {
-    const activeM = meeting || (meetings || []).find(m => m.attendanceRecorded && (m.attendances || m.Attendances)?.length > 0) || (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED') || (meetings || [])[0];
+    const activeM = meeting || (meetings || []).find(m => m.attendanceRecorded && (m.attendances || m.Attendances)?.length > 0) || (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED' && !isMeetingDatePassed(m.date, m.time)) || (meetings || [])[0];
     setSelectedAttendanceMeeting(activeM);
 
     if (activeM && activeM.attendanceRecorded && (activeM.attendances || activeM.Attendances)) {
@@ -145,7 +155,15 @@ function SecretaryDashboard() {
   };
 
   // Form states
-  const [newMember, setNewMember] = useState({ name: '', memberId: '', phone: '', address: '', savings: '100' });
+  const [newMember, setNewMember] = useState({
+    name: '',
+    age: '',
+    phone: '',
+    role: 'Member',
+    houseName: '',
+    memberId: '',
+    savings: '0'
+  });
   const [newMeeting, setNewMeeting] = useState({
     title: '',
     date: new Date().toISOString().split('T')[0],
@@ -159,6 +177,7 @@ function SecretaryDashboard() {
   const [savingsWeeks, setSavingsWeeks] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [loans, setLoans] = useState([]);
+  const [loanRepayments, setLoanRepayments] = useState([]);
   const [attendanceList, setAttendanceList] = useState([]);
   const [unitBankAccount, setUnitBankAccount] = useState(null);
   const [financials, setFinancials] = useState({
@@ -227,12 +246,31 @@ function SecretaryDashboard() {
           });
         }
         setSavingsLogs(combinedLogs);
-        const formattedMeetings = (data.meetings || []).map(m => ({
-          ...m,
-          time: formatTimeTo12Hr(m.time)
-        }));
+        const formattedMeetings = (data.meetings || []).map(m => {
+          const isPassed = isMeetingDatePassed(m.date, m.time);
+          const isDone = Boolean(m.isCompleted || m.tag === 'COMPLETED' || isPassed);
+          return {
+            ...m,
+            time: formatTimeTo12Hr(m.time),
+            isCompleted: isDone,
+            isExpired: isPassed,
+            tag: isDone ? 'COMPLETED' : (m.tag || 'UPCOMING'),
+            tagType: isDone ? 'peach' : (m.tagType || 'dark'),
+            completedDate: m.completedDate || (isDone ? m.date : null)
+          };
+        });
+        // Auto-sync any expired meetings to database so SQL Server is immediately updated
+        (data.meetings || []).forEach(m => {
+          if (!m.isCompleted && isMeetingDatePassed(m.date, m.time) && m.id) {
+            completeSecretaryMeeting(m.id).catch(err => {
+              console.warn('Auto-sync expired meeting to database notice:', err);
+            });
+          }
+        });
+
         setMeetings(formattedMeetings);
         setLoans(data.pendingLoans || []);
+        setLoanRepayments(data.loanRepayments || []);
 
         const recordedMeeting = formattedMeetings.find(m => m.attendanceRecorded && (m.attendances || m.Attendances)?.length > 0) || formattedMeetings[0];
         const initialMembers = (data.members || []).map(mem => {
@@ -497,51 +535,65 @@ function SecretaryDashboard() {
 
   const handleAddMemberSubmit = async (e) => {
     e.preventDefault();
-    if (!newMember.name) {
-      showToast('Please fill in Member Full Name', 'error');
+    if (!newMember.name || !newMember.name.trim()) {
+      showToast('Please fill in Member Name', 'error');
+      return;
+    }
+
+    const ageNum = parseInt(newMember.age, 10);
+    if (isNaN(ageNum) || ageNum < 18) {
+      showToast('Member age must be 18 or older', 'error');
+      return;
+    }
+
+    if (!newMember.phone || !newMember.phone.trim()) {
+      showToast('Please provide Phone Number', 'error');
+      return;
+    }
+
+    if (!newMember.houseName || !newMember.houseName.trim()) {
+      showToast('Please provide House Name', 'error');
       return;
     }
 
     try {
+      const roleIdMap = {
+        'President': 2,
+        'Secretary': 3,
+        'Treasurer': 4,
+        'Member': 5
+      };
+
       const payload = {
-        name: newMember.name,
-        memberId: newMember.memberId || `AK-${Date.now().toString().slice(-3)}`,
-        phone: newMember.phone,
-        address: newMember.address,
-        savings: parseFloat(newMember.savings || 100)
+        name: newMember.name.trim(),
+        fullName: newMember.name.trim(),
+        age: ageNum,
+        phone: newMember.phone.trim(),
+        phoneNumber: newMember.phone.trim(),
+        role: newMember.role || 'Member',
+        roleId: roleIdMap[newMember.role] || 5,
+        houseName: newMember.houseName.trim(),
+        address: newMember.houseName.trim(),
+        memberId: newMember.memberId || '',
+        savings: parseFloat(newMember.savings || 0)
       };
 
       const res = await registerSecretaryMember(payload, unitInfo.unitId);
       const createdUser = res.data?.user;
 
-      const created = {
-        id: createdUser?.userId || Date.now(),
-        userId: createdUser?.userId,
-        name: createdUser?.name || newMember.name,
-        memberId: createdUser?.memberId || newMember.memberId || 'AK-100',
-        amount: `${parseFloat(newMember.savings || 100).toFixed(2)}`,
-        status: 'Paid',
-        date: new Date().toISOString().split('T')[0]
-      };
-
-      setSavingsLogs(prev => [created, ...prev]);
-      setAttendanceList(prev => [
-        ...prev,
-        {
-          id: created.id,
-          userId: created.userId,
-          name: created.name,
-          memberId: created.memberId,
-          phone: newMember.phone || '+91 98470 12345',
-          address: newMember.address,
-          houseName: newMember.address,
-          savings: newMember.savings || '100.00',
-          status: 'present'
-        }
-      ]);
       setShowRegisterModal(false);
-      setNewMember({ name: '', memberId: '', phone: '', address: '', savings: '100' });
-      showToast(`New member ${created.name} registered in SahayiDb database!`);
+      setNewMember({
+        name: '',
+        age: '',
+        phone: '',
+        role: 'Member',
+        houseName: '',
+        memberId: '',
+        savings: '0'
+      });
+
+      showToast(`Member ${createdUser?.name || newMember.name} registered successfully! Login credentials created (Default password: Sahayi@123).`);
+      await loadDashboardData();
     } catch (err) {
       console.error('Error registering member:', err);
       showToast(err.response?.data?.message || 'Failed to register member in database', 'error');
@@ -603,8 +655,8 @@ function SecretaryDashboard() {
 
   const handleDeleteMeeting = async (meetingId) => {
     const targetM = (meetings || []).find(m => String(m.id) === String(meetingId));
-    if (targetM?.isCompleted || targetM?.tag === 'COMPLETED') {
-      showToast('Completed meetings cannot be deleted.', 'error');
+    if (targetM?.isCompleted || targetM?.tag === 'COMPLETED' || isMeetingDatePassed(targetM?.date, targetM?.time)) {
+      showToast('Completed or expired meetings cannot be deleted.', 'error');
       return;
     }
 
@@ -622,6 +674,12 @@ function SecretaryDashboard() {
   const handleUpdateMeetingSubmit = async (updatedData) => {
     if (!updatedData.title || !updatedData.location) {
       showToast('Please provide meeting title and location', 'error');
+      return;
+    }
+
+    const targetM = (meetings || []).find(m => String(m.id) === String(updatedData.id));
+    if (targetM?.isCompleted || targetM?.tag === 'COMPLETED' || isMeetingDatePassed(targetM?.date, targetM?.time)) {
+      showToast('Completed or expired meetings cannot be edited.', 'error');
       return;
     }
 
@@ -704,7 +762,7 @@ function SecretaryDashboard() {
 
   const handleSaveAttendance = async (meetingId) => {
     try {
-      const activeM = (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED') || (meetings || [])[0];
+      const activeM = (meetings || []).find(m => !m.isCompleted && m.tag !== 'COMPLETED' && !isMeetingDatePassed(m.date, m.time)) || (meetings || [])[0];
       const targetMeetingId = (meetingId && !isNaN(Number(meetingId)))
         ? Number(meetingId)
         : ((activeM?.id && !isNaN(Number(activeM.id))) ? Number(activeM.id) : 1);
@@ -816,13 +874,25 @@ function SecretaryDashboard() {
       )}
 
       {/* Left Sidebar Navigation */}
-      <SecretarySidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        unitInfo={unitInfo}
-        onLogout={handleLogout}
-        onOpenOwnSavings={() => setShowOwnSavingsModal(true)}
-      />
+      <div className={`sec-sidebar-wrapper ${mobileDrawerOpen ? 'sec-sidebar--drawer-open' : ''}`}>
+        <SecretarySidebar
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            setMobileDrawerOpen(false);
+          }}
+          unitInfo={unitInfo}
+          onLogout={handleLogout}
+          onOpenOwnSavings={() => setShowOwnSavingsModal(true)}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+        />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {mobileDrawerOpen && (
+        <div className="sec-sidebar-overlay" onClick={() => setMobileDrawerOpen(false)} />
+      )}
 
       {/* Main Container (Right of Sidebar) */}
       <div className="sec-main">
@@ -830,11 +900,16 @@ function SecretaryDashboard() {
         <SecretaryHeader
           unitInfo={unitInfo}
           currentUser={currentUser}
+          members={attendanceList}
+          loans={loans}
+          meetings={meetings}
+          onNavigate={(tab) => setActiveTab(tab)}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onShowToast={showToast}
           onNavigateSettings={() => setActiveTab('settings')}
           onLogout={handleLogout}
+          onMenuClick={() => setMobileDrawerOpen(true)}
         />
 
         {/* Main Content Area Views */}
@@ -871,6 +946,7 @@ function SecretaryDashboard() {
               onEditMeeting={setEditingMeeting}
               onMarkMeetingCompleted={handleMarkMeetingCompleted}
               onDeleteMeeting={handleDeleteMeeting}
+              onShowMinutesModal={(m) => setSelectedMinutesMeeting(m)}
               onNavigateMeetings={() => setActiveTab('meetings')}
             />
           )}
@@ -895,7 +971,7 @@ function SecretaryDashboard() {
               onDepositCashToBank={handleDepositCashToBank}
               onDepositAllCashToBank={handleDepositAllCashToBank}
               onRecordSavings={handleRecordSavings}
-              onPayNow={setPaymentMemberItem}
+              showActionColumn={false}
             />
           )}
 
@@ -907,6 +983,7 @@ function SecretaryDashboard() {
               onMarkMeetingCompleted={handleMarkMeetingCompleted}
               onDeleteMeeting={handleDeleteMeeting}
               onShowAttendanceModal={(m) => handleOpenAttendanceModal(m)}
+              onShowMinutesModal={(m) => setSelectedMinutesMeeting(m)}
             />
           )}
 
@@ -1013,6 +1090,9 @@ function SecretaryDashboard() {
           savingsWeeks={savingsWeeks}
           savingsLogs={savingsLogs || []}
           currentUserId={currentUser?.userId}
+          currentUser={currentUser}
+          loans={loans}
+          bankAccount={unitBankAccount}
           onClose={() => setShowOwnSavingsModal(false)}
         />
       )}
@@ -1049,6 +1129,21 @@ function SecretaryDashboard() {
           onClose={() => setPaymentMemberItem(null)}
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
+        />
+      )}
+
+      {selectedMinutesMeeting && (
+        <MeetingMinutesModal
+          meeting={selectedMinutesMeeting}
+          unitInfo={unitInfo}
+          attendanceList={attendanceList}
+          members={attendanceList}
+          savingsLogs={savingsLogs}
+          savingsWeeks={savingsWeeks}
+          loanRepayments={loanRepayments}
+          loans={loans}
+          onClose={() => setSelectedMinutesMeeting(null)}
+          onShowToast={showToast}
         />
       )}
     </div>

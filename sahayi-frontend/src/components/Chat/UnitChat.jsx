@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import axios from 'axios';
 import './UnitChat.css';
-import { Users, User, Send, Search } from 'lucide-react';
+import { Users, User, Send, Search, ArrowLeft } from 'lucide-react';
 
 const UnitChat = ({ unitId, currentUser }) => {
     const effectiveUser = currentUser || (() => {
@@ -21,6 +21,7 @@ const UnitChat = ({ unitId, currentUser }) => {
     const [connection, setConnection] = useState(null);
     const [isConnecting, setIsConnecting] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [mobileView, setMobileView] = useState('sidebar'); // 'sidebar' | 'chat'
     const messagesEndRef = useRef(null);
 
     const apiBase = import.meta.env.VITE_API_URL || 'https://localhost:7151';
@@ -183,7 +184,7 @@ const UnitChat = ({ unitId, currentUser }) => {
         : activeContact?.name || 'Direct Message';
 
     return (
-        <div className="messenger-layout">
+        <div className={`messenger-layout mobile-view-${mobileView}`}>
             <div className="messenger-sidebar">
                 <div className="messenger-sidebar-header">
                     <div className="messenger-header-top">
@@ -221,7 +222,10 @@ const UnitChat = ({ unitId, currentUser }) => {
                 <div className="messenger-contacts">
                     <div 
                         className={`messenger-contact-item ${activeChat === 'unit' ? 'active' : ''}`}
-                        onClick={() => setActiveChat('unit')}
+                        onClick={() => {
+                            setActiveChat('unit');
+                            setMobileView('chat');
+                        }}
                     >
                         <div className="contact-avatar group-avatar">
                             <Users size={20} />
@@ -240,7 +244,10 @@ const UnitChat = ({ unitId, currentUser }) => {
                         <div 
                             key={member.userId}
                             className={`messenger-contact-item ${activeChat === String(member.userId) ? 'active' : ''}`}
-                            onClick={() => setActiveChat(String(member.userId))}
+                            onClick={() => {
+                                setActiveChat(String(member.userId));
+                                setMobileView('chat');
+                            }}
                         >
                             <div className="contact-avatar">
                                 {member.avatar ? (
@@ -268,6 +275,13 @@ const UnitChat = ({ unitId, currentUser }) => {
             <div className="messenger-main chat-wrapper">
                 <div className="chat-header">
                     <div className="chat-header-info">
+                        <button 
+                            className="chat-back-btn" 
+                            onClick={() => setMobileView('sidebar')}
+                            title="Back to chats"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
                         <div className="chat-header-title">
                             {activeChat === 'unit' ? (
                                 <div className="chat-active-avatar group-icon">

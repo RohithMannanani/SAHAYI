@@ -44,9 +44,24 @@ export const generateSavingsPassbookPdf = async ({
   const wardNumber = dashboardData?.wardNumber || currentUser?.wardNumber || 'Ward 04';
   const roleName = dashboardData?.roleName || currentUser?.role || 'Member';
 
-  const totalSavings = Number(dashboardData?.savings?.totalSavings || 5200);
+  // Calculate member total savings dynamically (never hardcode 5200 fallback)
+  let totalSavings = 0;
+  if (Array.isArray(myPaymentsList) && myPaymentsList.length > 0) {
+    totalSavings = myPaymentsList
+      .filter((r) => (r.status || '').toLowerCase() === 'paid')
+      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  } else if (dashboardData?.savings?.totalSavings != null) {
+    totalSavings = Number(dashboardData.savings.totalSavings);
+  } else if (currentUser?.totalSavings != null) {
+    totalSavings = Number(currentUser.totalSavings);
+  } else if (dashboardData?.savings?.weeklyHistory && dashboardData.savings.weeklyHistory.length > 0) {
+    totalSavings = dashboardData.savings.weeklyHistory
+      .filter((r) => (r.status || '').toLowerCase() === 'paid')
+      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  }
+
   const savingsGoal = Number(dashboardData?.savings?.savingsGoal || 100000);
-  const progressPct = dashboardData?.savings?.progressPct || Math.min(100, Math.round((totalSavings / savingsGoal) * 100));
+  const progressPct = savingsGoal > 0 ? Math.min(100, Math.round((totalSavings / savingsGoal) * 100)) : 0;
 
   const currentDateStr = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -78,7 +93,7 @@ export const generateSavingsPassbookPdf = async ({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(255, 255, 255);
-  doc.text('PASSBOOK', 105, 26, { align: 'center' });
+  doc.text('SAVINGS', 105, 26, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -219,29 +234,35 @@ export const generateSavingsPassbookPdf = async ({
   doc.setLineWidth(0.4);
   doc.roundedRect(14, stripY, 182, 14, 2, 2, 'FD');
 
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(22, 101, 52);
-  doc.text('FINANCIAL STANDING:', 18, stripY + 6);
+  const finTitle = 'FINANCIAL STANDING:';
+  doc.text(finTitle, 18, stripY + 5.8);
+  let finCurX = 18 + doc.getTextWidth(finTitle) + 6;
 
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Total Savings Balance: `, 60, stripY + 6);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Total Savings Balance: ', finCurX, stripY + 5.8);
+  finCurX += doc.getTextWidth('Total Savings Balance: ');
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(16, 185, 129);
-  doc.text(`Rs. ${totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 96, stripY + 6);
+  const savingsStr = `Rs. ${totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  doc.text(savingsStr, finCurX, stripY + 5.8);
+  finCurX += doc.getTextWidth(savingsStr) + 10;
 
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Target Goal: `, 136, stripY + 6);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Target Goal: ', finCurX, stripY + 5.8);
+  finCurX += doc.getTextWidth('Target Goal: ');
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(30, 41, 59);
-  doc.text(`Rs. ${savingsGoal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${progressPct}%)`, 154, stripY + 6);
+  doc.text(`Rs. ${savingsGoal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${progressPct}%)`, finCurX, stripY + 5.8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(71, 85, 105);
-  doc.text(`Statement Issue Date: ${currentDateStr} | Account Status: Active & In Good Standing | Default Fine: Rs. 0.00 (Nil Fine)`, 18, stripY + 11.5);
+  doc.text(`Statement Issue Date: ${currentDateStr} | Account Status: Active & In Good Standing | Default Fine: Rs. 0.00 (Nil Fine)`, 18, stripY + 11.2);
 
   // ── 4. Passbook Ledger Table ──
   // Extract or build payment rows
@@ -274,32 +295,33 @@ export const generateSavingsPassbookPdf = async ({
     });
   }
 
-  // Ensure default realistic history if empty
-  if (rawRows.length === 0) {
+  // If no weekly history rows found but member has an opening savings balance
+  if (rawRows.length === 0 && totalSavings > 0) {
     rawRows = [
-      { weekTitle: 'Week 40: 28-09-2026 → 04-10-2026', amount: 100, status: 'Paid', paidDate: '28-09-2026', receiptNumber: 'AK-REC-2026-040' },
-      { weekTitle: 'Week 39: 21-09-2026 → 27-09-2026', amount: 100, status: 'Paid', paidDate: '21-09-2026', receiptNumber: 'AK-REC-2026-039' },
-      { weekTitle: 'Week 38: 14-09-2026 → 20-09-2026', amount: 100, status: 'Paid', paidDate: '14-09-2026', receiptNumber: 'AK-REC-2026-038' },
-      { weekTitle: 'Week 37: 07-09-2026 → 13-09-2026', amount: 100, status: 'Paid', paidDate: '07-09-2026', receiptNumber: 'AK-REC-2026-037' },
-      { weekTitle: 'Week 36: 31-08-2026 → 06-09-2026', amount: 100, status: 'Paid', paidDate: '31-08-2026', receiptNumber: 'AK-REC-2026-036' },
-      { weekTitle: 'Week 35: 24-08-2026 → 30-08-2026', amount: 100, status: 'Paid', paidDate: '24-08-2026', receiptNumber: 'AK-REC-2026-035' }
+      {
+        weekTitle: 'Initial Savings Deposit',
+        amount: totalSavings,
+        status: 'Paid',
+        paidDate: new Date().toLocaleDateString('en-GB'),
+        receiptNumber: 'AK-INIT-001'
+      }
     ];
   }
 
   // Calculate cumulative running balances
-  // We compute total deposits up to each record
-  const paidRows = rawRows.filter(r => r.status === 'Paid');
-  const paidCount = paidRows.length;
-  const baseStartingBalance = Math.max(0, totalSavings - (paidCount * 100));
+  const paidRows = rawRows.filter(r => (r.status || '').toLowerCase() === 'paid');
+  const sumOfPaidRows = paidRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const baseStartingBalance = Math.max(0, totalSavings - sumOfPaidRows);
 
   let currentRunning = baseStartingBalance;
   // If rows are newest first, reverse to compute running balance forward, then map
   const chronological = [...rawRows].reverse();
   const tableData = [];
+  const secSignName = dashboardData?.secretaryName || currentUser?.secretaryName || 'Secretary';
 
   chronological.forEach((row) => {
-    const isPaid = row.status === 'Paid';
-    const depositAmt = isPaid ? Number(row.amount || 100) : 0;
+    const isPaid = (row.status || '').toLowerCase() === 'paid';
+    const depositAmt = isPaid ? Number(row.amount || 0) : 0;
     if (isPaid) {
       currentRunning += depositAmt;
     }
@@ -313,12 +335,11 @@ export const generateSavingsPassbookPdf = async ({
       isPaid ? `${depositAmt.toFixed(2)}` : '-',
       '-',
       `${currentRunning.toFixed(2)}`,
-      isPaid ? 'Verified (Devika V)' : 'Pending Deposit'
+      isPaid ? `Verified (${secSignName})` : 'Pending Deposit'
     ]);
   });
 
-  // Re-reverse to display newest first or chronological (chronological matches bank passbook style)
-  // Let's add 6 empty ledger rows with grid lines just like the physical Kudumbashree passbook from user's photo!
+  // Add empty ledger rows with grid lines just like the physical Kudumbashree passbook
   const emptyRowsCount = Math.max(4, 12 - tableData.length);
   for (let i = 0; i < emptyRowsCount; i++) {
     tableData.push(['', '', '', '', '']);
@@ -328,7 +349,7 @@ export const generateSavingsPassbookPdf = async ({
   autoTable(doc, {
     startY: 100,
     head: [[
-      'Date\n(തീയതി)',
+      'Date / Week',
       'Deposited Amount (Rs.)',
       'Withdrawn Amount (Rs.)',
       'Balance (Rs.)',
@@ -363,7 +384,27 @@ export const generateSavingsPassbookPdf = async ({
     alternateRowStyles: {
       fillColor: [250, 250, 250]
     },
-    margin: { left: 14, right: 14 }
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section === 'body') {
+        const isBlankRow = data.row.raw && Array.isArray(data.row.raw) && data.row.raw.every(c => c === '' || c == null);
+        if (isBlankRow) {
+          data.cell.text = [''];
+          return;
+        }
+
+        const raw = Array.isArray(data.cell.text) ? data.cell.text.join(' ') : String(data.cell.text || '');
+        if ([1, 2, 3].includes(data.column.index)) {
+          let cleaned = raw.replace(/Rs\.?\s*/gi, '').replace(/₹\s*/g, '').trim();
+          if ([1, 2].includes(data.column.index)) {
+            if (cleaned === '0' || cleaned === '0.00' || cleaned === '0.0' || cleaned === '') {
+              cleaned = '-';
+            }
+          }
+          data.cell.text = [cleaned];
+        }
+      }
+    }
   });
 
   // ── 5. Official Signature & Stamp Verification Footer ──
@@ -517,7 +558,7 @@ export const generateSavingsPassbookPdf = async ({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(255, 255, 255);
-  doc.text('LOAN PASSBOOK', 105, 26, { align: 'center' });
+  doc.text('LOAN', 105, 26, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -630,38 +671,67 @@ export const generateSavingsPassbookPdf = async ({
   doc.setLineWidth(0.4);
   doc.roundedRect(14, stripY, 182, 14, 2, 2, 'FD');
 
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(22, 101, 52);
-  doc.text('LOAN STANDING:', 18, stripY + 6);
+  const titleText = 'LOAN STANDING:';
+  doc.text(titleText, 18, stripY + 5.8);
+  const titleW = doc.getTextWidth(titleText);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Sanctioned: `, 48, stripY + 6);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 41, 59);
-  doc.text(`Rs. ${sanctionedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 64, stripY + 6);
+  // Dynamic layout for the 4 metrics to ensure perfect spacing, zero overlap, and clean alignment inside the box
+  const summaryMetrics = [
+    {
+      label: 'Sanctioned: ',
+      val: `Rs. ${sanctionedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      color: [30, 41, 59]
+    },
+    {
+      label: 'Late Fine: ',
+      val: `Rs. ${loanFineAmount.toFixed(2)}`,
+      color: loanFineAmount > 0 ? [220, 38, 38] : [22, 101, 52]
+    },
+    {
+      label: 'Repaid: ',
+      val: `Rs. ${principalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      color: [16, 185, 129]
+    },
+    {
+      label: 'Outstanding: ',
+      val: `Rs. ${outstandingBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      color: hasLoan && outstandingBal > 0 ? [185, 28, 28] : [16, 185, 129]
+    }
+  ];
 
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Late Fine: `, 96, stripY + 6);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(loanFineAmount > 0 ? 220 : 22, loanFineAmount > 0 ? 38 : 101, loanFineAmount > 0 ? 38 : 52);
-  doc.text(`Rs. ${loanFineAmount.toFixed(2)}`, 110, stripY + 6);
+  const startMetricsX = 18 + titleW + 4;
+  const rightBoundaryX = 192; // 4mm inside right margin 196
+  const usableWidth = rightBoundaryX - startMetricsX;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Repaid: `, 130, stripY + 6);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(16, 185, 129);
-  doc.text(`Rs. ${principalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 142, stripY + 6);
+  // Measure content widths
+  let totalMetricsW = 0;
+  const measuredMetrics = summaryMetrics.map(m => {
+    doc.setFont('helvetica', 'normal');
+    const labelW = doc.getTextWidth(m.label);
+    doc.setFont('helvetica', 'bold');
+    const valW = doc.getTextWidth(m.val);
+    const totalW = labelW + valW;
+    totalMetricsW += totalW;
+    return { ...m, labelW, valW, totalW };
+  });
 
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Outstanding: `, 166, stripY + 6);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(hasLoan && outstandingBal > 0 ? 185 : 16, hasLoan && outstandingBal > 0 ? 28 : 185, hasLoan && outstandingBal > 0 ? 28 : 129);
-  doc.text(`Rs. ${outstandingBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 183, stripY + 6);
+  const metricGap = Math.max(3, (usableWidth - totalMetricsW) / (summaryMetrics.length - 1));
+  let curMetricsX = startMetricsX;
+
+  measuredMetrics.forEach((m, idx) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(m.label, curMetricsX, stripY + 5.8);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(m.color[0], m.color[1], m.color[2]);
+    doc.text(m.val, curMetricsX + m.labelW, stripY + 5.8);
+
+    curMetricsX += m.totalW + (idx < measuredMetrics.length - 1 ? metricGap : 0);
+  });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
@@ -671,10 +741,30 @@ export const generateSavingsPassbookPdf = async ({
       ? `Status: ${loanStatus} | Penalty Policy: Rs. 50/missed month | Next Due: ${nextDueDate} | Monthly Due: Rs. ${nextPayment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
       : `Status: No Active Loan | Member account in good standing (Zero Fines / Nil Penalty)`,
     18,
-    stripY + 11.5
+    stripY + 11.2
   );
 
   // ── 4. Loan Passbook Ledger Table (With Dedicated Fine Column) ──
+  // Helper to extract clean numeric value (stripping any Rs. or symbols)
+  const cleanAmountVal = (val) => {
+    if (val == null || val === '' || val === '-') return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    const num = parseFloat(String(val).replace(/Rs\.?\s*/gi, '').replace(/[^\d.-]/g, ''));
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Helper to format table cells without 'Rs.' and never showing '0' or '0.00' (showing '-' instead)
+  const formatLedgerCell = (val) => {
+    const num = cleanAmountVal(val);
+    if (num <= 0) return '-';
+    return num.toFixed(2);
+  };
+
+  const formatBalanceCell = (val) => {
+    const num = cleanAmountVal(val);
+    return num.toFixed(2);
+  };
+
   const loanTableData = [];
   let runningLoanBal = sanctionedAmount;
 
@@ -706,20 +796,21 @@ export const generateSavingsPassbookPdf = async ({
     mergedTransactions.forEach((entry, idx) => {
       if (entry.type === 'fine') {
         const f = entry.data;
-        runningLoanBal += f.fineAmount;
+        const fineAmt = cleanAmountVal(f.fineAmount);
+        runningLoanBal += fineAmt;
         loanTableData.push([
           f.dateStr || 'Missed Month',
           '-',
           '-',
-          `${f.fineAmount.toFixed(2)}`,
-          `${runningLoanBal.toFixed(2)}`,
+          formatLedgerCell(fineAmt),
+          formatBalanceCell(runningLoanBal),
           'Penalty (Late Fine)'
         ]);
       } else {
         const r = entry.data;
-        const pPaid = Number(r.principalComponent || r.amountPaid || 0);
-        const iPaid = Number(r.interestComponent || 0);
-        const finePaid = Number(r.finePaid || r.fineAmount || 0);
+        const pPaid = cleanAmountVal(r.principalComponent || r.amountPaid);
+        const iPaid = cleanAmountVal(r.interestComponent);
+        const finePaid = cleanAmountVal(r.finePaid || r.fineAmount);
         runningLoanBal = Math.max(0, runningLoanBal - pPaid);
         const dStr = r.repaymentDate
           ? new Date(r.repaymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -727,29 +818,27 @@ export const generateSavingsPassbookPdf = async ({
 
         loanTableData.push([
           dStr,
-          pPaid > 0 ? `${pPaid.toFixed(2)}` : '-',
-          iPaid > 0 ? `${iPaid.toFixed(2)}` : '-',
-          finePaid > 0 ? `${finePaid.toFixed(2)}` : '-',
-          `${runningLoanBal.toFixed(2)}`,
+          formatLedgerCell(pPaid),
+          formatLedgerCell(iPaid),
+          formatLedgerCell(finePaid),
+          formatBalanceCell(runningLoanBal),
           r.recordedByName ? `Verified (${r.recordedByName.split(' ')[0]})` : 'Verified (Devika V)'
         ]);
       }
     });
   } else if (dashboardData?.repaymentSchedule && dashboardData.repaymentSchedule.length > 0) {
     dashboardData.repaymentSchedule.forEach((r, idx) => {
-      const pStr = String(r.principal || '0').replace(/[^\d.]/g, '');
-      const iStr = String(r.interest || '0').replace(/[^\d.]/g, '');
-      const pPaid = Number(pStr) || 0;
-      const iPaid = Number(iStr) || 0;
+      const pPaid = cleanAmountVal(r.principal);
+      const iPaid = cleanAmountVal(r.interest);
       if (r.status === 'paid') {
         runningLoanBal = Math.max(0, runningLoanBal - pPaid);
       }
       loanTableData.push([
         r.month || `Installment #${idx + 1}`,
-        pPaid > 0 ? `${pPaid.toFixed(2)}` : '-',
-        iPaid > 0 ? `${iPaid.toFixed(2)}` : '-',
+        formatLedgerCell(pPaid),
+        formatLedgerCell(iPaid),
         '-',
-        `${runningLoanBal.toFixed(2)}`,
+        formatBalanceCell(runningLoanBal),
         r.status === 'paid' ? 'Verified (Devika V)' : 'Scheduled'
       ]);
     });
@@ -759,10 +848,10 @@ export const generateSavingsPassbookPdf = async ({
     runningLoanBal = Math.max(0, sanctionedAmount - monthlyP);
     loanTableData.push([
       'Sanction Entry',
-      `${monthlyP.toFixed(2)}`,
-      `${monthlyI.toFixed(2)}`,
+      formatLedgerCell(monthlyP),
+      formatLedgerCell(monthlyI),
       '-',
-      `${runningLoanBal.toFixed(2)}`,
+      formatBalanceCell(runningLoanBal),
       'Verified (Devika V)'
     ]);
   }
@@ -813,7 +902,30 @@ export const generateSavingsPassbookPdf = async ({
     alternateRowStyles: {
       fillColor: [250, 250, 250]
     },
-    margin: { left: 14, right: 14 }
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section === 'body') {
+        const isBlankRow = data.row.raw && Array.isArray(data.row.raw) && data.row.raw.every(c => c === '' || c == null);
+        if (isBlankRow) {
+          data.cell.text = [''];
+          return;
+        }
+
+        const raw = Array.isArray(data.cell.text) ? data.cell.text.join(' ') : String(data.cell.text || '');
+        // For numeric columns (Principal Paid, Interest Paid, Fine, Remaining Balance)
+        if ([1, 2, 3, 4].includes(data.column.index)) {
+          // Remove any 'Rs.' or 'Rs' or '₹' from cell text
+          let cleaned = raw.replace(/Rs\.?\s*/gi, '').replace(/₹\s*/g, '').trim();
+          // Never show 0 or 0.00 in payment/fine columns (1, 2, 3) - show '-' instead
+          if ([1, 2, 3].includes(data.column.index)) {
+            if (cleaned === '0' || cleaned === '0.00' || cleaned === '0.0' || cleaned === '') {
+              cleaned = '-';
+            }
+          }
+          data.cell.text = [cleaned];
+        }
+      }
+    }
   });
 
   // ── 5. Official Signature & Stamp Verification Footer (Page 2) ──
@@ -866,7 +978,12 @@ export const generateSavingsPassbookPdf = async ({
   // Trigger browser download
   const safeMemberName = memberName.replace(/\s+/g, '_');
   const safeUnitName = rawUnitName.replace(/\s+/g, '_');
-  const fileName = `Passbook_${safeMemberName}_${safeUnitName}_${Date.now()}.pdf`;
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const fileDateStr = `${day}-${month}-${year}`;
+  const fileName = `Passbook_${safeMemberName}_${safeUnitName}_${fileDateStr}.pdf`;
 
   doc.save(fileName);
   return fileName;

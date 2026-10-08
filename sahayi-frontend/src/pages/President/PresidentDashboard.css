@@ -148,6 +148,15 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
+.pres-header__hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: #1a1a1a;
+  cursor: pointer;
+  padding: 4px;
+}
+
 .pres-header__title {
   font-size: 16px;
   font-weight: 700;
@@ -857,3 +866,116 @@
 .pres-footer__links a:hover {
   color: #1a1a1a;
 }
+
+/* ── Collapsed Sidebar ── */
+.pres-sidebar--collapsed {
+  width: 70px;
+  padding: 24px 8px;
+  align-items: center;
+}
+
+.pres-sidebar--collapsed .pres-sidebar__brand {
+  font-size: 20px;
+  padding: 0 0 24px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.pres-sidebar--collapsed .pres-nav-item span {
+  display: none;
+}
+
+.pres-sidebar--collapsed .pres-nav-item {
+  justify-content: center;
+  padding: 11px 0;
+}
+
+.pres-sidebar--collapsed .pres-nav-item--active {
+  padding-left: 0;
+  border-left: none;
+  background: #2d2d2d;
+}
+
+.pres-sidebar--collapsed .pres-sidebar__divider {
+  margin: 16px 8px;
+}
+
+.pres-sidebar-toggle {
+  margin-top: 4px;
+}
+
+/* ================================================================
+   PRESIDENT DASHBOARD — RESPONSIVE BREAKPOINTS
+   ================================================================ */
+
+/* ── Mobile Responsive Sidebar Drawer ── */
+.pres-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 150;
+  backdrop-filter: blur(2px);
+}
+
+.pres-sidebar-wrapper {
+  display: flex;
+  flex-shrink: 0;
+  z-index: 200;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+@media (max-width: 1024px) {
+  .pres-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .pres-middle-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .pres-header { padding: 0 14px; }
+  .pres-search-bar { display: none; }
+  .pres-content { padding: 14px 12px; gap: 14px; }
+  .pres-metrics-grid { grid-template-columns: 1fr 1fr; }
+  .pres-card { padding: 16px; }
+
+  .pres-header__hamburger {
+    display: block;
+  }
+  
+  .pres-header__title {
+    display: none;
+  }
+
+  .pres-sidebar {
+    width: 280px;
+    height: 100%;
+    border-right: none;
+  }
+
+  .pres-sidebar-wrapper {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    height: 100vh;
+    transition: left 0.3s ease;
+    z-index: 200;
+  }
+
+  .pres-sidebar-wrapper.pres-sidebar--drawer-open {
+    left: 0;
+  }
+
+  .pres-sidebar-overlay {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .pres-metrics-grid { grid-template-columns: 1fr; }
+  .pres-content { padding: 12px 10px; }
+}
+

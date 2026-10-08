@@ -1093,5 +1093,139 @@
   opacity: 0.9;
 }
 
+/* ── Collapsed Sidebar ── */
+.mem-sidebar--collapsed {
+  width: 70px;
+  padding: 24px 8px;
+  align-items: center;
+}
 
+.mem-sidebar--collapsed .mem-sidebar__brand {
+  font-size: 20px;
+  padding: 0 0 24px 0;
+  display: flex;
+  justify-content: center;
+}
 
+.mem-sidebar--collapsed .mem-nav-item span {
+  display: none;
+}
+
+.mem-sidebar--collapsed .mem-nav-item {
+  justify-content: center;
+  padding: 11px 0;
+}
+
+.mem-sidebar--collapsed .mem-nav-item--active {
+  padding-left: 0;
+  border-left: none;
+  background: #2d2d2d;
+}
+
+.mem-sidebar--collapsed .mem-sidebar__divider {
+  margin: 16px 8px;
+}
+
+.mem-sidebar-toggle {
+  margin-top: 4px;
+}
+
+/* ================================================================
+   MEMBER DASHBOARD — RESPONSIVE BREAKPOINTS (DRAWER)
+   ================================================================ */
+
+/* ── Tablet landscape ≤ 1024px (Enable Drawer) ── */
+@media (max-width: 1024px) {
+  .mem-container { flex-direction: column; }
+  
+  .mem-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 10000;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+    width: 260px;
+    height: 100vh;
+  }
+  
+  .mem-sidebar.mem-sidebar--drawer-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+
+  .mem-main { min-height: 0; }
+  .mem-content { padding: 20px 20px; gap: 18px; }
+  .mem-top-row { grid-template-columns: 1fr; }
+  .mem-middle-row { grid-template-columns: 1fr; }
+  .mem-banner { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .mem-banner__actions { flex-wrap: wrap; gap: 8px; }
+  .mem-savings-pay-banner { flex-direction: column; gap: 16px; align-items: flex-start; }
+  .mem-savings-pay-info { max-width: 100%; }
+  .mem-savings-pay-action { width: 100%; justify-content: space-between; }
+}
+
+/* Overlay for drawer */
+.mem-drawer-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.mem-drawer-overlay.mem-drawer-overlay--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Hamburger button in header */
+.mem-header__hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: #1a1a1a;
+  padding: 8px;
+  margin-left: -8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 1024px) {
+  .mem-header__hamburger {
+    display: flex;
+  }
+}
+
+/* ── Tablet portrait ≤ 768px ── */
+@media (max-width: 768px) {
+  .mem-content { padding: 14px 14px; gap: 14px; }
+  .mem-header { padding: 0 14px; }
+  .mem-search-bar { display: none; }
+  .mem-banner__title { font-size: 22px; }
+  .mem-savings-card__amount { font-size: 28px; }
+  .mem-loan-card__amount { font-size: 22px; }
+  .mem-footer { flex-direction: column; gap: 8px; align-items: flex-start; padding: 14px 16px; }
+  .mem-modal { max-width: 95vw; padding: 18px 16px; }
+}
+
+/* ── Mobile ≤ 480px ── */
+@media (max-width: 480px) {
+  .mem-header__subtitle { display: none !important; }
+  .mem-banner__title { font-size: 18px; }
+  .mem-header__title { font-size: 14px; }
+  .mem-savings-card__amount { font-size: 24px; }
+  .mem-btn-pay-now { padding: 10px 14px; font-size: 13px; width: 100%; justify-content: center; min-height: 44px; }
+  .mem-savings-pay-action { flex-direction: column; gap: 10px; }
+  .mem-banner__actions { flex-direction: column; width: 100%; gap: 10px; }
+  .mem-banner__actions button { width: 100%; }
+  .mem-btn-primary, .mem-btn-outline, .mem-btn-pay-savings { font-size: 13px; padding: 10px 14px; min-height: 44px; justify-content: center; width: 100%; }
+  .mem-toast { top: 10px; right: 10px; left: 10px; font-size: 13px; }
+  .mem-modal { margin: 0 10px; padding: 16px 14px; }
+  /* Form inputs touch friendly */
+  .mem-form-input, .mem-form-select { min-height: 44px; }
+}

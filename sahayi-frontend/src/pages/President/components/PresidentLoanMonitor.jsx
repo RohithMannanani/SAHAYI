@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import loanService from '../../../services/loanService';
+import RejectLoanModal from './RejectLoanModal';
 
 const PresidentLoanMonitor = () => {
   const [summaryData, setSummaryData] = useState(null);
@@ -7,6 +8,8 @@ const PresidentLoanMonitor = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [rejectModalLoan, setRejectModalLoan] = useState(null);
+  const [isRejectingLoan, setIsRejectingLoan] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -32,12 +35,33 @@ const PresidentLoanMonitor = () => {
   const handleReviewLoan = async (loanId, status) => {
     try {
       setActionLoading(loanId);
-      await loanService.presidentReviewLoan(loanId, status);
+      const res = await loanService.presidentReviewLoan(loanId, status);
+      if (res?.message) {
+        // notification
+      }
       fetchData();
     } catch (err) {
       alert(err.message || 'Failed to review loan application.');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleOpenReject = (loan) => {
+    setRejectModalLoan(loan);
+  };
+
+  const handleConfirmReject = async (loanId, reason) => {
+    try {
+      setIsRejectingLoan(true);
+      const res = await loanService.presidentReviewLoan(loanId, 'Rejected', reason);
+      setRejectModalLoan(null);
+      alert(res?.message || 'Loan application rejected and SMS notification dispatched!');
+      fetchData();
+    } catch (err) {
+      alert(err.message || 'Failed to reject loan application.');
+    } finally {
+      setIsRejectingLoan(false);
     }
   };
 
@@ -128,7 +152,7 @@ const PresidentLoanMonitor = () => {
                         <button 
                           style={{ padding: '6px 16px', border: '1px solid #f87171', background: 'white', color: '#ef4444', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
                           disabled={actionLoading === loan.loanId}
-                          onClick={() => handleReviewLoan(loan.loanId, 'Rejected')}
+                          onClick={() => handleOpenReject(loan)}
                         >
                           Reject
                         </button>
@@ -207,6 +231,15 @@ const PresidentLoanMonitor = () => {
           </table>
         </div>
       </div>
+
+      {/* ── Reject Loan Application Modal (SMS Reason) ── */}
+      <RejectLoanModal
+        isOpen={Boolean(rejectModalLoan)}
+        loan={rejectModalLoan}
+        onClose={() => setRejectModalLoan(null)}
+        onConfirm={handleConfirmReject}
+        isSubmitting={isRejectingLoan}
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import './ForgotPasswordModal.css';
 function ForgotPasswordModal({ isOpen, onClose, onPasswordResetSuccess }) {
   const [step, setStep] = useState(1); // Step 1: Phone, Step 2: OTP, Step 3: New Password, Step 4: Success
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [userName, setUserName] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -38,6 +39,7 @@ function ForgotPasswordModal({ isOpen, onClose, onPasswordResetSuccess }) {
   const resetState = () => {
     setStep(1);
     setPhoneNumber('');
+    setUserName('');
     setOtpDigits(['', '', '', '', '', '']);
     setResetToken('');
     setNewPassword('');
@@ -66,6 +68,9 @@ function ForgotPasswordModal({ isOpen, onClose, onPasswordResetSuccess }) {
 
     try {
       const res = await sendForgotPasswordOtp(phoneNumber.trim());
+      if (res.data?.fullName) {
+        setUserName(res.data.fullName);
+      }
       setSuccessMsg(res.data.message || 'OTP sent successfully! Check server console log for dev environment.');
       setStep(2);
       setTimer(60);
@@ -245,8 +250,22 @@ function ForgotPasswordModal({ isOpen, onClose, onPasswordResetSuccess }) {
           {/* STEP 2: Enter 6-digit OTP */}
           {step === 2 && (
             <form onSubmit={handleVerifyOtp}>
+              {userName && (
+                <div className="fp-user-account-badge">
+                  <div className="fp-user-avatar-circle">
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="fp-user-info-text">
+                    <span className="fp-user-greeting">Account Holder</span>
+                    <span className="fp-user-fullname">{userName}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="fp-form-group">
-                <label className="fp-label">Enter 6-Digit OTP sent to {phoneNumber}</label>
+                <label className="fp-label">
+                  Enter 6-Digit OTP sent to {phoneNumber && phoneNumber.length >= 4 ? `XXXXXX${phoneNumber.slice(-4)}` : phoneNumber}
+                </label>
                 <div className="fp-otp-container">
                   {otpDigits.map((digit, idx) => (
                     <input
@@ -286,6 +305,18 @@ function ForgotPasswordModal({ isOpen, onClose, onPasswordResetSuccess }) {
           {/* STEP 3: Enter New Password */}
           {step === 3 && (
             <form onSubmit={handleResetPassword}>
+              {userName && (
+                <div className="fp-user-account-badge">
+                  <div className="fp-user-avatar-circle">
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="fp-user-info-text">
+                    <span className="fp-user-greeting">Resetting Password For</span>
+                    <span className="fp-user-fullname">{userName}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="fp-form-group">
                 <label className="fp-label">New Password</label>
                 <div className="fp-input-wrap">

@@ -109,60 +109,8 @@ function MemberSavingsView({
       });
     }
 
-    // Fallback default rows if backend returns single row
-    if (list.length <= 1) {
-      if (!list.some(r => r.weekTitle.includes('Week 40'))) {
-        list.unshift({
-          id: 'w40-entry',
-          weekTitle: `Week 40: ${weekRangeStr}`,
-          amount: 100.0,
-          status: isWeeklyPaid ? 'Paid' : 'Pending',
-          paymentMode: isWeeklyPaid ? 'Online UPI' : '-',
-          paidDate: isWeeklyPaid ? (lastPaymentDate || '28-09-2026') : '-',
-          receiptNumber: isWeeklyPaid ? 'AK-REC-2026-040' : '-',
-          isCurrentWeek: true
-        });
-      }
-      if (!list.some(r => r.weekTitle.includes('Week 39'))) {
-        list.push({
-          id: 'w39-entry',
-          weekTitle: 'Week 39: 21-09-2026 → 27-09-2026',
-          amount: 100.0,
-          status: 'Paid',
-          paymentMode: 'Razorpay Online',
-          paidDate: '21-09-2026',
-          receiptNumber: 'AK-REC-2026-039',
-          isCurrentWeek: false
-        });
-      }
-      if (!list.some(r => r.weekTitle.includes('Week 38'))) {
-        list.push({
-          id: 'w38-entry',
-          weekTitle: 'Week 38: 14-09-2026 → 20-09-2026',
-          amount: 100.0,
-          status: 'Paid',
-          paymentMode: 'Cash Deposit',
-          paidDate: '14-09-2026',
-          receiptNumber: 'AK-REC-2026-038',
-          isCurrentWeek: false
-        });
-      }
-      if (!list.some(r => r.weekTitle.includes('Week 37'))) {
-        list.push({
-          id: 'w37-entry',
-          weekTitle: 'Week 37: 07-09-2026 → 13-09-2026',
-          amount: 100.0,
-          status: 'Paid',
-          paymentMode: 'Cash Deposit',
-          paidDate: '07-09-2026',
-          receiptNumber: 'AK-REC-2026-037',
-          isCurrentWeek: false
-        });
-      }
-    }
-
     return list;
-  }, [dashboardData, savingsWeeks, currentUser, isWeeklyPaid, weekRangeStr, lastPaymentDate]);
+  }, [dashboardData, savingsWeeks, currentUser]);
 
   // Filtered Personal History
   const filteredMyPayments = useMemo(() => {
@@ -260,16 +208,36 @@ Verified Digital Record from SahayiDb Database.
   const selectedWeekData = useMemo(() => {
     const targetWeek = availableWeeks.find(w => w.id === selectedWeekId) || availableWeeks[0];
 
-    // If targetWeek has real member items from backend API
-    if (Array.isArray(targetWeek?.members) && targetWeek.members.length > 0) {
-      const membersList = targetWeek.members.map(m => ({
-        id: m.userId || m.id,
-        name: m.name || m.fullName || 'Member',
-        houseName: m.houseName || 'Kudumbashree House',
-        status: m.status || 'Paid',
-        paymentDate: m.paidDate || m.date || '28-09-2026',
-        verifiedBy: m.verifiedBy || 'Secretary (Devika V)'
-      }));
+    // Try to get members from targetWeek
+    let membersSource = targetWeek?.members;
+    
+    // Fallback to real unit members from dashboardData if targetWeek has no members
+    if (!Array.isArray(membersSource) || membersSource.length === 0) {
+      membersSource = dashboardData?.members || dashboardData?.Members || [];
+    }
+
+    // If we have any real members, from either source
+    if (Array.isArray(membersSource) && membersSource.length > 0) {
+      const membersList = membersSource.map((m, index) => {
+        let status = m.status || m.savingsStatus || 'Pending';
+        let paymentDate = m.paidDate || m.date || '-';
+        let houseName = m.houseName || m.address || '-';
+        
+        // Ensure accurate state for the current logged in user
+        if (String(m.userId || m.id) === String(currentUser?.userId)) {
+           status = isWeeklyPaid ? 'Paid' : 'Pending';
+           paymentDate = isWeeklyPaid ? (lastPaymentDate || '28-09-2026') : '-';
+        }
+        
+        return {
+          id: m.userId || m.id || index + 1,
+          name: m.name || m.fullName || 'Member',
+          houseName,
+          status,
+          paymentDate,
+          verifiedBy: status === 'Paid' ? (m.verifiedBy || 'System') : '-'
+        };
+      });
 
       const paidCount = membersList.filter(m => m.status === 'Paid').length;
       const pendingCount = membersList.filter(m => m.status === 'Pending').length;
@@ -286,35 +254,14 @@ Verified Digital Record from SahayiDb Database.
       };
     }
 
-    // Default transparent group compliance list (without confidential balances)
-    const mockUnitMembers = [
-      { id: 1, name: memberName, houseName: currentUser?.houseName || 'Green Villa', status: isWeeklyPaid ? 'Paid' : 'Pending', paymentDate: isWeeklyPaid ? (lastPaymentDate || '28-09-2026') : '-', verifiedBy: 'Secretary (Devika V)' },
-      { id: 2, name: 'Anitha Kumari', houseName: 'Rose Haven', status: 'Paid', paymentDate: '28-09-2026', verifiedBy: 'Treasurer (Priya R)' },
-      { id: 3, name: 'Sunitha Ramesh', houseName: 'Lakshmi Nivas', status: 'Paid', paymentDate: '27-09-2026', verifiedBy: 'Secretary (Devika V)' },
-      { id: 4, name: 'Bindu Sajeev', houseName: 'Surya Kanthi', status: 'Paid', paymentDate: '28-09-2026', verifiedBy: 'Secretary (Devika V)' },
-      { id: 5, name: 'Saraswathi Amma', houseName: 'Shanti Nivas', status: 'Paid', paymentDate: '26-09-2026', verifiedBy: 'Treasurer (Priya R)' },
-      { id: 6, name: 'Radhamani Pillai', houseName: 'Krishna Kripa', status: 'Pending', paymentDate: '-', verifiedBy: 'Secretary (Devika V)' },
-      { id: 7, name: 'Lekha Sreekumar', houseName: 'Manasa Mandiram', status: 'Paid', paymentDate: '28-09-2026', verifiedBy: 'Treasurer (Priya R)' },
-      { id: 8, name: 'Deepa Varma', houseName: 'Vrindavan', status: 'Paid', paymentDate: '27-09-2026', verifiedBy: 'Secretary (Devika V)' },
-      { id: 9, name: 'Sobhana Nair', houseName: 'Gokulam', status: 'Excused', paymentDate: '-', verifiedBy: 'Secretary (Devika V)' },
-      { id: 10, name: 'Kavitha Mohan', houseName: 'Revathi', status: 'Paid', paymentDate: '28-09-2026', verifiedBy: 'Treasurer (Priya R)' },
-      { id: 11, name: 'Mini Chandran', houseName: 'Sree Padmam', status: 'Paid', paymentDate: '28-09-2026', verifiedBy: 'Secretary (Devika V)' },
-      { id: 12, name: 'Manju Gopinath', houseName: 'Ananda Bhavanam', status: 'Paid', paymentDate: '27-09-2026', verifiedBy: 'Treasurer (Priya R)' },
-      { id: 13, name: 'Saritha Rajesh', houseName: 'Souparnika', status: 'Paid', paymentDate: '28-09-2026', verifiedBy: 'Secretary (Devika V)' },
-      { id: 14, name: 'Remya Vijayan', houseName: 'Saraswathy Villa', status: 'Paid', paymentDate: '28-09-2026', verifiedBy: 'Treasurer (Priya R)' },
-      { id: 15, name: 'Geetha Haridas', houseName: 'Nandanam', status: 'Paid', paymentDate: '27-09-2026', verifiedBy: 'Secretary (Devika V)' }
-    ];
-
-    const paidCount = mockUnitMembers.filter(m => m.status === 'Paid').length;
-    const pendingCount = mockUnitMembers.filter(m => m.status === 'Pending').length;
-
+    // If no members are found in either source, return a safe empty default
     return {
       title: targetWeek.title,
-      totalExpected: mockUnitMembers.length * 100,
-      totalCollected: paidCount * 100,
-      pendingCount,
-      totalMembers: mockUnitMembers.length,
-      membersList: mockUnitMembers
+      totalExpected: 0,
+      totalCollected: 0,
+      pendingCount: 0,
+      totalMembers: 0,
+      membersList: []
     };
   }, [availableWeeks, selectedWeekId, memberName, currentUser, isWeeklyPaid, lastPaymentDate]);
 

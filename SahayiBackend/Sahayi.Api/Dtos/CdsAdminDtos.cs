@@ -11,6 +11,12 @@ namespace Sahayi.Api.DTOs
         [Required]
         public int WardId { get; set; }
 
+        public string? PrimaryContactPhone { get; set; }
+
+        public string? Contact { get; set; }
+
+        public DateTime? FormationDate { get; set; }
+
         [Required]
         public string AccountNumber { get; set; } = string.Empty;
 

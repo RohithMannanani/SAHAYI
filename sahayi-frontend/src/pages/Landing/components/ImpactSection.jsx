@@ -41,7 +41,7 @@ function ImpactSection({ metrics }) {
   const assets = useCountUp(Math.max(1, Math.round(targetSavings / 1000)));
 
   return (
-    <section className="impact-section" id="community">
+    <section className="impact-section reveal-on-scroll" id="community">
       <div className="container">
         <div className="impact-grid">
           {/* Left */}

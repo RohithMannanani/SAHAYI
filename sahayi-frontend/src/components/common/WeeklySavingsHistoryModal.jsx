@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { X, CheckCircle2, Clock, Search, Filter, Calendar, CreditCard, Landmark } from 'lucide-react';
+import { X, CheckCircle2, Clock, Search, Filter, Calendar, CreditCard, Landmark, FileDown } from 'lucide-react';
+import { generateSavingsPassbookPdf } from '../../utils/passbookPdfGenerator';
 import './WeeklySavingsHistoryModal.css';
 
 const cleanWeekTitle = (title) => {
@@ -14,13 +15,19 @@ function WeeklySavingsHistoryModal({
   savingsWeeks = [],
   savingsLogs = [],
   currentUserId = null,
+  currentUser = null,
+  dashboardData = null,
+  loans = [],
+  bankAccount = null,
   onClose,
   onRecordPayment,
-  onDepositCash
+  onDepositCash,
+  onDownloadPassbook
 }) {
   const [activeTab, setActiveTab] = useState('paid'); // 'paid' or 'pending'
   const [selectedWeekId, setSelectedWeekId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDownloadingPassbook, setIsDownloadingPassbook] = useState(false);
 
   // Process data into a flattened list of payments with week context
   const processedPayments = useMemo(() => {
@@ -170,6 +177,45 @@ function WeeklySavingsHistoryModal({
   const totalPaidAmount = useMemo(() => processedPayments.filter(p => p.status === 'Paid').reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0), [processedPayments]);
   const totalPendingAmount = useMemo(() => processedPayments.filter(p => p.status === 'Pending').reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0), [processedPayments]);
 
+  const resolveCurrentUser = () => {
+    if (currentUser) return currentUser;
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return null;
+  };
+
+  const handleDownloadPassbook = async () => {
+    if (typeof onDownloadPassbook === 'function') {
+      onDownloadPassbook();
+      return;
+    }
+
+    try {
+      setIsDownloadingPassbook(true);
+      const userObj = resolveCurrentUser() || {};
+
+      const effectiveMemberName = userObj.fullName || userObj.name || (processedPayments[0]?.name !== 'Member' ? processedPayments[0]?.name : null);
+      if (effectiveMemberName) {
+        userObj.fullName = effectiveMemberName;
+      }
+
+      await generateSavingsPassbookPdf({
+        dashboardData,
+        currentUser: userObj,
+        savingsWeeks,
+        myPaymentsList: processedPayments,
+        bankAccount: bankAccount || dashboardData?.bankAccount,
+        loans: loans.length > 0 ? loans : (dashboardData?.loans || [])
+      });
+    } catch (err) {
+      console.error('Failed to generate passbook PDF:', err);
+    } finally {
+      setIsDownloadingPassbook(false);
+    }
+  };
+
   return (
     <div className="wsh-modal-overlay" onClick={onClose}>
       <div className="wsh-modal-container" onClick={e => e.stopPropagation()}>
@@ -274,6 +320,18 @@ function WeeklySavingsHistoryModal({
                 />
               </div>
             )}
+
+            {/* Download Passbook Button */}
+            <button
+              type="button"
+              className="wsh-download-passbook-btn"
+              onClick={handleDownloadPassbook}
+              disabled={isDownloadingPassbook}
+              title="Download Official 2-Page Passbook (Savings + Loan) PDF"
+            >
+              <FileDown size={15} />
+              <span>{isDownloadingPassbook ? 'Downloading...' : 'Download Passbook'}</span>
+            </button>
           </div>
         </div>
 

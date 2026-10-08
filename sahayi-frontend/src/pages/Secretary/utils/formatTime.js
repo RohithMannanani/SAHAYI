@@ -66,3 +66,47 @@ export const formatDateToDDMMYYYY = (dateStr) => {
     return str;
   }
 };
+
+/**
+ * Checks if a meeting date and time have passed.
+ * Returns true if the date is strictly before today,
+ * or if it is today and the specified meeting time has elapsed.
+ */
+export const isMeetingDatePassed = (dateStr, timeStr) => {
+  if (!dateStr) return false;
+  try {
+    const cleanDateStr = String(dateStr).trim().split('T')[0];
+    const now = new Date();
+
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    if (cleanDateStr < todayStr) {
+      return true;
+    }
+
+    if (cleanDateStr > todayStr) {
+      return false;
+    }
+
+    // If meeting is today, check if meeting time has passed
+    if (timeStr) {
+      const str = String(timeStr).trim();
+      const match = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+      if (match) {
+        let hrs = parseInt(match[1], 10);
+        const mins = parseInt(match[2], 10);
+        const period = (match[3] || '').toUpperCase();
+        if (period === 'PM' && hrs < 12) hrs += 12;
+        if (period === 'AM' && hrs === 12) hrs = 0;
+
+        const meetingTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hrs, mins, 0);
+        return now > meetingTime;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+};
+

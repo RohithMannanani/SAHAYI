@@ -20,6 +20,10 @@ function CdsAdminDashboard() {
   const [activeNav, setActiveNav] = useState(() => {
     return sessionStorage.getItem('cds_admin_active_nav') || 'dashboard';
   });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return sessionStorage.getItem('cds_sidebar_collapsed') === 'true';
+  });
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('user') || '{}'); }
@@ -49,13 +53,15 @@ function CdsAdminDashboard() {
     const handlePopState = () => {
       if (selectedUnit) {
         setSelectedUnit(null);
+      } else if (mobileDrawerOpen) {
+        setMobileDrawerOpen(false);
       } else if (activeNav !== 'dashboard') {
         setActiveNav('dashboard');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [selectedUnit, activeNav]);
+  }, [selectedUnit, mobileDrawerOpen, activeNav]);
 
   const handleSelectUnitWithHistory = (unit) => {
     if (unit) {
@@ -210,14 +216,26 @@ function CdsAdminDashboard() {
       )}
 
       {/* Sidebar */}
-      <CdsAdminSidebar
-        activeNav={activeNav}
-        setActiveNav={setActiveNav}
-        setSelectedUnit={setSelectedUnit}
-        setIsRecordModalOpen={setIsRecordModalOpen}
-        handleLogout={handleLogout}
-        navItems={navItems}
-      />
+      <div className={`cds-sidebar-wrapper ${mobileDrawerOpen ? 'cds-sidebar--drawer-open' : ''}`}>
+        <CdsAdminSidebar
+          activeNav={activeNav}
+          setActiveNav={(nav) => {
+            setActiveNav(nav);
+            setMobileDrawerOpen(false);
+          }}
+          setSelectedUnit={setSelectedUnit}
+          setIsRecordModalOpen={setIsRecordModalOpen}
+          handleLogout={handleLogout}
+          navItems={navItems}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+        />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {mobileDrawerOpen && (
+        <div className="cds-sidebar-overlay" onClick={() => setMobileDrawerOpen(false)} />
+      )}
 
       {/* Main Content Area */}
       <div className="cds-main">
@@ -227,11 +245,16 @@ function CdsAdminDashboard() {
           setSearchQuery={setSearchQuery}
           initials={initials}
           user={user}
+          units={ayalkoottamList}
           onOpenSettings={() => {
             setActiveNav('settings');
             setSelectedUnit(null);
           }}
+          onSelectResult={(type, item) => {
+            if (type === 'unit') handleSelectUnitWithHistory(item);
+          }}
           onLogout={handleLogout}
+          onMenuClick={() => setMobileDrawerOpen(true)}
         />
 
         {/* Dynamic Content Views */}

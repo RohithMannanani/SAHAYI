@@ -140,33 +140,57 @@ namespace Sahayi.Api.Controllers
                     .OrderBy(m => m.MeetingDate)
                     .ToListAsync();
 
+                // If meeting date passed, automatically mark as expired and completed if secretary forgot
+                bool meetingsUpdated = false;
+                foreach (var m in meetingsList)
+                {
+                    if (!m.IsCompleted && HasMeetingDatePassed(m.MeetingDate, m.MeetingTime))
+                    {
+                        m.IsCompleted = true;
+                        m.CompletedDate = m.CompletedDate ?? m.MeetingDate;
+                        meetingsUpdated = true;
+                    }
+                }
+                if (meetingsUpdated)
+                {
+                    await _context.SaveChangesAsync();
+                }
+
                 var meetingItems = new List<SecretaryMeetingItemDto>();
                 if (meetingsList.Any())
                 {
-                    meetingItems = meetingsList.Select((m, idx) => new SecretaryMeetingItemDto
+                    meetingItems = meetingsList.Select((m, idx) =>
                     {
-                        Id = m.MeetingId,
-                        Title = string.IsNullOrWhiteSpace(m.MinutesOfMeeting) ? $"Meeting #{m.MeetingId}" : m.MinutesOfMeeting,
-                        Tag = m.IsCompleted ? "COMPLETED" : (m.MeetingDate > DateTime.UtcNow ? "UPCOMING" : "NEXT WEEK"),
-                        TagType = m.IsCompleted ? "peach" : (idx % 2 == 0 ? "dark" : "peach"),
-                        Date = m.MeetingDate.ToString("yyyy-MM-dd"),
-                        Time = !string.IsNullOrWhiteSpace(m.MeetingTime) ? m.MeetingTime : m.MeetingDate.ToString("hh:mm tt"),
-                        Location = m.Venue,
-                        IsCompleted = m.IsCompleted,
-                        CompletedDate = m.CompletedDate.HasValue ? m.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm") : null,
-                        AttendanceRecorded = m.Attendances != null && m.Attendances.Any(),
-                        Attendances = m.Attendances != null
-                            ? m.Attendances
-                                .GroupBy(a => a.UserId)
-                                .Select(g => g.OrderByDescending(a => a.AttendanceId).First())
-                                .Select(a => new SecretaryAttendanceRecordDto
-                                {
-                                    AttendanceId = a.AttendanceId,
-                                    MeetingId = a.MeetingId,
-                                    UserId = a.UserId,
-                                    IsPresent = a.IsPresent
-                                }).ToList()
-                            : new List<SecretaryAttendanceRecordDto>()
+                        bool isPassed = HasMeetingDatePassed(m.MeetingDate, m.MeetingTime);
+                        bool isDone = m.IsCompleted || isPassed;
+
+                        return new SecretaryMeetingItemDto
+                        {
+                            Id = m.MeetingId,
+                            Title = string.IsNullOrWhiteSpace(m.MinutesOfMeeting) ? $"Meeting #{m.MeetingId}" : m.MinutesOfMeeting,
+                            Tag = isDone ? "COMPLETED" : (m.MeetingDate.Date == DateTime.Today ? "TODAY" : "UPCOMING"),
+                            TagType = isDone ? "peach" : (idx % 2 == 0 ? "dark" : "peach"),
+                            Date = m.MeetingDate.ToString("yyyy-MM-dd"),
+                            Time = !string.IsNullOrWhiteSpace(m.MeetingTime) ? m.MeetingTime : m.MeetingDate.ToString("hh:mm tt"),
+                            Location = m.Venue,
+                            IsCompleted = isDone,
+                            IsExpired = isPassed,
+                            Status = isDone ? "Completed" : "Upcoming",
+                            CompletedDate = m.CompletedDate.HasValue ? m.CompletedDate.Value.ToString("yyyy-MM-dd HH:mm") : (isDone ? m.MeetingDate.ToString("yyyy-MM-dd HH:mm") : null),
+                            AttendanceRecorded = m.Attendances != null && m.Attendances.Any(),
+                            Attendances = m.Attendances != null
+                                ? m.Attendances
+                                    .GroupBy(a => a.UserId)
+                                    .Select(g => g.OrderByDescending(a => a.AttendanceId).First())
+                                    .Select(a => new SecretaryAttendanceRecordDto
+                                    {
+                                        AttendanceId = a.AttendanceId,
+                                        MeetingId = a.MeetingId,
+                                        UserId = a.UserId,
+                                        IsPresent = a.IsPresent
+                                    }).ToList()
+                                : new List<SecretaryAttendanceRecordDto>()
+                        };
                     }).ToList();
                 }
 
@@ -282,13 +306,17 @@ namespace Sahayi.Api.Controllers
                     Meetings = meetingItems,
                     PendingLoans = loanItems,
                     Members = memberItems,
-                    LoanRepayments = await _context.LoanApplications
-                        .Where(l => l.UnitId == targetUnitId)
-                        .SelectMany(l => l.LoanRepayments)
+                    LoanRepayments = await _context.LoanRepayments
+                        .Include(r => r.LoanApplication)
+                            .ThenInclude(l => l!.User)
+                        .Include(r => r.Recorder)
+                        .Where(r => r.LoanApplication != null && r.LoanApplication.UnitId == targetUnitId)
                         .OrderByDescending(r => r.RepaymentDate)
                         .Select(r => new LoanRepaymentHistoryDto
                         {
                             RepaymentId = r.RepaymentId,
+                            LoanId = r.LoanId,
+                            BorrowerName = r.LoanApplication!.User != null ? r.LoanApplication.User.FullName : "Member",
                             AmountPaid = r.AmountPaid,
                             PrincipalComponent = r.PrincipalComponent,
                             InterestComponent = r.InterestComponent,
@@ -322,29 +350,97 @@ namespace Sahayi.Api.Controllers
                 int targetUnitId = unitId ?? 0;
                 if (targetUnitId == 0)
                 {
+                    var unitClaim = User.Claims.FirstOrDefault(c => c.Type == "UnitId")?.Value;
+                    if (int.TryParse(unitClaim, out int claimUnitId) && claimUnitId > 0)
+                    {
+                        targetUnitId = claimUnitId;
+                    }
+                    else
+                    {
+                        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                        if (int.TryParse(userIdClaim, out int authUserId))
+                        {
+                            var authUser = await _context.ApplicationUsers.FindAsync(authUserId);
+                            if (authUser?.UnitId != null)
+                            {
+                                targetUnitId = authUser.UnitId.Value;
+                            }
+                        }
+                    }
+                }
+
+                if (targetUnitId == 0)
+                {
                     var unit = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.IsActive);
                     if (unit == null)
                         return BadRequest(new { message = "No active Ayalkoottam unit found." });
                     targetUnitId = unit.UnitId;
                 }
 
-                string phone = string.IsNullOrWhiteSpace(dto.Phone) ? $"98470{Random.Shared.Next(10000, 99999)}" : dto.Phone.Trim();
+                string rawPhone = !string.IsNullOrWhiteSpace(dto.PhoneNumber) ? dto.PhoneNumber : dto.Phone;
+                if (string.IsNullOrWhiteSpace(rawPhone))
+                {
+                    return BadRequest(new { message = "Phone number is required." });
+                }
+
+                // Clean phone number (strip whitespace, hyphens, and +91 prefix)
+                string cleanPhone = rawPhone.Trim().Replace(" ", "").Replace("-", "");
+                if (cleanPhone.StartsWith("+91"))
+                {
+                    cleanPhone = cleanPhone.Substring(3);
+                }
+                else if (cleanPhone.StartsWith("91") && cleanPhone.Length == 12)
+                {
+                    cleanPhone = cleanPhone.Substring(2);
+                }
+
+                if (cleanPhone.Length != 10 || !cleanPhone.All(char.IsDigit))
+                {
+                    return BadRequest(new { message = "Please provide a valid 10-digit phone number." });
+                }
 
                 // Check if user with phone already exists
-                if (await _context.ApplicationUsers.AnyAsync(u => u.PhoneNumber == phone || u.Username == phone))
+                if (await _context.ApplicationUsers.AnyAsync(u => u.PhoneNumber == cleanPhone || u.Username == cleanPhone || u.PhoneNumber == rawPhone.Trim()))
                 {
-                    return BadRequest(new { message = $"Phone number '{phone}' is already registered." });
+                    return BadRequest(new { message = $"Phone number '{cleanPhone}' is already registered in the system." });
+                }
+
+                string fullName = !string.IsNullOrWhiteSpace(dto.FullName) ? dto.FullName.Trim() : dto.Name.Trim();
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    return BadRequest(new { message = "Member Name is required." });
+                }
+
+                if (dto.Age.HasValue && dto.Age.Value < 18)
+                {
+                    return BadRequest(new { message = "Member must be at least 18 years old." });
+                }
+
+                string houseName = !string.IsNullOrWhiteSpace(dto.HouseName)
+                    ? dto.HouseName.Trim()
+                    : (!string.IsNullOrWhiteSpace(dto.Address) ? dto.Address.Trim() : "Akshaya Ward");
+
+                int resolvedRoleId = dto.RoleId ?? 5;
+                if (!string.IsNullOrWhiteSpace(dto.Role))
+                {
+                    resolvedRoleId = dto.Role.Trim().ToLower() switch
+                    {
+                        "president" => 2,
+                        "secretary" => 3,
+                        "treasurer" => 4,
+                        _ => 5
+                    };
                 }
 
                 var newUser = new ApplicationUser
                 {
-                    Username = phone,
-                    FullName = dto.Name,
-                    PhoneNumber = phone,
-                    HouseName = string.IsNullOrWhiteSpace(dto.Address) ? "Akshaya Ward" : dto.Address,
+                    Username = cleanPhone,
+                    FullName = fullName,
+                    PhoneNumber = cleanPhone,
+                    HouseName = houseName,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Sahayi@123"),
-                    IsPasswordChanged = false,
-                    RoleId = 5, // General Member
+                    IsPasswordChanged = false, // Set to false to force password change on first login
+                    RoleId = resolvedRoleId,
                     UnitId = targetUnitId,
                     JoinedDate = DateTime.UtcNow,
                     IsActive = true
@@ -353,22 +449,11 @@ namespace Sahayi.Api.Controllers
                 _context.ApplicationUsers.Add(newUser);
                 await _context.SaveChangesAsync();
 
-                // Add initial savings transaction if savings amount provided
-                if (dto.Savings > 0)
-                {
-                    var savingsTx = new SavingsTransaction
-                    {
-                        UserId = newUser.UserId,
-                        UnitId = targetUnitId,
-                        Amount = dto.Savings,
-                        TransactionDate = DateTime.UtcNow,
-                        ReceiptNumber = $"REC-{DateTime.UtcNow.Ticks.ToString()[^8..]}",
-                        RecordedBy = newUser.UserId
-                    };
-                    _context.SavingsTransactions.Add(savingsTx);
-                }
+                int memberCount = await _context.ApplicationUsers.CountAsync(u => u.UnitId == targetUnitId);
+                string memberId = !string.IsNullOrWhiteSpace(dto.MemberId) ? dto.MemberId : $"AK-{memberCount:D3}";
 
-                await _context.SaveChangesAsync();
+                // Newly registered members start with clean zero savings and pending weekly payment.
+                // Weekly thrift savings is recorded separately during weekly meetings or online payment.
 
                 return Ok(new
                 {
@@ -377,15 +462,23 @@ namespace Sahayi.Api.Controllers
                     {
                         userId = newUser.UserId,
                         name = newUser.FullName,
-                        memberId = dto.MemberId,
+                        fullName = newUser.FullName,
+                        memberId = memberId,
                         phone = newUser.PhoneNumber,
+                        phoneNumber = newUser.PhoneNumber,
+                        houseName = newUser.HouseName,
+                        roleId = newUser.RoleId,
+                        role = dto.Role ?? (resolvedRoleId == 2 ? "President" : resolvedRoleId == 3 ? "Secretary" : resolvedRoleId == 4 ? "Treasurer" : "Member"),
+                        unitId = newUser.UnitId,
+                        isPasswordChanged = newUser.IsPasswordChanged,
                         amount = dto.Savings.ToString("0.00")
                     }
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Failed to register member.", details = ex.Message });
+                var errorDetail = ex.InnerException != null ? $"{ex.Message} --> {ex.InnerException.Message}" : ex.Message;
+                return StatusCode(500, new { message = "Failed to register member.", details = errorDetail });
             }
         }
 
@@ -451,9 +544,9 @@ namespace Sahayi.Api.Controllers
                 var meeting = await _context.Meetings.FindAsync(id);
                 if (meeting != null)
                 {
-                    if (meeting.IsCompleted)
+                    if (meeting.IsCompleted || HasMeetingDatePassed(meeting.MeetingDate, meeting.MeetingTime))
                     {
-                        return BadRequest(new { message = "Completed meetings cannot be deleted." });
+                        return BadRequest(new { message = "Completed or expired meetings cannot be deleted." });
                     }
 
                     _context.Meetings.Remove(meeting);
@@ -480,8 +573,16 @@ namespace Sahayi.Api.Controllers
                 if (meeting == null)
                     return NotFound(new { message = "Meeting not found." });
 
-                if (meeting.IsCompleted)
-                    return BadRequest(new { message = "Completed meetings cannot be edited." });
+                if (meeting.IsCompleted || HasMeetingDatePassed(meeting.MeetingDate, meeting.MeetingTime))
+                {
+                    if (!meeting.IsCompleted)
+                    {
+                        meeting.IsCompleted = true;
+                        meeting.CompletedDate = meeting.MeetingDate;
+                        await _context.SaveChangesAsync();
+                    }
+                    return BadRequest(new { message = "Completed or expired meetings cannot be edited." });
+                }
 
                 if (!string.IsNullOrWhiteSpace(dto.Title))
                     meeting.MinutesOfMeeting = dto.Title;
@@ -836,6 +937,40 @@ namespace Sahayi.Api.Controllers
             {
                 return StatusCode(500, new { message = "Failed to clear savings data.", details = ex.Message });
             }
+        }
+
+        // Helper method to determine if a meeting's date and time have passed
+        private static bool HasMeetingDatePassed(DateTime meetingDate, string? meetingTime)
+        {
+            var nowUtc = DateTime.UtcNow;
+            var nowLocal = DateTime.Now;
+            var mDate = meetingDate.Date;
+
+            // If meeting date is strictly before today in both UTC and local date
+            if (mDate < nowUtc.Date && mDate < nowLocal.Date)
+            {
+                return true;
+            }
+
+            // If meeting date is in the future in both UTC and local date
+            if (mDate > nowUtc.Date && mDate > nowLocal.Date)
+            {
+                return false;
+            }
+
+            // If meeting date is today, check if meeting time was provided and has passed
+            if (!string.IsNullOrWhiteSpace(meetingTime))
+            {
+                if (DateTime.TryParse($"{mDate:yyyy-MM-dd} {meetingTime}", out var parsedMeetingTime))
+                {
+                    if (nowLocal > parsedMeetingTime && nowUtc > parsedMeetingTime)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

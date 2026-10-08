@@ -18,3 +18,21 @@
 .member-loan-page .table td {
   vertical-align: middle;
 }
+
+/* Ensure all tables inside the loan page don't compress on mobile */
+.member-loan-page table th,
+.member-loan-page table td {
+  white-space: nowrap;
+}
+
+/* Make sure modal overlays have some padding on small screens */
+@media (max-width: 480px) {
+  .member-loan-page .mem-loan-content {
+    flex-direction: column;
+  }
+  .member-loan-page .mem-loan-left,
+  .member-loan-page .mem-loan-right {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+}

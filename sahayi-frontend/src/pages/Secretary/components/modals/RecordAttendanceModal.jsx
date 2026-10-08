@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Calendar, MapPin, Clock, CheckCircle2, UserCheck, Users, UserX, AlertCircle, PiggyBank } from 'lucide-react';
-import { formatTimeTo12Hr, formatDateToDDMMYYYY } from '../../utils/formatTime';
+import { formatTimeTo12Hr, formatDateToDDMMYYYY, isMeetingDatePassed } from '../../utils/formatTime';
 
 import { sortMembersByRoleOrIndex } from '../../utils/weeklyCollectionUtils';
 
@@ -24,10 +24,7 @@ function RecordAttendanceModal({
   });
 
   const activeMeeting = nextMeeting || sortedMeetings.find(m => {
-    const mDate = new Date(m.date || todayStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return mDate >= today && !m.isCompleted && m.tag !== 'COMPLETED';
+    return !m.isCompleted && m.tag !== 'COMPLETED' && !isMeetingDatePassed(m.date, m.time);
   }) || sortedMeetings.find(m => !m.isCompleted && m.tag !== 'COMPLETED') || sortedMeetings[0];
 
   const rawMeetingDate = activeMeeting?.date || todayStr;
@@ -36,7 +33,7 @@ function RecordAttendanceModal({
   const meetingTimeFormatted = activeMeeting?.time ? formatTimeTo12Hr(activeMeeting.time) : '10:00 AM';
 
   const isAttendanceRecorded = Boolean(activeMeeting?.attendanceRecorded);
-  const isCompleted = Boolean(activeMeeting?.isCompleted || activeMeeting?.tag === 'COMPLETED');
+  const isCompleted = Boolean(activeMeeting?.isCompleted || activeMeeting?.tag === 'COMPLETED' || isMeetingDatePassed(activeMeeting?.date, activeMeeting?.time));
 
   // Check if meeting date is today
   const meetingDateStr = rawMeetingDate ? String(rawMeetingDate).split('T')[0] : todayStr;

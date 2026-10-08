@@ -36,6 +36,7 @@ import {
 } from '../../services/api';
 import loanService from '../../services/loanService';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
+import ProfileDropdown from '../../components/common/ProfileDropdown';
 import FinancialsView from '../Secretary/components/views/FinancialsView';
 import TreasurerLoanOps from './components/TreasurerLoanOps';
 import MemberLoanPage from '../Member/MemberLoanPage';
@@ -44,6 +45,7 @@ import UnitChat from '../../components/Chat/UnitChat';
 import { getWeeklyCollectionLogs } from '../Secretary/utils/weeklyCollectionUtils';
 import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
 import SharedSettingsView from '../../components/Shared/SharedSettingsView';
+import GlobalSearchDropdown from '../../components/common/GlobalSearchDropdown';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -57,6 +59,10 @@ function TreasurerDashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('treasurer_active_tab') || 'financials';
   });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return sessionStorage.getItem('tr_sidebar_collapsed') === 'true';
+  });
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [loanSubTab, setLoanSubTab] = useState('personal');
 
   // Dynamic States for SahayiDb data
@@ -106,13 +112,15 @@ function TreasurerDashboard() {
         setShowHistoryModal(false);
       } else if (showOwnSavingsModal) {
         setShowOwnSavingsModal(false);
+      } else if (mobileDrawerOpen) {
+        setMobileDrawerOpen(false);
       } else if (activeTab !== 'financials') {
         setActiveTab('financials');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [paymentMemberItem, showHistoryModal, showOwnSavingsModal, activeTab]);
+  }, [paymentMemberItem, showHistoryModal, showOwnSavingsModal, mobileDrawerOpen, activeTab]);
 
   // Load real financial data from SahayiDb backend
   const loadTreasurerData = async () => {
@@ -687,18 +695,37 @@ function TreasurerDashboard() {
       )}
 
       {/* ── Left Sidebar ── */}
-      <aside className="tr-sidebar">
-        <div>
-          <div className="tr-sidebar__brand">
-            <div className="tr-brand-title">SAHAYI</div>
-            <div className="tr-brand-title">Treasurer</div>
-            <div className="tr-brand-sub">Financial Management</div>
+      <div className={`tr-sidebar-wrapper ${mobileDrawerOpen ? 'tr-sidebar--drawer-open' : ''}`}>
+        <aside className={`tr-sidebar ${sidebarCollapsed ? 'tr-sidebar--collapsed' : ''}`}>
+          <div>
+            <div className="tr-sidebar__brand" style={{ display: 'flex', flexDirection: 'column', alignItems: sidebarCollapsed ? 'center' : 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div className="tr-brand-title">{!sidebarCollapsed ? 'SAHAYI' : 'S'}</div>
+              <div 
+                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                 onClick={() => {
+                    const next = !sidebarCollapsed;
+                    setSidebarCollapsed(next);
+                    sessionStorage.setItem('tr_sidebar_collapsed', String(next));
+                 }}
+                 title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                <Icon d={sidebarCollapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} size={17} stroke="#aaa" strokeWidth={2.5} />
+              </div>
+            </div>
+            {!sidebarCollapsed && (
+               <>
+                 <div className="tr-brand-title">Treasurer</div>
+                 <div className="tr-brand-sub">Financial Management</div>
+               </>
+            )}
           </div>
 
           <nav className="tr-sidebar__nav">
             <div
               className={`tr-nav-item ${activeTab === 'dashboard' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('dashboard')}
+              title={sidebarCollapsed ? "Dashboard" : ""}
             >
               <Icon d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" size={17} />
               <span>Dashboard</span>
@@ -707,6 +734,7 @@ function TreasurerDashboard() {
             <div
               className={`tr-nav-item ${activeTab === 'financials' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('financials')}
+              title={sidebarCollapsed ? "Financials" : ""}
             >
               <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={17} />
               <span>Financials</span>
@@ -715,7 +743,7 @@ function TreasurerDashboard() {
             <div
               className="tr-nav-item"
               onClick={() => setShowOwnSavingsModal(true)}
-              title="View my own personal weekly savings history and dues"
+              title={sidebarCollapsed ? "View Own Savings" : "View my own personal weekly savings history and dues"}
             >
               <PiggyBank size={17} style={{ color: '#10b981' }} />
               <span>View Own Savings</span>
@@ -724,6 +752,7 @@ function TreasurerDashboard() {
             <div
               className={`tr-nav-item ${activeTab === 'members' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('members')}
+              title={sidebarCollapsed ? "Members" : ""}
             >
               <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={17} />
               <span>Members</span>
@@ -732,6 +761,7 @@ function TreasurerDashboard() {
             <div
               className={`tr-nav-item ${activeTab === 'meetings' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('meetings')}
+              title={sidebarCollapsed ? "Meetings" : ""}
             >
               <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={17} />
               <span>Meetings</span>
@@ -740,6 +770,7 @@ function TreasurerDashboard() {
             <div
               className={`tr-nav-item ${activeTab === 'loans' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('loans')}
+              title={sidebarCollapsed ? "Loans" : ""}
             >
               <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={18} />
               <span>Loans</span>
@@ -748,6 +779,7 @@ function TreasurerDashboard() {
             <div
               className={`tr-nav-item ${activeTab === 'reports' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('reports')}
+              title={sidebarCollapsed ? "Reports" : ""}
             >
               <Icon d="M18 20V10M12 20V4M6 20v-6" size={17} />
               <span>Reports</span>
@@ -756,6 +788,7 @@ function TreasurerDashboard() {
             <div
               className={`tr-nav-item ${activeTab === 'chat' ? 'tr-nav-item--active' : ''}`}
               onClick={() => setActiveTab('chat')}
+              title={sidebarCollapsed ? "Chats" : ""}
             >
               <MessageSquare size={17} />
               <span>Chats</span>
@@ -766,108 +799,81 @@ function TreasurerDashboard() {
         <div className="tr-sidebar__footer">
           <div className="tr-sidebar__divider" />
 
-          <div className={`tr-nav-item ${activeTab === 'settings' ? 'tr-nav-item--active' : ''}`} onClick={() => setActiveTab('settings')}>
+          <div 
+             className={`tr-nav-item ${activeTab === 'settings' ? 'tr-nav-item--active' : ''}`} 
+             onClick={() => setActiveTab('settings')}
+             title={sidebarCollapsed ? "Settings" : ""}
+          >
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
             <span>Settings</span>
           </div>
         </div>
-      </aside>
+        </aside>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {mobileDrawerOpen && (
+        <div className="tr-sidebar-overlay" onClick={() => setMobileDrawerOpen(false)} />
+      )}
 
       {/* ── Main Content ── */}
       <div className="tr-main">
         <header className="tr-header">
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="tr-header__title">
-              {activeTab === 'dashboard' && 'Treasurer Dashboard'}
-              {activeTab === 'financials' && 'Treasurer Dashboard'}
-              {activeTab === 'members' && 'Treasurer Dashboard'}
-              {activeTab === 'meetings' && 'Treasurer Dashboard'}
-              {activeTab === 'loans' && 'Treasurer Dashboard'}
-              {activeTab === 'reports' && 'Treasurer Dashboard'}
-              {activeTab === 'settings' && 'Treasurer Dashboard'}
-            </div>
-            <div
-              style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
-              onClick={() => setActiveTab('settings')}
-              title="Go to Settings"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              className="tr-header__hamburger"
+              onClick={() => setMobileDrawerOpen(true)}
+              title="Open Navigation"
             >
-              <span>{currentUser?.fullName || currentUser?.name || 'Treasurer'}</span>
-              <span style={{ opacity: 0.5 }}>•</span>
-              <span style={{ color: '#059669' }}>{dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}</span>
+              <Icon d="M3 12h18M3 6h18M3 18h18" size={24} />
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="tr-header__title">
+                {activeTab === 'dashboard' && 'Treasurer Dashboard'}
+                {activeTab === 'financials' && 'Treasurer Dashboard'}
+                {activeTab === 'members' && 'Treasurer Dashboard'}
+                {activeTab === 'meetings' && 'Treasurer Dashboard'}
+                {activeTab === 'loans' && 'Treasurer Dashboard'}
+                {activeTab === 'reports' && 'Treasurer Dashboard'}
+                {activeTab === 'settings' && 'Treasurer Dashboard'}
+              </div>
+              <div
+                className="tr-header__subtitle"
+                style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
+                onClick={() => setActiveTab('settings')}
+                title="Go to Settings"
+              >
+                <span>{currentUser?.fullName || currentUser?.name || 'Treasurer'}</span>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span style={{ color: '#059669' }}>{dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}</span>
+              </div>
             </div>
           </div>
 
           <div className="tr-header__right">
-            <div className="tr-search-bar">
-              <Icon d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" size={15} stroke="#809986" />
-              <input
-                type="text"
-                placeholder="Search transactions..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <button className="tr-header__icon-btn" onClick={() => setShowHistoryModal(true)} title="View Weekly Savings History">
-              <Icon d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" size={17} />
-              <span className="tr-header__badge" />
-            </button>
-
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => setActiveTab('settings')}
-              title="Go to Settings"
-            >
-              <img
-                src={currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'Treasurer')}&background=0C382E&color=fff`}
-                alt="Treasurer Avatar"
-                className="tr-user-avatar"
-                onError={e => {
-                  e.target.onerror = null;
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'Treasurer')}&background=0C382E&color=fff`;
-                }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0c382e' }}>
-                  {currentUser?.fullName || currentUser?.name || 'Treasurer'}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                  {dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}
-                </span>
-              </div>
-            </div>
-
-            <button
-              className="tr-header__logout-btn"
-              onClick={handleLogout}
-              title="Logout"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #fee2e2',
-                backgroundColor: '#fef2f2',
-                color: '#dc2626',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                marginLeft: '8px'
+            <GlobalSearchDropdown 
+              className="tr-search-bar"
+              members={dashboardData?.members || []}
+              loans={dashboardData?.loans || []}
+              meetings={dashboardData?.meetings || []}
+              onSelectResult={(type, item) => {
+                if (type === 'member') setActiveTab('members');
+                else if (type === 'loan') setActiveTab('loans');
+                else if (type === 'meeting') setActiveTab('meetings');
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#fee2e2';
-                e.currentTarget.style.borderColor = '#fca5a5';
+            />
+
+
+            <ProfileDropdown
+              user={{
+                fullName: currentUser?.fullName || currentUser?.name || 'Treasurer',
+                avatarUrl: currentUser?.avatarUrl
               }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = '#fef2f2';
-                e.currentTarget.style.borderColor = '#fee2e2';
-              }}
-            >
-              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={15} />
-              <span>Logout</span>
-            </button>
+              role="Treasurer"
+              unitName={dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}
+              onNavigateSettings={() => setActiveTab('settings')}
+              onLogout={handleLogout}
+            />
           </div>
         </header>
 
@@ -1958,6 +1964,10 @@ function TreasurerDashboard() {
           savingsWeeks={savingsWeeks}
           savingsLogs={savingsLogs}
           currentUserId={currentUser?.userId}
+          currentUser={currentUser}
+          dashboardData={dashboardData}
+          loans={dashboardData?.loans || []}
+          bankAccount={unitBank || dashboardData?.bankAccount}
           onClose={() => setShowOwnSavingsModal(false)}
           onRecordPayment={handleRecordSavings}
           onDepositCash={handleDepositCashToBank}

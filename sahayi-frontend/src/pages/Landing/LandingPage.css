@@ -37,8 +37,6 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
-
 body {
   font-family: var(--font-body);
   background: var(--clr-bg);
@@ -52,7 +50,7 @@ img { display: block; max-width: 100%; }
 a { text-decoration: none; color: inherit; }
 
 .landing-root {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ---- Shared utilities ---- */
@@ -149,3 +147,16 @@ a { text-decoration: none; color: inherit; }
 .fade-up.delay-3 { animation-delay: 0.3s; }
 .fade-up.delay-4 { animation-delay: 0.4s; }
 .fade-up.delay-5 { animation-delay: 0.5s; }
+
+/* ---- Hardware-accelerated smooth scroll reveal ---- */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}

@@ -307,7 +307,7 @@ namespace Sahayi.Api.Controllers
 
                 // Fetch Unit Upcoming Meetings
                 var upcomingMeeting = await _context.Meetings
-                    .Where(m => m.UnitId == targetUnitId && m.MeetingDate >= now.AddDays(-1))
+                    .Where(m => m.UnitId == targetUnitId && !m.IsCompleted && m.MeetingDate.Date >= now.Date)
                     .OrderBy(m => m.MeetingDate)
                     .FirstOrDefaultAsync();
 
@@ -410,17 +410,22 @@ namespace Sahayi.Api.Controllers
                     .OrderByDescending(m => m.MeetingDate)
                     .ToListAsync();
 
-                var meetingsListDto = unitMeetings.Select(m => new MemberMeetingItemDto
+                var meetingsListDto = unitMeetings.Select(m =>
                 {
-                    Id = m.MeetingId,
-                    Title = "Monthly Meeting",
-                    Date = m.MeetingDate.ToString("yyyy-MM-dd"),
-                    Time = m.MeetingTime ?? string.Empty,
-                    Location = m.Venue ?? string.Empty,
-                    Tag = m.IsCompleted ? "COMPLETED" : "UPCOMING",
-                    TagType = m.IsCompleted ? "peach" : "dark",
-                    IsCompleted = m.IsCompleted,
-                    CompletedDate = m.IsCompleted ? m.MeetingDate.ToString("yyyy-MM-dd") : string.Empty
+                    bool isPassed = m.MeetingDate.Date < now.Date;
+                    bool isDone = m.IsCompleted || isPassed;
+                    return new MemberMeetingItemDto
+                    {
+                        Id = m.MeetingId,
+                        Title = "Monthly Meeting",
+                        Date = m.MeetingDate.ToString("yyyy-MM-dd"),
+                        Time = m.MeetingTime ?? string.Empty,
+                        Location = m.Venue ?? string.Empty,
+                        Tag = isDone ? "COMPLETED" : "UPCOMING",
+                        TagType = isDone ? "peach" : "dark",
+                        IsCompleted = isDone,
+                        CompletedDate = isDone ? (m.CompletedDate?.ToString("yyyy-MM-dd") ?? m.MeetingDate.ToString("yyyy-MM-dd")) : string.Empty
+                    };
                 }).ToList();
 
                 // 6. Build Final Member Dashboard DTO
@@ -662,6 +667,7 @@ namespace Sahayi.Api.Controllers
                         TotalPrincipalPaid = totalPrincipalPaid,
                         TotalInterestPaid = totalInterestPaid,
                         OutstandingBalance = outstandingBalance,
+                        RejectionReason = l.RejectionReason,
                         Repayments = repaymentDtos
                     };
                 }).ToList();

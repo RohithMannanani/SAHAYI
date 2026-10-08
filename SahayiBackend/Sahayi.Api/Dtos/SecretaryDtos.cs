@@ -10,14 +10,25 @@ namespace Sahayi.Api.DTOs
         [Required]
         public string Name { get; set; } = string.Empty;
 
-        [Required]
-        public string MemberId { get; set; } = string.Empty;
+        public string? FullName { get; set; }
+
+        public int? Age { get; set; }
 
         public string Phone { get; set; } = string.Empty;
 
-        public string Address { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
 
-        public decimal Savings { get; set; } = 100;
+        public string? HouseName { get; set; }
+
+        public string? Address { get; set; }
+
+        public string? Role { get; set; } = "Member";
+
+        public int? RoleId { get; set; } = 5;
+
+        public string? MemberId { get; set; } = string.Empty;
+
+        public decimal Savings { get; set; } = 0;
     }
 
     public class CreateSecretaryMeetingDto
@@ -117,6 +128,8 @@ namespace Sahayi.Api.DTOs
         public string Time { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public bool IsCompleted { get; set; } = false;
+        public bool IsExpired { get; set; } = false;
+        public string Status { get; set; } = "Upcoming";
         public string? CompletedDate { get; set; }
         public bool AttendanceRecorded { get; set; } = false;
         public List<SecretaryAttendanceRecordDto> Attendances { get; set; } = new List<SecretaryAttendanceRecordDto>();

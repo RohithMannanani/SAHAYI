@@ -120,7 +120,8 @@ namespace Sahayi.Api.Controllers
                     .Select(u => new
                     {
                         u.UserId,
-                        u.FullName
+                        u.FullName,
+                        u.HouseName
                     })
                     .ToListAsync();
 
@@ -155,6 +156,7 @@ namespace Sahayi.Api.Controllers
                             userId = m.UserId,
                             memberId = $"M-{m.UserId:D3}",
                             name = m.FullName,
+                            houseName = m.HouseName,
                             amount = tx?.Amount ?? 0.00m,
                             status = tx != null ? "Paid" : "Pending",
                             paidDate = tx?.TransactionDate.ToString("yyyy-MM-dd HH:mm"),

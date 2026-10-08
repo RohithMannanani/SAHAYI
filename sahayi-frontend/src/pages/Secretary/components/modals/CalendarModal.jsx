@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Trash2 } from 'lucide-react';
-import { formatTimeTo12Hr, formatDateToDDMMYYYY } from '../../utils/formatTime';
+import { formatTimeTo12Hr, formatDateToDDMMYYYY, isMeetingDatePassed } from '../../utils/formatTime';
 
 function CalendarModal({ meetings = [], onDeleteMeeting, onClose }) {
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
@@ -53,12 +53,9 @@ function CalendarModal({ meetings = [], onDeleteMeeting, onClose }) {
   });
 
   const nextMeeting = sortedMeetings.find(m => {
-    if (m.isCompleted || m.tag === 'COMPLETED') return false;
-    const mDate = new Date(m.date || todayStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return mDate >= today;
-  }) || sortedMeetings.find(m => !m.isCompleted && m.tag !== 'COMPLETED');
+    if (m.isCompleted || m.tag === 'COMPLETED' || isMeetingDatePassed(m.date, m.time)) return false;
+    return true;
+  });
 
   // Format date nicely
   const formatNiceDate = (dateStr) => {
@@ -182,7 +179,7 @@ function CalendarModal({ meetings = [], onDeleteMeeting, onClose }) {
                       {m.date && <span className="sec-meeting-item__date">{formatDateToDDMMYYYY(m.date)}</span>}
                       <span className="sec-meeting-item__time">{formatTimeTo12Hr(m.time)}</span>
                     </div>
-                    {onDeleteMeeting && !(m.isCompleted || m.tag === 'COMPLETED') && (
+                    {onDeleteMeeting && !(m.isCompleted || m.tag === 'COMPLETED' || isMeetingDatePassed(m.date, m.time)) && (
                       <button
                         type="button"
                         className="sec-icon-action-btn"

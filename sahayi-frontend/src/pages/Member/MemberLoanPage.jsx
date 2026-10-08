@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import loanService from '../../services/loanService';
 import { fetchMemberDashboard } from '../../services/api';
 import RepaymentScheduleModal from '../../components/RepaymentScheduleModal';
+import { generateSavingsPassbookPdf } from '../../utils/passbookPdfGenerator';
 import './MemberLoanPage.css';
 
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -31,6 +32,27 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
   const [repaymentType, setRepaymentType] = useState('Combined'); // 'Combined', 'InterestOnly', 'PrincipalOnly', 'FullPayoff'
   const [paymentMode, setPaymentMode] = useState('Online');
   const [isPayingInstallment, setIsPayingInstallment] = useState(false);
+  const [downloadingPassbook, setDownloadingPassbook] = useState(false);
+
+  const handleDownloadPassbook = async () => {
+    try {
+      setDownloadingPassbook(true);
+      let userObj = null;
+      try {
+        const raw = localStorage.getItem('user');
+        if (raw) userObj = JSON.parse(raw);
+      } catch (e) {}
+
+      await generateSavingsPassbookPdf({
+        currentUser: userObj,
+        loans: loans
+      });
+    } catch (err) {
+      console.error('Error downloading passbook PDF:', err);
+    } finally {
+      setDownloadingPassbook(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
     amountRequested: '',
@@ -662,7 +684,7 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
                             color: '#ffffff',
                             border: 'none',
                             padding: '6px 14px',
-                            borderRadius: '16px',
+                            borderRadius: '8px',
                             fontSize: '0.8rem',
                             fontWeight: 700,
                             cursor: 'pointer'
@@ -671,6 +693,28 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
                           + Pay Installment
                         </button>
                       )}
+
+                      <button
+                        onClick={handleDownloadPassbook}
+                        disabled={downloadingPassbook}
+                        style={{
+                          background: '#047857',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: downloadingPassbook ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                        title="Download Official 2-Page Passbook (Savings + Loan) PDF"
+                      >
+                        <span style={{ fontSize: '0.9rem' }}>📥</span>
+                        <span>{downloadingPassbook ? 'Downloading...' : 'Download Passbook'}</span>
+                      </button>
                     </div>
                   </div>
 
@@ -931,6 +975,13 @@ const MemberLoanPage = ({ unitTotalSavings: propUnitSavings }) => {
                                     View
                                   </button>
                                 </div>
+                              ) : loan.status === 'Rejected' ? (
+                                <span 
+                                  style={{ color: '#dc2626', fontSize: '0.78rem', fontWeight: 600, display: 'inline-block', maxWidth: '200px' }}
+                                  title={loan.rejectionReason ? `Reason: ${loan.rejectionReason}` : 'Loan application rejected'}
+                                >
+                                  {loan.rejectionReason ? `Rejected: ${loan.rejectionReason}` : 'Application Rejected'}
+                                </span>
                               ) : (
                                 <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Pending Review</span>
                               )}

@@ -74,6 +74,7 @@ body {
   text-rendering: optimizeLegibility;
   color: var(--color-text-primary);
   background: var(--color-bg);
+  overflow-x: hidden;
 }
 
 #root {

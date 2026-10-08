@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './PresidentDashboard.css';
-import { fetchSecretaryDashboard, fetchSavingsWeeks, applyMemberLoan } from '../../services/api';
+import { fetchSecretaryDashboard, fetchSavingsWeeks, applyMemberLoan, completeSecretaryMeeting } from '../../services/api';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
+import ProfileDropdown from '../../components/common/ProfileDropdown';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
 import PresidentLoanMonitor from './components/PresidentLoanMonitor';
+import PresidentReportsView from './components/PresidentReportsView';
 import MemberLoanPage from '../Member/MemberLoanPage';
 import UnitChat from '../../components/Chat/UnitChat';
 import SharedSettingsView from '../../components/Shared/SharedSettingsView';
+import GlobalSearchDropdown from '../../components/common/GlobalSearchDropdown';
 
 import loanService from '../../services/loanService';
+import { isMeetingDatePassed } from '../Secretary/utils/formatTime';
+import RejectLoanModal from './components/RejectLoanModal';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -23,6 +28,10 @@ function PresidentDashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('president_active_tab') || 'dashboard';
   });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return sessionStorage.getItem('pres_sidebar_collapsed') === 'true';
+  });
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [loanSubTab, setLoanSubTab] = useState('admin');
 
   const [currentUser, setCurrentUser] = useState(() => {
@@ -38,6 +47,8 @@ function PresidentDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [savingsWeeks, setSavingsWeeks] = useState([]);
   const [pendingLoans, setPendingLoans] = useState([]);
+  const [rejectModalLoan, setRejectModalLoan] = useState(null);
+  const [isRejectingLoan, setIsRejectingLoan] = useState(false);
   const [members, setMembers] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -112,13 +123,15 @@ function PresidentDashboard() {
         setShowApplyLoanModal(false);
       } else if (showPaymentModal) {
         setShowPaymentModal(false);
+      } else if (mobileDrawerOpen) {
+        setMobileDrawerOpen(false);
       } else if (activeTab !== 'dashboard') {
         setActiveTab('dashboard');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [showHistoryModal, showOwnSavingsModal, showApplyLoanModal, showPaymentModal, activeTab]);
+  }, [showHistoryModal, showOwnSavingsModal, showApplyLoanModal, showPaymentModal, mobileDrawerOpen, activeTab]);
 
   // Load live data from SahayiDb backend
   const loadPresidentData = async () => {
@@ -137,7 +150,22 @@ function PresidentDashboard() {
         const d = dashRes.value.data;
         setDashboardData(d);
         setMembers(d.members || []);
-        setMeetings(d.meetings || []);
+        setMeetings((d.meetings || []).map(m => {
+          const isPassed = isMeetingDatePassed(m.date, m.time);
+          const isDone = Boolean(m.isCompleted || m.tag === 'COMPLETED' || isPassed);
+          return {
+            ...m,
+            isCompleted: isDone,
+            isExpired: isPassed,
+            tag: isDone ? 'COMPLETED' : (m.tag || 'UPCOMING')
+          };
+        }));
+
+        (d.meetings || []).forEach(m => {
+          if (!m.isCompleted && isMeetingDatePassed(m.date, m.time) && m.id) {
+            completeSecretaryMeeting(m.id).catch(() => {});
+          }
+        });
       }
 
       if (pendingLoansRes.status === 'fulfilled') {
@@ -168,14 +196,32 @@ function PresidentDashboard() {
     window.location.replace('/login');
   };
 
-  const handleApprove = (id) => {
-    setPendingLoans(prev => prev.filter(item => item.id !== id));
-    showToast('Loan application approved successfully!');
+  const handleApprove = async (id) => {
+    try {
+      const res = await loanService.presidentReviewLoan(id, 'Approved');
+      setPendingLoans(prev => prev.filter(item => (item.loanId || item.id) !== id));
+      showToast(res?.message || 'Loan application approved successfully!');
+    } catch (err) {
+      showToast(err.message || 'Failed to approve loan application.', 'error');
+    }
   };
 
-  const handleReject = (id) => {
-    setPendingLoans(prev => prev.filter(item => item.id !== id));
-    showToast('Loan application rejected.', 'info');
+  const handleOpenReject = (loan) => {
+    setRejectModalLoan(loan);
+  };
+
+  const handleConfirmReject = async (loanId, reason) => {
+    try {
+      setIsRejectingLoan(true);
+      const res = await loanService.presidentReviewLoan(loanId, 'Rejected', reason);
+      setPendingLoans(prev => prev.filter(item => (item.loanId || item.id) !== loanId));
+      showToast(res?.message || 'Loan application rejected and SMS sent to applicant.', 'info');
+      setRejectModalLoan(null);
+    } catch (err) {
+      showToast(err.message || 'Failed to reject loan application.', 'error');
+    } finally {
+      setIsRejectingLoan(false);
+    }
   };
 
   // Submit President Personal Loan Application
@@ -256,13 +302,28 @@ function PresidentDashboard() {
       )}
 
       {/* ── Left Sidebar Navigation ── */}
-      <aside className="pres-sidebar">
-        <div>
-          <div className="pres-sidebar__brand">SAHAYI</div>
+      <div className={`pres-sidebar-wrapper ${mobileDrawerOpen ? 'pres-sidebar--drawer-open' : ''}`}>
+        <aside className={`pres-sidebar ${sidebarCollapsed ? 'pres-sidebar--collapsed' : ''}`}>
+          <div>
+            <div className="pres-sidebar__brand" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{!sidebarCollapsed ? 'SAHAYI' : 'S'}</span>
+            <div 
+               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+               onClick={() => {
+                  const next = !sidebarCollapsed;
+                  setSidebarCollapsed(next);
+                  sessionStorage.setItem('pres_sidebar_collapsed', String(next));
+               }}
+               title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <Icon d={sidebarCollapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} size={17} stroke="#aaa" strokeWidth={2.5} />
+            </div>
+          </div>
           <nav className="pres-sidebar__nav">
             <div
               className={`pres-nav-item ${activeTab === 'dashboard' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('dashboard')}
+              title={sidebarCollapsed ? "Dashboard" : ""}
             >
               <Icon d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" size={17} />
               <span>Dashboard</span>
@@ -271,6 +332,7 @@ function PresidentDashboard() {
             <div
               className={`pres-nav-item ${activeTab === 'members' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('members')}
+              title={sidebarCollapsed ? "Members" : ""}
             >
               <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={17} />
               <span>Members</span>
@@ -279,6 +341,7 @@ function PresidentDashboard() {
             <div
               className={`pres-nav-item ${activeTab === 'financials' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('financials')}
+              title={sidebarCollapsed ? "Financials" : ""}
             >
               <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={17} />
               <span>Financials</span>
@@ -287,6 +350,7 @@ function PresidentDashboard() {
             <button
               className={`pres-nav-item ${activeTab === 'meetings' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('meetings')}
+              title={sidebarCollapsed ? "Meetings" : ""}
             >
               <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={17} />
               <span>Meetings</span>
@@ -295,6 +359,7 @@ function PresidentDashboard() {
             <button
               className={`pres-nav-item ${activeTab === 'loans' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('loans')}
+              title={sidebarCollapsed ? "Loans" : ""}
             >
               <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={17} />
               <span>Loans</span>
@@ -303,6 +368,7 @@ function PresidentDashboard() {
             <div
               className={`pres-nav-item ${activeTab === 'reports' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('reports')}
+              title={sidebarCollapsed ? "Reports" : ""}
             >
               <Icon d="M18 20V10M12 20V4M6 20v-6" size={17} />
               <span>Reports</span>
@@ -311,6 +377,7 @@ function PresidentDashboard() {
             <div
               className={`pres-nav-item ${activeTab === 'chat' ? 'pres-nav-item--active' : ''}`}
               onClick={() => setActiveTab('chat')}
+              title={sidebarCollapsed ? "Chats" : ""}
             >
               <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" size={17} />
               <span>Chats</span>
@@ -319,7 +386,7 @@ function PresidentDashboard() {
             <div
               className="pres-nav-item"
               onClick={() => setShowOwnSavingsModal(true)}
-              title="View my own personal weekly savings history and dues"
+              title={sidebarCollapsed ? "View Own Savings" : "View my own personal weekly savings history and dues"}
             >
               <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={17} stroke="#10b981" />
               <span>View Own Savings</span>
@@ -330,96 +397,75 @@ function PresidentDashboard() {
         <div className="pres-sidebar__footer">
           <div className="pres-sidebar__divider" />
 
-          <div className="pres-nav-item" onClick={() => setActiveTab('settings')}>
+          <div 
+             className="pres-nav-item" 
+             onClick={() => setActiveTab('settings')}
+             title={sidebarCollapsed ? "Settings" : ""}
+          >
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
             <span>Settings</span>
           </div>
-        </div>
-      </aside>
+          </div>
+        </aside>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {mobileDrawerOpen && (
+        <div className="pres-sidebar-overlay" onClick={() => setMobileDrawerOpen(false)} />
+      )}
 
       {/* ── Main Layout Content ── */}
       <div className="pres-main">
         {/* Header Navbar */}
         <header className="pres-header">
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="pres-header__title"> President Dashboard</div>
-            <div
-              style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
-              onClick={() => setActiveTab('settings')}
-              title="Go to Settings"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              className="pres-header__hamburger"
+              onClick={() => setMobileDrawerOpen(true)}
+              title="Open Navigation"
             >
-              <span>{currentUser?.fullName || currentUser?.name || 'President'}</span>
-              <span style={{ opacity: 0.5 }}>•</span>
-              <span style={{ color: '#059669' }}>{dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}</span>
+              <Icon d="M3 12h18M3 6h18M3 18h18" size={24} />
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="pres-header__title"> President Dashboard</div>
+              <div
+                className="pres-header__subtitle"
+                style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
+                onClick={() => setActiveTab('settings')}
+                title="Go to Settings"
+              >
+                <span>{currentUser?.fullName || currentUser?.name || 'President'}</span>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span style={{ color: '#059669' }}>{dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}</span>
+              </div>
             </div>
           </div>
 
           <div className="pres-header__right">
-            <div className="pres-search-bar">
-              <Icon d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" size={15} stroke="#809986" />
-              <input type="text" placeholder="Search members, loans..." />
-            </div>
-
-            <button className="pres-header__icon-btn">
-              <Icon d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" size={17} />
-              <span className="pres-header__badge" />
-            </button>
-
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-              onClick={() => setActiveTab('settings')}
-              title="Go to Settings"
-            >
-              <img
-                src={currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'President')}&background=0C382E&color=fff`}
-                alt="President Avatar"
-                className="pres-user-avatar"
-                onError={e => {
-                  e.target.onerror = null;
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'President')}&background=0C382E&color=fff`;
-                }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0c382e' }}>
-                  {currentUser?.fullName || currentUser?.name || 'President'}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                  {dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}
-                </span>
-              </div>
-            </div>
-
-            <button
-              className="pres-header__logout-btn"
-              onClick={handleLogout}
-              title="Logout"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #fee2e2',
-                backgroundColor: '#fef2f2',
-                color: '#dc2626',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                marginLeft: '8px'
+            <GlobalSearchDropdown 
+              className="pres-search-bar"
+              members={members}
+              loans={pendingLoans}
+              meetings={meetings}
+              onSelectResult={(type, item) => {
+                if (type === 'member') setActiveTab('members');
+                else if (type === 'loan') setActiveTab('loans');
+                else if (type === 'meeting') setActiveTab('meetings');
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#fee2e2';
-                e.currentTarget.style.borderColor = '#fca5a5';
+            />
+
+
+
+            <ProfileDropdown
+              user={{
+                fullName: currentUser?.fullName || currentUser?.name || 'President',
+                avatarUrl: currentUser?.avatarUrl
               }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = '#fef2f2';
-                e.currentTarget.style.borderColor = '#fee2e2';
-              }}
-            >
-              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={15} />
-              <span>Logout</span>
-            </button>
+              role="President"
+              unitName={dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}
+              onNavigateSettings={() => setActiveTab('settings')}
+              onLogout={handleLogout}
+            />
           </div>
         </header>
 
@@ -434,17 +480,19 @@ function PresidentDashboard() {
               </p>
             </div>
 
-            <div className="pres-banner__actions">
-              <button className="pres-btn-outline" onClick={() => setShowOwnSavingsModal(true)}>
-                <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={15} stroke="#10b981" />
-                <span>View My Own Savings</span>
-              </button>
+            {activeTab !== 'chat' && (
+              <div className="pres-banner__actions">
+                <button className="pres-btn-outline" onClick={() => setShowOwnSavingsModal(true)}>
+                  <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={15} stroke="#10b981" />
+                  <span>View My Own Savings</span>
+                </button>
 
-              <button className="pres-btn-export" onClick={() => setShowHistoryModal(true)}>
-                <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" size={15} stroke="#ffffff" />
-                <span>Weekly Savings Log</span>
-              </button>
-            </div>
+                <button className="pres-btn-export" onClick={() => setShowHistoryModal(true)}>
+                  <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" size={15} stroke="#ffffff" />
+                  <span>Weekly Savings Log</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Render Views Based on Active Tab */}
@@ -542,9 +590,14 @@ function PresidentDashboard() {
                           <td>{mtg.time || '-'}</td>
                           <td>{mtg.venue || mtg.location || '-'}</td>
                           <td style={{ textAlign: 'right' }}>
-                            <span className={`pres-badge ${mtg.isCompleted || mtg.tag === 'COMPLETED' ? 'pres-badge--active' : ''}`}>
-                              {mtg.isCompleted || mtg.tag === 'COMPLETED' ? 'Completed' : 'Upcoming'}
-                            </span>
+                            {(() => {
+                              const isDone = Boolean(mtg.isCompleted || mtg.tag === 'COMPLETED' || isMeetingDatePassed(mtg.date, mtg.time));
+                              return (
+                                <span className={`pres-badge ${isDone ? 'pres-badge--active' : ''}`}>
+                                  {isDone ? 'Completed' : 'Upcoming'}
+                                </span>
+                              );
+                            })()}
                           </td>
                         </tr>
                       ))
@@ -622,8 +675,16 @@ function PresidentDashboard() {
               onShowToast={showToast}
               onReloadData={loadPresidentData}
             />
-          ) : activeTab === 'reports' || activeTab === 'financials' ? (
-            /* ── FINANCIALS & REPORTS TAB VIEW ── */
+          ) : activeTab === 'reports' ? (
+            <PresidentReportsView
+              dashboardData={dashboardData}
+              savingsWeeks={savingsWeeks}
+              pendingLoans={pendingLoans}
+              currentUser={currentUser}
+              onShowToast={showToast}
+            />
+          ) : activeTab === 'financials' ? (
+            /* ── FINANCIALS TAB VIEW ── */
             <div className="pres-financials-view" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0c382e', margin: 0 }}>
@@ -1025,7 +1086,7 @@ function PresidentDashboard() {
                             </td>
                             <td>
                               <div className="pres-action-btns" style={{ justifyContent: 'flex-end' }}>
-                                <button className="pres-btn-reject" onClick={() => handleReject(targetId)}>Reject</button>
+                                <button className="pres-btn-reject" onClick={() => handleOpenReject(loan)}>Reject</button>
                                 <button className="pres-btn-approve" onClick={() => handleApprove(targetId)}>Approve</button>
                               </div>
                             </td>
@@ -1168,6 +1229,10 @@ function PresidentDashboard() {
           savingsWeeks={savingsWeeks}
           savingsLogs={dashboardData?.savingsLogs || []}
           currentUserId={currentUser?.userId}
+          currentUser={currentUser}
+          dashboardData={dashboardData}
+          loans={dashboardData?.loans || []}
+          bankAccount={dashboardData?.bankAccount}
           onClose={() => setShowOwnSavingsModal(false)}
           onRecordPayment={(targetItem) => {
             setSelectedWeekItem(targetItem);
@@ -1176,6 +1241,14 @@ function PresidentDashboard() {
           }}
         />
       )}
+      {/* ── Reject Loan Application Modal (SMS Reason) ── */}
+      <RejectLoanModal
+        isOpen={Boolean(rejectModalLoan)}
+        loan={rejectModalLoan}
+        onClose={() => setRejectModalLoan(null)}
+        onConfirm={handleConfirmReject}
+        isSubmitting={isRejectingLoan}
+      />
     </div>
   );
 }

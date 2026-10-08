@@ -1,0 +1,121 @@
+/* ================================================================
+   SAHAYI — Global Responsive Stylesheet
+   Covers: Member, Secretary, Treasurer, President, CDS Admin,
+           Landing Page, Auth (Login), Savings View
+   Breakpoints:
+     ≤1024px  (tablet landscape)
+     ≤768px   (tablet portrait)
+     ≤480px   (mobile)
+   ================================================================ */
+
+/* ────────────────────────────────────────────────
+   SHARED UTILITY: hide sidebar text / collapse
+   ──────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  /* ── Member Dashboard Layout Updates ── */
+  .mem-container { flex-direction: column; }
+  .mem-content { padding: 16px 18px; gap: 18px; }
+  .mem-top-row { grid-template-columns: 1fr; }
+  .mem-middle-row { grid-template-columns: 1fr; }
+  .mem-banner { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .mem-banner__actions { flex-wrap: wrap; }
+  .mem-savings-pay-banner { flex-direction: column; gap: 18px; align-items: flex-start; }
+  .mem-savings-pay-info { max-width: 100%; }
+  .mem-savings-pay-action { width: 100%; justify-content: space-between; }
+
+
+
+/* ────────────────────────────────────────────────
+   TABLET PORTRAIT  ≤ 768px
+   ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Member */
+  .mem-content { padding: 12px 14px; gap: 14px; }
+  .mem-header { padding: 0 16px; }
+  .mem-search-bar { display: none; }
+  .mem-savings-card__amount { font-size: 28px; }
+  .mem-footer { flex-direction: column; gap: 8px; align-items: flex-start; padding: 14px 16px; }
+
+  /* Secretary */
+  .sec-header { padding: 0 16px; }
+  .sec-search { display: none; }
+  .sec-content { padding: 16px 14px; }
+
+  /* Treasurer */
+  .tr-header { padding: 0 16px; }
+  .tr-content { padding: 16px 14px; }
+
+  /* President */
+  .pres-header { padding: 0 16px; }
+  .pres-content { padding: 16px 14px; }
+
+  /* CDS Admin */
+  .cds-main { padding: 14px 14px; }
+  .cds-header { padding: 0 16px; }
+
+  /* Savings View */
+  .mem-savings-hero { flex-direction: column; gap: 16px; align-items: flex-start; }
+  .mem-savings-hero__actions { flex-wrap: wrap; width: 100%; }
+  .mem-savings-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .mem-savings-card { padding: 16px; }
+  .mem-savings-card__header { flex-direction: column; align-items: flex-start; }
+  .mem-savings-tabs { flex-wrap: wrap; }
+  .mem-unit-week-summary { grid-template-columns: 1fr; }
+
+  /* Shared table horizontal scroll */
+  .mem-savings-table-container,
+  .sec-savings-table,
+  .tr-table-wrap { overflow-x: auto; }
+
+  /* Modal sizing */
+  .mem-modal,
+  .sec-modal,
+  .tr-modal,
+  .pres-modal { max-width: 95vw; margin: 12px; padding: 18px 16px; }
+
+  /* Landing */
+  .container { padding: 0 18px; }
+}
+
+/* ────────────────────────────────────────────────
+   MOBILE  ≤ 480px
+   ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Member */
+  .mem-banner__title { font-size: 20px; }
+  .mem-savings-card__amount { font-size: 24px; }
+  .mem-savings-stats-grid { grid-template-columns: 1fr; }
+  .mem-savings-hero__title { font-size: 1.15rem; }
+  .mem-btn-pay-now { padding: 10px 14px; font-size: 13px; }
+  .mem-savings-pay-action { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .mem-savings-pay-action .mem-btn-pay-now { width: 100%; justify-content: center; }
+
+  /* Secretary */
+  .sec-nav-item { padding: 10px 10px; }
+
+  /* Treasurer */
+  .tr-nav-item { padding: 10px 10px; }
+
+  /* President */
+  .pres-nav-item { padding: 10px 10px; }
+
+  /* CDS Admin */
+  .cds-nav-item { padding: 10px 10px; }
+
+  /* Savings View table — stack on mobile */
+  .mem-savings-table th:nth-child(4),
+  .mem-savings-table td:nth-child(4),
+  .mem-savings-table th:nth-child(6),
+  .mem-savings-table td:nth-child(6) { display: none; }
+
+  /* Toast positioning */
+  .mem-toast,
+  .sec-toast { top: 10px; right: 10px; left: 10px; font-size: 13px; }
+
+  /* Landing */
+  .container { padding: 0 14px; }
+  .btn-primary, .btn-outline { width: 100%; justify-content: center; }
+
+  /* Login */
+  .login-card { padding: 1.75rem 1.25rem; }
+}

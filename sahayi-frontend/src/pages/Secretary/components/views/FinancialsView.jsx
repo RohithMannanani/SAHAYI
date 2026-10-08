@@ -15,13 +15,14 @@ function FinancialsView({
   onDepositAllCashToBank,
   onRecordSavings,
   onPayNow,
-  showCollectionsInHand = false
+  showCollectionsInHand = false,
+  showActionColumn = true
 }) {
   const [showWeeklyLog, setShowWeeklyLog] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showOwnModal, setShowOwnModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [collapsedWeeks, setCollapsedWeeks] = useState({});
+  const [expandedWeeks, setExpandedWeeks] = useState({});
   const currentUserId = (() => {
     try { return JSON.parse(localStorage.getItem('user') || '{}')?.userId; }
     catch { return null; }
@@ -126,7 +127,7 @@ function FinancialsView({
   }, [savingsWeeks, savingsLogs, allMembers]);
 
   const toggleWeekCollapse = (weekKey) => {
-    setCollapsedWeeks(prev => ({
+    setExpandedWeeks(prev => ({
       ...prev,
       [weekKey]: !prev[weekKey]
     }));
@@ -468,7 +469,7 @@ function FinancialsView({
             </div>
           ) : (
             weeklyLogs.map((weekGroup, index) => {
-              const isCollapsed = collapsedWeeks[weekGroup.weekKey] === true;
+              const isCollapsed = searchQuery.trim() ? false : !expandedWeeks[weekGroup.weekKey];
 
               const filteredItems = weekGroup.items.filter(item =>
                 !searchQuery ||
@@ -498,11 +499,13 @@ function FinancialsView({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
                       cursor: 'pointer',
                       userSelect: 'none'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <Calendar size={16} style={{ color: '#6ee7b7' }} />
                       <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
                         {weekGroup.weekTitle}
@@ -549,7 +552,9 @@ function FinancialsView({
                             <th style={{ padding: '8px 10px', textAlign: 'left' }}>Amount</th>
                             <th style={{ padding: '8px 10px', textAlign: 'left' }}>Status</th>
                             <th style={{ padding: '8px 10px', textAlign: 'left' }}>Payment Mode</th>
-                            <th style={{ padding: '8px 10px', textAlign: 'right' }}>Action</th>
+                            {showActionColumn && (
+                              <th style={{ padding: '8px 10px', textAlign: 'right' }}>Action</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
@@ -597,57 +602,59 @@ function FinancialsView({
                                     mode
                                   )}
                                 </td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                                  {canDeposit && onDepositCashToBank ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => onDepositCashToBank(item)}
-                                      style={{
-                                        backgroundColor: isUndepositedOnline ? '#0284c7' : '#0c382e',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        padding: '3px 8px',
-                                        borderRadius: '5px',
-                                        fontSize: '0.725rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                      }}
-                                    >
-                                      <Landmark size={11} />
-                                      <span>Deposit to Bank</span>
-                                    </button>
-                                  ) : item.status === 'Paid' ? (
-                                    <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                      <CheckCircle2 size={12} /> Recorded
-                                    </span>
-                                  ) : onPayNow ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => onPayNow(item)}
-                                      style={{
-                                        backgroundColor: '#0284c7',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        padding: '3px 8px',
-                                        borderRadius: '5px',
-                                        fontSize: '0.725rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                      }}
-                                    >
-                                      <CreditCard size={11} />
-                                      <span>Record Payment</span>
-                                    </button>
-                                  ) : (
-                                    <span style={{ color: '#94a3b8' }}>-</span>
-                                  )}
-                                </td>
+                                {showActionColumn && (
+                                  <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                                    {canDeposit && onDepositCashToBank ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => onDepositCashToBank(item)}
+                                        style={{
+                                          backgroundColor: isUndepositedOnline ? '#0284c7' : '#0c382e',
+                                          color: '#ffffff',
+                                          border: 'none',
+                                          padding: '3px 8px',
+                                          borderRadius: '5px',
+                                          fontSize: '0.725rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                      >
+                                        <Landmark size={11} />
+                                        <span>Deposit to Bank</span>
+                                      </button>
+                                    ) : item.status === 'Paid' ? (
+                                      <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        <CheckCircle2 size={12} /> Recorded
+                                      </span>
+                                    ) : onPayNow ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => onPayNow(item)}
+                                        style={{
+                                          backgroundColor: '#0284c7',
+                                          color: '#ffffff',
+                                          border: 'none',
+                                          padding: '3px 8px',
+                                          borderRadius: '5px',
+                                          fontSize: '0.725rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                      >
+                                        <CreditCard size={11} />
+                                        <span>Record Payment</span>
+                                      </button>
+                                    ) : (
+                                      <span style={{ color: '#94a3b8' }}>-</span>
+                                    )}
+                                  </td>
+                                )}
                               </tr>
                             );
                           })}
@@ -678,6 +685,7 @@ function FinancialsView({
           savingsWeeks={savingsWeeks}
           savingsLogs={savingsLogs}
           currentUserId={currentUserId}
+          bankAccount={unitBankAccount}
           onClose={() => setShowOwnModal(false)}
           onRecordPayment={onPayNow}
           onDepositCash={onDepositCashToBank}

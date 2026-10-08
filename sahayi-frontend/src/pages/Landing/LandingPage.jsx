@@ -44,6 +44,43 @@ function LandingPage() {
     loadRealData();
   }, []);
 
+  useEffect(() => {
+    // Smooth scrolling for internal anchor links (#home, #about, #features, #community)
+    const handleAnchorClick = (e) => {
+      const anchor = e.target.closest('a[href^="#"]');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href');
+      if (!href || href === '#') return;
+      const targetEl = document.querySelector(href);
+      if (targetEl) {
+        e.preventDefault();
+        targetEl.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+
+    document.addEventListener('click', handleAnchorClick);
+
+    // High performance IntersectionObserver for section scroll reveals
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    const revealElements = document.querySelectorAll('.reveal-on-scroll');
+    revealElements.forEach((el) => observer.observe(el));
+
+    return () => {
+      document.removeEventListener('click', handleAnchorClick);
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <div className="landing-root">
       <Navbar />

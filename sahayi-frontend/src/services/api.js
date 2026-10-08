@@ -96,6 +96,7 @@ export const fetchShgUnitReceipt = async (id) => {
 // FORGOT PASSWORD VIA MOBILE OTP APIs (unauthenticated)
 // ========================================================
 
+
 // 1. Request OTP for mobile number (checks if in database)
 export const sendForgotPasswordOtp = async (phoneNumber) => {
   return await api.post('/auth/forgot-password/send-otp', { phoneNumber });

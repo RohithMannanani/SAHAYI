@@ -84,144 +84,161 @@ namespace Sahayi.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync<IActionResult>(async () =>
             {
-                // 1. Fetch Ward details
-                var ward = await _context.PanchayathWards.FindAsync(dto.WardId);
-                if (ward == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    return BadRequest(new { message = $"Ward ID {dto.WardId} does not exist." });
-                }
-
-                // 2. Check if Unit Name already exists in this Ward
-                if (await _context.AyalkoottamUnits.AnyAsync(u => u.UnitName.ToLower() == dto.UnitName.ToLower() && u.WardId == dto.WardId))
-                {
-                    return BadRequest(new { message = "An Ayalkoottam unit with this name already exists in this Ward." });
-                }
-
-                // 3. Check if Account Number already exists
-                if (await _context.AyalkoottamUnits.AnyAsync(u => u.AccountNumber == dto.AccountNumber))
-                {
-                    return BadRequest(new { message = "This bank account number is already linked to another unit." });
-                }
-
-                // 4. Create and add the Unit entity
-                var unit = new AyalkoottamUnit
-                {
-                    UnitName = dto.UnitName,
-                    WardId = dto.WardId,
-                    AccountNumber = dto.AccountNumber,
-                    BankName = dto.BankName,
-                    IFSCCode = dto.IFSCCode,
-                    AccountBalance = dto.AccountBalance,
-                    CreatedDate = DateTime.UtcNow,
-                    IsActive = true
-                };
-
-                _context.AyalkoottamUnits.Add(unit);
-                await _context.SaveChangesAsync();
-
-                // Create or update associated UnitBankAccount record with real bank details and initial balance
-                var existingBankAcc = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == unit.UnitId);
-                if (existingBankAcc == null)
-                {
-                    var unitBankAccount = new UnitBankAccount
+                    // 1. Fetch Ward details
+                    var ward = await _context.PanchayathWards.FindAsync(dto.WardId);
+                    if (ward == null)
                     {
-                        UnitId = unit.UnitId,
-                        AccountNumber = !string.IsNullOrWhiteSpace(unit.AccountNumber) ? unit.AccountNumber : $"ACC-{unit.UnitId:D8}",
-                        BankName = !string.IsNullOrWhiteSpace(unit.BankName) ? unit.BankName : "State Bank of India",
-                        IFSCCode = !string.IsNullOrWhiteSpace(unit.IFSCCode) ? unit.IFSCCode : "SBIN0001234",
-                        Balance = dto.AccountBalance,
-                        LastUpdated = DateTime.UtcNow
-                    };
-                    _context.UnitBankAccounts.Add(unitBankAccount);
-                }
-                else
-                {
-                    existingBankAcc.AccountNumber = !string.IsNullOrWhiteSpace(unit.AccountNumber) ? unit.AccountNumber : existingBankAcc.AccountNumber;
-                    existingBankAcc.BankName = !string.IsNullOrWhiteSpace(unit.BankName) ? unit.BankName : existingBankAcc.BankName;
-                    existingBankAcc.IFSCCode = !string.IsNullOrWhiteSpace(unit.IFSCCode) ? unit.IFSCCode : existingBankAcc.IFSCCode;
-                    existingBankAcc.Balance = dto.AccountBalance;
-                    existingBankAcc.LastUpdated = DateTime.UtcNow;
-                }
-                await _context.SaveChangesAsync();
-
-                // 5. Create members & credentials
-                var createdUsers = new List<ApplicationUser>();
-                var pdfMembers = new List<MemberCredentialInfo>();
-
-                foreach (var mDto in dto.Members)
-                {
-                    // Check if phone number is already registered
-                    if (await _context.ApplicationUsers.AnyAsync(u => u.PhoneNumber == mDto.PhoneNumber || u.Username == mDto.PhoneNumber))
-                    {
-                        return BadRequest(new { message = $"Phone number '{mDto.PhoneNumber}' is already registered to a user in the system." });
+                        return BadRequest(new { message = $"Ward ID {dto.WardId} does not exist." });
                     }
 
-                    var user = new ApplicationUser
+                    // 2. Check if Unit Name already exists in this Ward
+                    if (await _context.AyalkoottamUnits.AnyAsync(u => u.UnitName.ToLower() == dto.UnitName.ToLower() && u.WardId == dto.WardId))
                     {
-                        Username = mDto.PhoneNumber,
-                        FullName = mDto.FullName,
-                        PhoneNumber = mDto.PhoneNumber,
-                        HouseName = mDto.HouseName,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.DefaultPassword),
-                        IsPasswordChanged = false, // Set to false to force password change on first login
-                        RoleId = mDto.RoleId,
-                        UnitId = unit.UnitId,
-                        JoinedDate = DateTime.UtcNow,
+                        return BadRequest(new { message = "An Ayalkoottam unit with this name already exists in this Ward." });
+                    }
+
+                    // 3. Check if Account Number already exists
+                    if (await _context.AyalkoottamUnits.AnyAsync(u => u.AccountNumber == dto.AccountNumber))
+                    {
+                        return BadRequest(new { message = "This bank account number is already linked to another unit." });
+                    }
+
+                    var contactNumber = !string.IsNullOrWhiteSpace(dto.PrimaryContactPhone)
+                        ? dto.PrimaryContactPhone
+                        : (!string.IsNullOrWhiteSpace(dto.Contact) ? dto.Contact : string.Empty);
+
+                    if (string.IsNullOrWhiteSpace(contactNumber) && dto.Members.Any())
+                    {
+                        var pres = dto.Members.FirstOrDefault(m => m.RoleId == 2) ?? dto.Members.First();
+                        contactNumber = pres.PhoneNumber;
+                    }
+
+                    // 4. Create and add the Unit entity
+                    var unit = new AyalkoottamUnit
+                    {
+                        UnitName = dto.UnitName,
+                        WardId = dto.WardId,
+                        PrimaryContactPhone = contactNumber,
+                        AccountNumber = dto.AccountNumber,
+                        BankName = dto.BankName,
+                        IFSCCode = dto.IFSCCode,
+                        AccountBalance = dto.AccountBalance,
+                        CreatedDate = dto.FormationDate ?? DateTime.UtcNow,
                         IsActive = true
                     };
 
-                    _context.ApplicationUsers.Add(user);
-                    createdUsers.Add(user);
+                    _context.AyalkoottamUnits.Add(unit);
+                    await _context.SaveChangesAsync();
 
-                    string roleName = mDto.RoleId switch
+                    // Create or update associated UnitBankAccount record with real bank details and initial balance
+                    var existingBankAcc = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == unit.UnitId);
+                    if (existingBankAcc == null)
                     {
-                        2 => "President",
-                        3 => "Secretary",
-                        4 => "Treasurer",
-                        _ => "Member"
-                    };
-
-                    pdfMembers.Add(new MemberCredentialInfo
-                    {
-                        FullName = mDto.FullName,
-                        PhoneNumber = mDto.PhoneNumber,
-                        Role = roleName,
-                        CommonPassword = dto.DefaultPassword
-                    });
-                }
-
-                // 6. Save unit and users to the database
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                // 7. Generate Credentials PDF Blob & store in folder
-                var pdfBytes = _pdfService.GenerateCredentialsPdf(dto.UnitName, ward.WardNumber, pdfMembers);
-
-                try
-                {
-                    var receiptsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "receipts");
-                    if (!Directory.Exists(receiptsFolder))
-                    {
-                        Directory.CreateDirectory(receiptsFolder);
+                        var unitBankAccount = new UnitBankAccount
+                        {
+                            UnitId = unit.UnitId,
+                            AccountNumber = !string.IsNullOrWhiteSpace(unit.AccountNumber) ? unit.AccountNumber : $"ACC-{unit.UnitId:D8}",
+                            BankName = !string.IsNullOrWhiteSpace(unit.BankName) ? unit.BankName : "State Bank of India",
+                            IFSCCode = !string.IsNullOrWhiteSpace(unit.IFSCCode) ? unit.IFSCCode : "SBIN0001234",
+                            Balance = dto.AccountBalance,
+                            LastUpdated = DateTime.UtcNow
+                        };
+                        _context.UnitBankAccounts.Add(unitBankAccount);
                     }
-                    var filePath = Path.Combine(receiptsFolder, $"unit_{unit.UnitId}_receipt.pdf");
-                    await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
-                }
-                catch (Exception saveEx)
-                {
-                    Console.WriteLine($"Warning: Could not save receipt PDF to disk: {saveEx.Message}");
-                }
+                    else
+                    {
+                        existingBankAcc.AccountNumber = !string.IsNullOrWhiteSpace(unit.AccountNumber) ? unit.AccountNumber : existingBankAcc.AccountNumber;
+                        existingBankAcc.BankName = !string.IsNullOrWhiteSpace(unit.BankName) ? unit.BankName : existingBankAcc.BankName;
+                        existingBankAcc.IFSCCode = !string.IsNullOrWhiteSpace(unit.IFSCCode) ? unit.IFSCCode : existingBankAcc.IFSCCode;
+                        existingBankAcc.Balance = dto.AccountBalance;
+                        existingBankAcc.LastUpdated = DateTime.UtcNow;
+                    }
+                    await _context.SaveChangesAsync();
 
-                return File(pdfBytes, "application/pdf", $"{dto.UnitName.Replace(" ", "_")}_receipt.pdf");
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                return StatusCode(500, new { message = "Error saving unit to database.", details = ex.Message });
-            }
+                    // 5. Create members & credentials
+                    var createdUsers = new List<ApplicationUser>();
+                    var pdfMembers = new List<MemberCredentialInfo>();
+
+                    foreach (var mDto in dto.Members)
+                    {
+                        // Check if phone number is already registered
+                        if (await _context.ApplicationUsers.AnyAsync(u => u.PhoneNumber == mDto.PhoneNumber || u.Username == mDto.PhoneNumber))
+                        {
+                            await transaction.RollbackAsync();
+                            return BadRequest(new { message = $"Phone number '{mDto.PhoneNumber}' is already registered to a user in the system." });
+                        }
+
+                        var user = new ApplicationUser
+                        {
+                            Username = mDto.PhoneNumber,
+                            FullName = mDto.FullName,
+                            PhoneNumber = mDto.PhoneNumber,
+                            HouseName = mDto.HouseName,
+                            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.DefaultPassword),
+                            IsPasswordChanged = false, // Set to false to force password change on first login
+                            RoleId = mDto.RoleId,
+                            UnitId = unit.UnitId,
+                            JoinedDate = dto.FormationDate ?? DateTime.UtcNow,
+                            IsActive = true
+                        };
+
+                        _context.ApplicationUsers.Add(user);
+                        createdUsers.Add(user);
+
+                        string roleName = mDto.RoleId switch
+                        {
+                            2 => "President",
+                            3 => "Secretary",
+                            4 => "Treasurer",
+                            _ => "Member"
+                        };
+
+                        pdfMembers.Add(new MemberCredentialInfo
+                        {
+                            FullName = mDto.FullName,
+                            PhoneNumber = mDto.PhoneNumber,
+                            Role = roleName,
+                            CommonPassword = dto.DefaultPassword
+                        });
+                    }
+
+                    // 6. Save unit and users to the database
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // 7. Generate Credentials PDF Blob & store in folder
+                    var pdfBytes = _pdfService.GenerateCredentialsPdf(dto.UnitName, ward.WardNumber, pdfMembers);
+
+                    try
+                    {
+                        var receiptsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "receipts");
+                        if (!Directory.Exists(receiptsFolder))
+                        {
+                            Directory.CreateDirectory(receiptsFolder);
+                        }
+                        var filePath = Path.Combine(receiptsFolder, $"unit_{unit.UnitId}_receipt.pdf");
+                        await System.IO.File.WriteAllBytesAsync(filePath, pdfBytes);
+                    }
+                    catch (Exception saveEx)
+                    {
+                        Console.WriteLine($"Warning: Could not save receipt PDF to disk: {saveEx.Message}");
+                    }
+
+                    Response.Headers.Append("X-Unit-Id", unit.UnitId.ToString());
+                    return File(pdfBytes, "application/pdf", $"{dto.UnitName.Replace(" ", "_")}_receipt.pdf");
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, new { message = "Error saving unit to database.", details = ex.Message });
+                }
+            });
         }
 
         [HttpGet("{id}/receipt")]
@@ -472,7 +489,7 @@ namespace Sahayi.Api.Controllers
 
                     var unitMeetings = meetings.Where(m => m.UnitId == unit.UnitId).ToList();
                     int totalMeetings = unitMeetings.Count;
-                    int completedMeetings = unitMeetings.Count(m => m.IsCompleted);
+                    int completedMeetings = unitMeetings.Count(m => m.IsCompleted || m.MeetingDate.Date < DateTime.UtcNow.Date);
 
                     var attendances = unitMeetings.SelectMany(m => m.Attendances ?? new List<Attendance>()).ToList();
                     int totalAttendance = attendances.Count;

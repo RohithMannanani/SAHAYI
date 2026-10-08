@@ -34,8 +34,8 @@ function Login() {
     try {
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       const passwordChanged = storedUser.isPasswordChanged;
-      // Only redirect if password has already been changed (non-zero / truthy)
-      if (passwordChanged != null && passwordChanged != 0) {
+      // Only redirect if password has already been changed (true or non-zero)
+      if (passwordChanged != null && passwordChanged != 0 && passwordChanged !== false && passwordChanged !== '0') {
         const route = ROLE_ROUTES[storedUser.roleId];
         if (route) return <Navigate to={route} replace={false} />;
       }
@@ -69,8 +69,8 @@ function Login() {
       }));
 
       // ── Force password change check ──────────────────────────────
-      // Use loose == so it handles 0 (number), false (boolean), or "0" (string)
-      if (data.isPasswordChanged == 0) {
+      // Handles false (boolean), 0 (number), or "0" (string)
+      if (data.isPasswordChanged === false || data.isPasswordChanged == 0 || data.isPasswordChanged === '0') {
         setForceChangeData(data);
         return; // do NOT navigate — modal handles routing after change
       }

@@ -21,6 +21,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         }));
 
 // 2. Register Custom Services for Dependency Injection
+builder.Services.AddHttpClient(); // 👈 Added for SMS Gateway HTTP calls
 builder.Services.AddScoped<ITokenService, TokenService>(); // 👈 Added TokenService registration
 builder.Services.AddScoped<ISmsService, SmsService>();     // 👈 Added SmsService registration for OTP
 builder.Services.AddScoped<Sahayi.Api.Services.Interfaces.IChatService, Sahayi.Api.Services.Implementations.ChatService>(); // 👈 ChatService
@@ -94,6 +95,15 @@ using (var scope = app.Services.CreateScope())
             )
             BEGIN
                 ALTER TABLE [dbo].[LoanRepayments] ADD [PaymentMode] varchar(50) NOT NULL DEFAULT 'Cash (Bank Deposited)';
+            END
+
+            IF NOT EXISTS (
+                SELECT 1 FROM sys.columns 
+                WHERE object_id = OBJECT_ID(N'[dbo].[LoanApplications]') 
+                AND name = 'RejectionReason'
+            )
+            BEGIN
+                ALTER TABLE [dbo].[LoanApplications] ADD [RejectionReason] varchar(500) NULL;
             END
         ");
     }

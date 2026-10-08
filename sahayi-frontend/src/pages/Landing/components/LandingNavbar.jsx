@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Settings, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import sahayiLogo from '../../../assets/images/sahayi_logo.jpg';
 import './LandingNavbar.css';
 
@@ -15,7 +15,7 @@ function LandingNavbar() {
   }, []);
 
   return (
-    <header className={`landing-nav${scrolled ? ' scrolled' : ''}`}>
+    <header className={`landing-nav${scrolled ? ' scrolled' : ''}${menuOpen ? ' menu-open' : ''}`}>
       <div className="landing-nav__inner container">
         {/* Logo */}
         <a href="#home" className="landing-nav__logo">
@@ -32,12 +32,6 @@ function LandingNavbar() {
 
         {/* Actions */}
         <div className="landing-nav__actions">
-          <button className="icon-btn" aria-label="Notifications">
-            <Bell size={18} />
-          </button>
-          <button className="icon-btn" aria-label="Settings">
-            <Settings size={18} />
-          </button>
           <Link to="/login" className="btn-login">Login →</Link>
         </div>
 

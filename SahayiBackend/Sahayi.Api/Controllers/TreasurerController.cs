@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Sahayi.Api.Data;
 using Sahayi.Api.Dtos;
 using Sahayi.Api.Entities;
 using Sahayi.Api.Helpers;
+using Sahayi.Api.Services;
 using System;
 using System.Linq;
 using System.Security.Claims;
@@ -18,10 +20,14 @@ namespace Sahayi.Api.Controllers
     public class TreasurerController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISmsService _smsService;
+        private readonly ILogger<TreasurerController> _logger;
 
-        public TreasurerController(ApplicationDbContext context)
+        public TreasurerController(ApplicationDbContext context, ISmsService smsService, ILogger<TreasurerController> logger)
         {
             _context = context;
+            _smsService = smsService;
+            _logger = logger;
         }
 
         // GET: api/treasurer/pending-loans
@@ -80,7 +86,9 @@ namespace Sahayi.Api.Controllers
                     return Unauthorized("User ID not found in token.");
                 }
 
-                var loan = await _context.LoanApplications.FindAsync(loanId);
+                var loan = await _context.LoanApplications
+                    .Include(l => l.User)
+                    .FirstOrDefaultAsync(l => l.LoanId == loanId);
                 if (loan == null)
                     return NotFound(new { message = "Loan application not found." });
 
@@ -96,9 +104,38 @@ namespace Sahayi.Api.Controllers
                 loan.Status = dto.Status;
                 loan.ApprovedBy = currentUserId;
 
+                bool smsDispatched = false;
+                if (dto.Status == "Rejected")
+                {
+                    loan.RejectionReason = dto.Reason;
+
+                    if (loan.User != null && !string.IsNullOrWhiteSpace(loan.User.PhoneNumber))
+                    {
+                        try
+                        {
+                            smsDispatched = await _smsService.SendLoanRejectionAsync(
+                                loan.User.PhoneNumber,
+                                loan.User.FullName,
+                                loan.AmountRequested,
+                                dto.Reason ?? "Not specified"
+                            );
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to dispatch loan rejection SMS to {PhoneNumber}", loan.User.PhoneNumber);
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = $"Loan {dto.Status} successfully." });
+                string responseMsg = dto.Status == "Rejected"
+                    ? (smsDispatched 
+                        ? $"Loan rejected successfully. Rejection SMS notification dispatched to {loan.User?.FullName ?? "applicant"}."
+                        : "Loan rejected successfully.")
+                    : "Loan approved successfully.";
+
+                return Ok(new { message = responseMsg, smsSent = smsDispatched });
             }
             catch (Exception ex)
             {

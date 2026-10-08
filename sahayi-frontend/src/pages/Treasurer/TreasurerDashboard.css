@@ -138,6 +138,15 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
+.tr-header__hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: #1a1a1a;
+  cursor: pointer;
+  padding: 4px;
+}
+
 .tr-header__title {
   font-size: 16px;
   font-weight: 700;
@@ -806,6 +815,130 @@
   font-size: 12px;
 }
 
+
 .tr-footer__links a:hover {
   text-decoration: underline;
+}
+
+/* ── Collapsed Sidebar ── */
+.tr-sidebar--collapsed {
+  width: 70px;
+  padding: 24px 8px;
+  align-items: center;
+}
+
+.tr-sidebar--collapsed .tr-sidebar__brand {
+  padding: 0 0 24px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tr-sidebar--collapsed .tr-brand-title {
+  font-size: 20px;
+}
+
+.tr-sidebar--collapsed .tr-brand-sub {
+  display: none;
+}
+
+.tr-sidebar--collapsed .tr-nav-item span {
+  display: none;
+}
+
+.tr-sidebar--collapsed .tr-nav-item {
+  justify-content: center;
+  padding: 11px 0;
+}
+
+.tr-sidebar--collapsed .tr-nav-item--active {
+  padding-left: 0;
+  border-left: none;
+  background: #2d2d2d;
+}
+
+.tr-sidebar--collapsed .tr-sidebar__divider {
+  margin: 16px 8px;
+}
+
+.tr-sidebar-toggle {
+  margin-top: 4px;
+}
+
+/* ================================================================
+   TREASURER DASHBOARD — RESPONSIVE BREAKPOINTS
+   ================================================================ */
+
+/* ── Mobile Responsive Sidebar Drawer ── */
+.tr-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 150;
+  backdrop-filter: blur(2px);
+}
+
+.tr-sidebar-wrapper {
+  display: flex;
+  flex-shrink: 0;
+  z-index: 200;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+@media (max-width: 1024px) {
+  .tr-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .tr-top-cards { grid-template-columns: repeat(2, 1fr); }
+  .tr-middle-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .tr-header { padding: 0 14px; }
+  .tr-search-bar { display: none; }
+  .tr-content { padding: 14px 12px; gap: 14px; }
+  .tr-stats-grid { grid-template-columns: 1fr 1fr; }
+  .tr-card { padding: 16px; }
+  .tr-top-cards { grid-template-columns: 1fr; }
+
+  .tr-header__hamburger {
+    display: block;
+  }
+  
+  .tr-header__title {
+    display: none;
+  }
+
+  .tr-sidebar {
+    width: 280px;
+    height: 100%;
+    border-right: none;
+  }
+
+  .tr-sidebar-wrapper {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    height: 100vh;
+    transition: left 0.3s ease;
+    z-index: 200;
+  }
+
+  .tr-sidebar-wrapper.tr-sidebar--drawer-open {
+    left: 0;
+  }
+
+  .tr-sidebar-overlay {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .tr-stats-grid { grid-template-columns: 1fr; }
+  .tr-content { padding: 12px 10px; }
+  .tr-footer { flex-direction: column; gap: 8px; }
 }

@@ -166,6 +166,22 @@
 }
 
 /* Chat Header Title Update */
+.chat-back-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0;
+    margin-right: 12px;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-back-btn:hover {
+    color: #a7f3d0;
+}
+
 .chat-header-title {
     display: flex;
     align-items: center;
@@ -474,4 +490,43 @@
 .messenger-contacts::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 10px;
+}
+
+/* ================================================================
+   MOBILE RESPONSIVENESS (WhatsApp-like layout)
+   ================================================================ */
+
+@media (max-width: 768px) {
+    .messenger-layout {
+        height: calc(100vh - 200px);
+        min-height: 500px;
+    }
+
+    /* When mobile view is sidebar (chat list) */
+    .messenger-layout.mobile-view-sidebar .messenger-sidebar {
+        width: 100%;
+        display: flex;
+        border-right: none;
+    }
+    .messenger-layout.mobile-view-sidebar .messenger-main {
+        display: none;
+    }
+
+    /* When mobile view is chat (conversation) */
+    .messenger-layout.mobile-view-chat .messenger-sidebar {
+        display: none;
+    }
+    .messenger-layout.mobile-view-chat .messenger-main {
+        width: 100%;
+        display: flex;
+    }
+
+    /* Show back button on mobile chat view */
+    .chat-back-btn {
+        display: flex;
+    }
+
+    .chat-message-wrapper {
+        max-width: 90%;
+    }
 }

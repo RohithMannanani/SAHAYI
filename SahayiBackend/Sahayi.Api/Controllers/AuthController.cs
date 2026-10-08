@@ -234,10 +234,13 @@ namespace Sahayi.Api.Controllers
             _context.PasswordResetOtps.Add(otpEntry);
             await _context.SaveChangesAsync();
 
-            // 5. Send OTP via SMS service (Logs to Console)
+            // 5. Send OTP via SMS service (Dispatches via gateway / Logs to Console)
             await _smsService.SendOtpAsync(cleanPhone, cleanFullName, otpCode);
 
-            return Ok(new { message = "OTP sent successfully to your registered mobile number." });
+            return Ok(new { 
+                message = "OTP sent successfully to your registered mobile number.",
+                fullName = cleanFullName
+            });
         }
 
         [HttpPost("forgot-password/verify-otp")]

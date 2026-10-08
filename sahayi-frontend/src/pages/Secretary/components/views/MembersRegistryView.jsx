@@ -25,49 +25,51 @@ function MembersRegistryView({
       </div>
 
       <div className="sec-card">
-        <table className="sec-savings-table">
-          <thead>
-            <tr>
-              <th>Member Name</th>
-              <th>Member ID</th>
-              <th>Phone</th>
-              <th>Status</th>
-              {!readOnly && <th className="sec-text-right">Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {attendanceList.length === 0 ? (
+        <div className="sec-table-container">
+          <table className="sec-savings-table">
+            <thead>
               <tr>
-                <td colSpan={readOnly ? "4" : "5"} className="sec-table-empty">
-                  No members registered in this unit yet.
-                </td>
+                <th>Member Name</th>
+                <th>Member ID</th>
+                <th>Phone</th>
+                <th>Status</th>
+                {!readOnly && <th className="sec-text-right">Actions</th>}
               </tr>
-            ) : (
-              attendanceList.map(mem => (
-                <tr key={mem.id}>
-                  <td className="sec-font-medium">{mem.name}</td>
-                  <td className="sec-text-muted">{mem.memberId}</td>
-                  <td>{mem.phone || '+91 98470 12345'}</td>
-                  <td>
-                    <span className="sec-status-badge sec-status-badge--paid">
-                      Active
-                    </span>
+            </thead>
+            <tbody>
+              {attendanceList.length === 0 ? (
+                <tr>
+                  <td colSpan={readOnly ? "4" : "5"} className="sec-table-empty">
+                    No members registered in this unit yet.
                   </td>
-                  {!readOnly && (
-                    <td className="sec-text-right">
-                      <button
-                        className="sec-card__link-btn"
-                        onClick={() => onSelectMemberDetail && onSelectMemberDetail(mem)}
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  )}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                attendanceList.map(mem => (
+                  <tr key={mem.id}>
+                    <td className="sec-font-medium">{mem.name}</td>
+                    <td className="sec-text-muted">{mem.memberId}</td>
+                    <td>{mem.phone || '+91 98470 12345'}</td>
+                    <td>
+                      <span className="sec-status-badge sec-status-badge--paid">
+                        Active
+                      </span>
+                    </td>
+                    {!readOnly && (
+                      <td className="sec-text-right">
+                        <button
+                          className="sec-card__link-btn"
+                          onClick={() => onSelectMemberDetail && onSelectMemberDetail(mem)}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

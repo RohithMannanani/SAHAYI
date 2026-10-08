@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Sahayi.Api.Data;
 using Sahayi.Api.Dtos;
 using Sahayi.Api.Entities;
 using Sahayi.Api.Helpers;
+using Sahayi.Api.Services;
 using System;
 using System.Linq;
 using System.Security.Claims;
@@ -18,10 +20,14 @@ namespace Sahayi.Api.Controllers
     public class PresidentController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISmsService _smsService;
+        private readonly ILogger<PresidentController> _logger;
 
-        public PresidentController(ApplicationDbContext context)
+        public PresidentController(ApplicationDbContext context, ISmsService smsService, ILogger<PresidentController> logger)
         {
             _context = context;
+            _smsService = smsService;
+            _logger = logger;
         }
 
         // GET: api/president/monitor-loans
@@ -61,6 +67,7 @@ namespace Sahayi.Api.Controllers
                         LoanId = l.LoanId,
                         UserId = l.UserId,
                         MemberName = l.User?.FullName ?? "Unknown",
+                        PhoneNumber = l.User?.PhoneNumber,
                         AmountRequested = l.AmountRequested,
                         FineAmount = fineAmount,
                         TotalLoanAmount = totalLoanAmount,
@@ -71,6 +78,7 @@ namespace Sahayi.Api.Controllers
                         AppliedDate = l.AppliedDate,
                         ApprovedByName = l.Approver?.FullName,
                         DisbursedDate = l.DisbursedDate,
+                        RejectionReason = l.RejectionReason,
                         TotalPrincipalPaid = totalPrincipalPaid,
                         TotalInterestPaid = totalInterestPaid,
                         OutstandingBalance = outstandingBalance,
@@ -136,12 +144,14 @@ namespace Sahayi.Api.Controllers
                     LoanId = l.LoanId,
                     UserId = l.UserId,
                     MemberName = l.User?.FullName ?? "Unknown",
+                    PhoneNumber = l.User?.PhoneNumber,
                     AmountRequested = l.AmountRequested,
                     Purpose = l.Purpose,
                     TenureMonths = l.TenureMonths,
                     InterestRate = l.InterestRate,
                     Status = l.Status,
-                    AppliedDate = l.AppliedDate
+                    AppliedDate = l.AppliedDate,
+                    RejectionReason = l.RejectionReason
                 }).ToList();
 
                 return Ok(dtos);
@@ -168,7 +178,10 @@ namespace Sahayi.Api.Controllers
                 if (user == null)
                     return NotFound(new { message = "User not found." });
 
-                var loan = await _context.LoanApplications.FindAsync(loanId);
+                var loan = await _context.LoanApplications
+                    .Include(l => l.User)
+                    .FirstOrDefaultAsync(l => l.LoanId == loanId);
+
                 if (loan == null)
                     return NotFound(new { message = "Loan application not found." });
 
@@ -181,9 +194,38 @@ namespace Sahayi.Api.Controllers
                 loan.Status = dto.Status;
                 loan.ApprovedBy = currentUserId;
 
+                bool smsDispatched = false;
+                if (dto.Status == "Rejected")
+                {
+                    loan.RejectionReason = dto.Reason;
+
+                    if (loan.User != null && !string.IsNullOrWhiteSpace(loan.User.PhoneNumber))
+                    {
+                        try
+                        {
+                            smsDispatched = await _smsService.SendLoanRejectionAsync(
+                                loan.User.PhoneNumber,
+                                loan.User.FullName,
+                                loan.AmountRequested,
+                                dto.Reason ?? "Not specified"
+                            );
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to dispatch loan rejection SMS to {PhoneNumber}", loan.User.PhoneNumber);
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = $"Loan {dto.Status} successfully." });
+                string responseMsg = dto.Status == "Rejected"
+                    ? (smsDispatched 
+                        ? $"Loan rejected successfully. Rejection SMS notification dispatched to {loan.User?.FullName ?? "applicant"}."
+                        : "Loan rejected successfully and logged.")
+                    : "Loan approved successfully.";
+
+                return Ok(new { message = responseMsg, smsSent = smsDispatched });
             }
             catch (Exception ex)
             {
@@ -227,12 +269,14 @@ namespace Sahayi.Api.Controllers
                     LoanId = l.LoanId,
                     UserId = l.UserId,
                     MemberName = l.User?.FullName ?? "Unknown",
+                    PhoneNumber = l.User?.PhoneNumber,
                     AmountRequested = l.AmountRequested,
                     Purpose = l.Purpose,
                     TenureMonths = l.TenureMonths,
                     InterestRate = l.InterestRate,
                     Status = l.Status,
-                    AppliedDate = l.AppliedDate
+                    AppliedDate = l.AppliedDate,
+                    RejectionReason = l.RejectionReason
                 }).ToList();
 
                 return Ok(dtos);
@@ -259,7 +303,10 @@ namespace Sahayi.Api.Controllers
                 if (user == null)
                     return NotFound(new { message = "User not found." });
 
-                var loan = await _context.LoanApplications.FindAsync(loanId);
+                var loan = await _context.LoanApplications
+                    .Include(l => l.User)
+                    .FirstOrDefaultAsync(l => l.LoanId == loanId);
+
                 if (loan == null)
                     return NotFound(new { message = "Loan application not found." });
 
@@ -269,9 +316,38 @@ namespace Sahayi.Api.Controllers
                 loan.Status = dto.Status;
                 loan.ApprovedBy = currentUserId;
 
+                bool smsDispatched = false;
+                if (dto.Status == "Rejected")
+                {
+                    loan.RejectionReason = dto.Reason;
+
+                    if (loan.User != null && !string.IsNullOrWhiteSpace(loan.User.PhoneNumber))
+                    {
+                        try
+                        {
+                            smsDispatched = await _smsService.SendLoanRejectionAsync(
+                                loan.User.PhoneNumber,
+                                loan.User.FullName,
+                                loan.AmountRequested,
+                                dto.Reason ?? "Not specified"
+                            );
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to dispatch loan rejection SMS to {PhoneNumber}", loan.User.PhoneNumber);
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = $"Officer loan {dto.Status} successfully." });
+                string responseMsg = dto.Status == "Rejected"
+                    ? (smsDispatched 
+                        ? $"Officer loan rejected successfully. SMS notification sent to {loan.User?.FullName ?? "applicant"}." 
+                        : "Officer loan rejected successfully.")
+                    : "Officer loan approved successfully.";
+
+                return Ok(new { message = responseMsg, smsSent = smsDispatched });
             }
             catch (Exception ex)
             {

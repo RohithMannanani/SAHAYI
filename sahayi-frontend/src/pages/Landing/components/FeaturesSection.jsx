@@ -39,7 +39,7 @@ function FeaturesSection({ metrics }) {
   const attendanceDisplay = metrics && metrics.attendanceRate > 0 ? `${metrics.attendanceRate}%` : '87.5%';
 
   return (
-    <section className="features-section" id="features">
+    <section className="features-section reveal-on-scroll" id="features">
       <div className="container">
         <div className="features-header">
           <span className="section-tag">FEATURES</span>
