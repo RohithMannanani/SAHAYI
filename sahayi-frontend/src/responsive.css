@@ -22,8 +22,7 @@
   .mem-savings-pay-banner { flex-direction: column; gap: 18px; align-items: flex-start; }
   .mem-savings-pay-info { max-width: 100%; }
   .mem-savings-pay-action { width: 100%; justify-content: space-between; }
-
-
+}
 
 /* ────────────────────────────────────────────────
    TABLET PORTRAIT  ≤ 768px
