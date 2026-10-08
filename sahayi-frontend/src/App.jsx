@@ -16,15 +16,35 @@ import MemberDashboard from './pages/Member/MemberDashboard';
 import './App.css';
 
 /**
- * ProtectedRoute — renders children only when a JWT token exists in localStorage.
- * If not authenticated, immediately replaces the current history entry with /login
- * so the browser back button cannot return to a protected page after logout.
+ * ProtectedRoute — renders children only when a JWT token exists in localStorage
+ * AND the user's roleId matches the allowedRoleIds for this route.
+ * If not authenticated, or if the user's role does not match, it removes the session
+ * and redirects to /login immediately without rendering the page.
  */
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, allowedRoleIds }) {
   const token = localStorage.getItem('token');
   if (!token) {
     return <Navigate to="/login" replace />;
   }
+
+  if (allowedRoleIds && allowedRoleIds.length > 0) {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const userRoleId = Number(storedUser.roleId);
+
+      if (!allowedRoleIds.includes(userRoleId)) {
+        // Role mismatch: clear session and redirect to /login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return <Navigate to="/login" replace />;
+      }
+    } catch {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return <Navigate to="/login" replace />;
+    }
+  }
+
   return children;
 }
 
@@ -36,32 +56,50 @@ function AppRoutes() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Protected dashboard routes */}
+        {/* Protected dashboard routes with strict role enforcement */}
         <Route
           path="/cds-admin/dashboard"
-          element={<ProtectedRoute><CdsAdminDashboard /></ProtectedRoute>}
+          element={
+            <ProtectedRoute allowedRoleIds={[1]}>
+              <CdsAdminDashboard />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/president/dashboard"
-          element={<ProtectedRoute><PresidentDashboard /></ProtectedRoute>}
+          element={
+            <ProtectedRoute allowedRoleIds={[2]}>
+              <PresidentDashboard />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/secretary/dashboard"
-          element={<ProtectedRoute><SecretaryDashboard /></ProtectedRoute>}
+          element={
+            <ProtectedRoute allowedRoleIds={[3]}>
+              <SecretaryDashboard />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/treasurer/dashboard"
-          element={<ProtectedRoute><TreasurerDashboard /></ProtectedRoute>}
+          element={
+            <ProtectedRoute allowedRoleIds={[4]}>
+              <TreasurerDashboard />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/member/dashboard"
-          element={<ProtectedRoute><MemberDashboard /></ProtectedRoute>}
+          element={
+            <ProtectedRoute allowedRoleIds={[5]}>
+              <MemberDashboard />
+            </ProtectedRoute>
+          }
         />
 
-        {/*
-        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-        <Route path="/cds/register" element={<ProtectedRoute><RegisterAyalkoottam /></ProtectedRoute>} />
-        */}
+        {/* Fallback for unknown routes */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
