@@ -119,6 +119,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 6. HTTP Request Pipeline Configuration
+app.UseDeveloperExceptionPage(); // Shows detailed error messages if any DB query fails
+
+app.UseCors("AllowAll"); // Placed first so CORS headers are present even on errors
+
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -127,7 +131,6 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseStaticFiles();
-app.UseCors("AllowAll");
 
 // Middleware order matters: Authentication MUST come before Authorization
 app.UseAuthentication();
@@ -140,6 +143,26 @@ app.MapGet("/", () => Results.Ok(new
     Service = "Sahayi API",
     Timestamp = DateTime.UtcNow
 }));
+
+// Diagnostic endpoint to check DB connection and data in production
+app.MapGet("/test-db", async (ApplicationDbContext db) =>
+{
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        var userCount = await db.ApplicationUsers.CountAsync();
+        var rolesCount = await db.UserRoles.CountAsync();
+        return Results.Ok(new { canConnect, userCount, rolesCount, status = "Connected to database successfully!" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            title: "Database Error",
+            detail: ex.ToString(),
+            statusCode: 500
+        );
+    }
+});
 
 app.MapControllers();
 app.MapHub<Sahayi.Api.Hubs.ChatHub>("/chathub");
