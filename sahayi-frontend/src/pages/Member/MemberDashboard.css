@@ -1134,8 +1134,15 @@
    MEMBER DASHBOARD — RESPONSIVE BREAKPOINTS (DRAWER)
    ================================================================ */
 
+.mem-sidebar-close-btn {
+  display: none !important;
+}
+
 /* ── Tablet landscape ≤ 1024px (Enable Drawer) ── */
 @media (max-width: 1024px) {
+  .mem-sidebar-collapse-btn { display: none !important; }
+  .mem-sidebar-close-btn { display: flex !important; }
+
   .mem-container { flex-direction: column; }
   
   .mem-sidebar {
@@ -1205,7 +1212,7 @@
 @media (max-width: 768px) {
   .mem-content { padding: 14px 14px; gap: 14px; }
   .mem-header { padding: 0 14px; }
-  .mem-search-bar { display: none; }
+  .mem-search-bar { display: none !important; }
   .mem-banner__title { font-size: 22px; }
   .mem-savings-card__amount { font-size: 28px; }
   .mem-loan-card__amount { font-size: 22px; }

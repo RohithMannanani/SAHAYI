@@ -159,6 +159,13 @@
   gap: 16px;
 }
 
+.tr-header__subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
 .tr-search-bar {
   display: flex;
   align-items: center;
@@ -941,4 +948,5 @@
   .tr-stats-grid { grid-template-columns: 1fr; }
   .tr-content { padding: 12px 10px; }
   .tr-footer { flex-direction: column; gap: 8px; }
+  .tr-header__subtitle { max-width: 160px; }
 }

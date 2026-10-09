@@ -291,11 +291,20 @@ function MemberDashboard() {
           <div className="mem-sidebar__brand" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
              {!sidebarCollapsed ? 'SAHAYI' : 'S'}
              <div 
+               className="mem-sidebar-collapse-btn"
                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
              >
                <Icon d={sidebarCollapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} size={17} stroke="#aaa" strokeWidth={2.5} />
+             </div>
+             <div 
+               className="mem-sidebar-close-btn"
+               style={{ cursor: 'pointer', alignItems: 'center' }}
+               onClick={() => setMobileDrawerOpen(false)}
+               title="Close Menu"
+             >
+               <Icon d="M6 18L18 6M6 6l12 12" size={20} stroke="#aaa" strokeWidth={2.5} />
              </div>
           </div>
           <nav className="mem-sidebar__nav">
@@ -652,7 +661,7 @@ function MemberDashboard() {
         {/* ── Page Footer ── */}
         <footer className="mem-footer">
           <div className="mem-footer__left">
-            <div className="mem-footer__brand">SHAYI</div>
+            <div className="mem-footer__brand">SAHAYI</div>
             <div className="mem-footer__copy">© 2026 Ayalkoottam Management System. Empowering local communities.</div>
           </div>
           <div className="mem-footer__links">

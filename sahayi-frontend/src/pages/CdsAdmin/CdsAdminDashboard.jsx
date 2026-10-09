@@ -229,6 +229,7 @@ function CdsAdminDashboard() {
           navItems={navItems}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
+          onCloseMobileDrawer={() => setMobileDrawerOpen(false)}
         />
       </div>
 

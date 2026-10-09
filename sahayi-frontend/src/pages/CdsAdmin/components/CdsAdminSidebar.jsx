@@ -1,7 +1,7 @@
 import React from 'react';
 import Icon from './Icon';
 
-function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecordModalOpen, handleLogout, navItems, sidebarCollapsed, setSidebarCollapsed }) {
+function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecordModalOpen, handleLogout, navItems, sidebarCollapsed, setSidebarCollapsed, onCloseMobileDrawer }) {
   const toggleCollapse = () => {
     const next = !sidebarCollapsed;
     setSidebarCollapsed(next);
@@ -25,12 +25,25 @@ function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecord
           )}
         </div>
         <div 
+           className="cds-sidebar-collapse-btn"
            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: sidebarCollapsed ? 0 : '10px' }}
            onClick={toggleCollapse}
            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           <Icon d={sidebarCollapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} size={16} stroke="#aaa" strokeWidth={2.5} />
         </div>
+        {onCloseMobileDrawer && (
+          <div 
+             className="cds-sidebar-close-btn"
+             style={{ cursor: 'pointer', alignItems: 'center', marginLeft: '10px' }}
+             onClick={onCloseMobileDrawer}
+             title="Close Menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </div>
+        )}
       </div>
 
       <nav className="cds-sidebar__nav">
@@ -41,6 +54,7 @@ function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecord
             onClick={() => {
               setActiveNav(item.key);
               setSelectedUnit(null);
+              if (onCloseMobileDrawer) onCloseMobileDrawer();
             }}
             title={sidebarCollapsed ? item.label : ""}
           >
@@ -52,7 +66,7 @@ function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecord
 
       <button 
         className="cds-sidebar__new-btn" 
-        onClick={() => setIsRecordModalOpen(true)}
+        onClick={() => { setIsRecordModalOpen(true); if (onCloseMobileDrawer) onCloseMobileDrawer(); }}
         title={sidebarCollapsed ? "New Record" : ""}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -65,6 +79,7 @@ function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecord
           onClick={() => {
             setActiveNav('settings');
             if (setSelectedUnit) setSelectedUnit(null);
+            if (onCloseMobileDrawer) onCloseMobileDrawer();
           }}
           title={sidebarCollapsed ? "Settings" : ""}
         >

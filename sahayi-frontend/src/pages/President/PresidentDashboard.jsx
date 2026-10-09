@@ -278,6 +278,69 @@ function PresidentDashboard() {
 
   const currentWeekPendingMembers = savingsWeeks[0]?.pendingCount || 0;
 
+  const chartData = useMemo(() => {
+    const data = [];
+    const now = new Date();
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      data.push({
+        label: d.toLocaleDateString('en-US', { month: 'short' }),
+        savings: 0,
+        loans: 0,
+        month: d.getMonth(),
+        year: d.getFullYear()
+      });
+    }
+
+    if (Array.isArray(savingsWeeks)) {
+       savingsWeeks.forEach(w => {
+         const dateVal = w.startDate || w.date || w.createdAt;
+         if (dateVal) {
+           const wd = new Date(dateVal);
+           if (!isNaN(wd.getTime())) {
+             const match = data.find(m => m.month === wd.getMonth() && m.year === wd.getFullYear());
+             if (match) match.savings += (w.totalCollected || 0);
+           }
+         }
+       });
+    }
+
+    if (dashboardData && Array.isArray(dashboardData.loans)) {
+       dashboardData.loans.forEach(l => {
+          if (l.status === 'Disbursed' || l.status === 'Active' || l.status === 'Approved') {
+            const dateVal = l.disbursedDate || l.date || l.createdAt;
+            if (dateVal) {
+              const ld = new Date(dateVal);
+              if (!isNaN(ld.getTime())) {
+                 const match = data.find(m => m.month === ld.getMonth() && m.year === ld.getFullYear());
+                 if (match) match.loans += (l.principalAmount || l.amount || 0);
+              }
+            }
+          }
+       });
+    }
+
+    return data;
+  }, [savingsWeeks, dashboardData]);
+
+  const maxChartVal = useMemo(() => {
+     let max = 0;
+     chartData.forEach(d => {
+       if (d.savings > max) max = d.savings;
+       if (d.loans > max) max = d.loans;
+     });
+     if (max === 0) return 500000;
+     
+     const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
+     return Math.ceil(max / magnitude) * magnitude;
+  }, [chartData]);
+  
+  const formatYAxis = (val) => {
+    if (val >= 100000) return `${(val / 100000).toFixed(1).replace('.0', '')}L`;
+    if (val >= 1000) return `${(val / 1000).toFixed(1).replace('.0', '')}K`;
+    return val;
+  };
+
   return (
     <div className="pres-container">
       {/* Toast Banner */}
@@ -308,6 +371,7 @@ function PresidentDashboard() {
             <div className="pres-sidebar__brand" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{!sidebarCollapsed ? 'SAHAYI' : 'S'}</span>
             <div 
+               className="pres-sidebar-collapse-btn"
                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                onClick={() => {
                   const next = !sidebarCollapsed;
@@ -318,11 +382,19 @@ function PresidentDashboard() {
             >
               <Icon d={sidebarCollapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} size={17} stroke="#aaa" strokeWidth={2.5} />
             </div>
+            <div 
+               className="pres-sidebar-close-btn"
+               style={{ cursor: 'pointer', alignItems: 'center' }}
+               onClick={() => setMobileDrawerOpen(false)}
+               title="Close Menu"
+             >
+               <Icon d="M6 18L18 6M6 6l12 12" size={20} stroke="#aaa" strokeWidth={2.5} />
+             </div>
           </div>
           <nav className="pres-sidebar__nav">
             <div
               className={`pres-nav-item ${activeTab === 'dashboard' ? 'pres-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => { setActiveTab('dashboard'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Dashboard" : ""}
             >
               <Icon d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" size={17} />
@@ -331,7 +403,7 @@ function PresidentDashboard() {
 
             <div
               className={`pres-nav-item ${activeTab === 'members' ? 'pres-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('members')}
+              onClick={() => { setActiveTab('members'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Members" : ""}
             >
               <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={17} />
@@ -340,7 +412,7 @@ function PresidentDashboard() {
 
             <div
               className={`pres-nav-item ${activeTab === 'financials' ? 'pres-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('financials')}
+              onClick={() => { setActiveTab('financials'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Financials" : ""}
             >
               <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={17} />
@@ -349,7 +421,7 @@ function PresidentDashboard() {
 
             <button
               className={`pres-nav-item ${activeTab === 'meetings' ? 'pres-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('meetings')}
+              onClick={() => { setActiveTab('meetings'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Meetings" : ""}
             >
               <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={17} />
@@ -358,7 +430,7 @@ function PresidentDashboard() {
 
             <button
               className={`pres-nav-item ${activeTab === 'loans' ? 'pres-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('loans')}
+              onClick={() => { setActiveTab('loans'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Loans" : ""}
             >
               <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={17} />
@@ -367,7 +439,7 @@ function PresidentDashboard() {
 
             <div
               className={`pres-nav-item ${activeTab === 'reports' ? 'pres-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('reports')}
+              onClick={() => { setActiveTab('reports'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Reports" : ""}
             >
               <Icon d="M18 20V10M12 20V4M6 20v-6" size={17} />
@@ -376,7 +448,7 @@ function PresidentDashboard() {
 
             <div
               className={`pres-nav-item ${activeTab === 'chat' ? 'pres-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('chat')}
+              onClick={() => { setActiveTab('chat'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Chats" : ""}
             >
               <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" size={17} />
@@ -385,7 +457,7 @@ function PresidentDashboard() {
 
             <div
               className="pres-nav-item"
-              onClick={() => setShowOwnSavingsModal(true)}
+              onClick={() => { setShowOwnSavingsModal(true); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "View Own Savings" : "View my own personal weekly savings history and dues"}
             >
               <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={17} stroke="#10b981" />
@@ -399,7 +471,7 @@ function PresidentDashboard() {
 
           <div 
              className="pres-nav-item" 
-             onClick={() => setActiveTab('settings')}
+             onClick={() => { setActiveTab('settings'); setMobileDrawerOpen(false); }}
              title={sidebarCollapsed ? "Settings" : ""}
           >
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
@@ -480,7 +552,7 @@ function PresidentDashboard() {
               </p>
             </div>
 
-            {activeTab !== 'chat' && (
+            {(activeTab === 'dashboard' || activeTab === 'financials') && (
               <div className="pres-banner__actions">
                 <button className="pres-btn-outline" onClick={() => setShowOwnSavingsModal(true)}>
                   <Icon d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 1 2 2h16v-5M18 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" size={15} stroke="#10b981" />
@@ -952,42 +1024,38 @@ function PresidentDashboard() {
                   <div className="pres-chart-container">
                     <div className="pres-chart-grid">
                       <div className="pres-chart-y-axis">
-                        <span>5L</span>
-                        <span>4L</span>
-                        <span>3L</span>
-                        <span>2L</span>
-                        <span>1L</span>
+                        <span>{formatYAxis(maxChartVal)}</span>
+                        <span>{formatYAxis(maxChartVal * 0.8)}</span>
+                        <span>{formatYAxis(maxChartVal * 0.6)}</span>
+                        <span>{formatYAxis(maxChartVal * 0.4)}</span>
+                        <span>{formatYAxis(maxChartVal * 0.2)}</span>
                         <span>0</span>
                       </div>
 
-                      <div className="pres-bar-group">
-                        <div className="pres-bar pres-bar--savings" style={{ height: '48%' }} />
-                        <div className="pres-bar pres-bar--loans" style={{ height: '25%' }} />
-                      </div>
-                      <div className="pres-bar-group">
-                        <div className="pres-bar pres-bar--savings" style={{ height: '68%' }} />
-                        <div className="pres-bar pres-bar--loans" style={{ height: '40%' }} />
-                      </div>
-                      <div className="pres-bar-group">
-                        <div className="pres-bar pres-bar--savings" style={{ height: '84%' }} />
-                        <div className="pres-bar pres-bar--loans" style={{ height: '55%' }} />
-                      </div>
-                      <div className="pres-bar-group">
-                        <div className="pres-bar pres-bar--savings" style={{ height: '98%' }} />
-                        <div className="pres-bar pres-bar--loans" style={{ height: '60%' }} />
-                      </div>
-                      <div className="pres-bar-group">
-                        <div className="pres-bar pres-bar--savings" style={{ height: '98%' }} />
-                        <div className="pres-bar pres-bar--loans" style={{ height: '72%' }} />
-                      </div>
+                      {chartData.map((d, idx) => {
+                        const savingsPct = maxChartVal > 0 ? (d.savings / maxChartVal) * 100 : 0;
+                        const loansPct = maxChartVal > 0 ? (d.loans / maxChartVal) * 100 : 0;
+                        return (
+                          <div className="pres-bar-group" key={idx}>
+                            <div 
+                              className="pres-bar pres-bar--savings" 
+                              style={{ height: `${Math.max(savingsPct, 2)}%` }} 
+                              title={`Collections: ₹${d.savings.toLocaleString('en-IN')}`} 
+                            />
+                            <div 
+                              className="pres-bar pres-bar--loans" 
+                              style={{ height: `${Math.max(loansPct, 2)}%` }} 
+                              title={`Loans: ₹${d.loans.toLocaleString('en-IN')}`} 
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <div className="pres-chart-x-axis">
-                      <span>Jun</span>
-                      <span>Jul</span>
-                      <span>Aug</span>
-                      <span>Sep</span>
-                      <span>Oct</span>
+                      {chartData.map((d, idx) => (
+                         <span key={idx}>{d.label}</span>
+                      ))}
                     </div>
                   </div>
                 </div>

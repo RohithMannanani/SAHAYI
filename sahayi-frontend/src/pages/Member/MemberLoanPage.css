@@ -25,8 +25,8 @@
   white-space: nowrap;
 }
 
-/* Make sure modal overlays have some padding on small screens */
-@media (max-width: 480px) {
+/* ── Responsive Overrides ── */
+@media (max-width: 768px) {
   .member-loan-page .mem-loan-content {
     flex-direction: column;
   }
@@ -34,5 +34,52 @@
   .member-loan-page .mem-loan-right {
     flex: 1 1 100% !important;
     max-width: 100% !important;
+  }
+  
+  /* Make the KPI grid more flexible */
+  .member-loan-page [style*="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* KPI Grid single column on very small screens */
+  .member-loan-page [style*="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Make header flexboxes stack */
+  .member-loan-page [style*="justify-content: space-between"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  /* Make right-side header buttons full width */
+  .member-loan-page .mem-card [style*="align-items: center"][style*="gap: 12px"] {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  
+  .member-loan-page .mem-card button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Pagination and action buttons row */
+  .member-loan-page [style*="gap: 8px"][style*="flex-wrap: wrap"] {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .member-loan-page [style*="gap: 8px"][style*="flex-wrap: wrap"] button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Early Payoff Notice Button full width */
+  .member-loan-page [style*="background: linear-gradient(135deg, #fffbeb"] button {
+    width: 100%;
   }
 }

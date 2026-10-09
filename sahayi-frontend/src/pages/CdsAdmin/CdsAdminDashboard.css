@@ -2433,6 +2433,18 @@
   .cds-sidebar-overlay {
     display: block;
   }
+  
+  .cds-sidebar-collapse-btn {
+    display: none !important;
+  }
+  
+  .cds-sidebar-close-btn {
+    display: flex !important;
+  }
+}
+
+.cds-sidebar-close-btn {
+  display: none !important;
 }
 
 @media (max-width: 480px) {

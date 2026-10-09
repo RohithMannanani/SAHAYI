@@ -14,7 +14,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenOwnSavings, sidebarCollapsed, setSidebarCollapsed }) {
+function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenOwnSavings, sidebarCollapsed, setSidebarCollapsed, onCloseMobileDrawer }) {
   const toggleCollapse = () => {
     const next = !sidebarCollapsed;
     setSidebarCollapsed(next);
@@ -28,12 +28,26 @@ function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenO
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <h2 className="sec-sidebar__title">{!sidebarCollapsed ? 'SAHAYI' : 'S'}</h2>
             <div 
+               className="sec-sidebar-collapse-btn"
                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                onClick={toggleCollapse}
                title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               {sidebarCollapsed ? <ChevronRight size={19} color="#aaa" /> : <ChevronLeft size={19} color="#aaa" />}
             </div>
+            {/* Mobile Close Button */}
+            {onCloseMobileDrawer && (
+              <div 
+                className="sec-sidebar-close-btn"
+                style={{ cursor: 'pointer', alignItems: 'center' }}
+                onClick={onCloseMobileDrawer}
+                title="Close Menu"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </div>
+            )}
           </div>
           {!sidebarCollapsed && (
             <p

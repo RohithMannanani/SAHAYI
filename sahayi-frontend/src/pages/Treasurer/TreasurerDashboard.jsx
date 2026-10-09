@@ -724,7 +724,7 @@ function TreasurerDashboard() {
           <nav className="tr-sidebar__nav">
             <div
               className={`tr-nav-item ${activeTab === 'dashboard' ? 'tr-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => { setActiveTab('dashboard'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Dashboard" : ""}
             >
               <Icon d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" size={17} />
@@ -733,7 +733,7 @@ function TreasurerDashboard() {
 
             <div
               className={`tr-nav-item ${activeTab === 'financials' ? 'tr-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('financials')}
+              onClick={() => { setActiveTab('financials'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Financials" : ""}
             >
               <Icon d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" size={17} />
@@ -742,7 +742,7 @@ function TreasurerDashboard() {
 
             <div
               className="tr-nav-item"
-              onClick={() => setShowOwnSavingsModal(true)}
+              onClick={() => { setShowOwnSavingsModal(true); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "View Own Savings" : "View my own personal weekly savings history and dues"}
             >
               <PiggyBank size={17} style={{ color: '#10b981' }} />
@@ -751,7 +751,7 @@ function TreasurerDashboard() {
 
             <div
               className={`tr-nav-item ${activeTab === 'members' ? 'tr-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('members')}
+              onClick={() => { setActiveTab('members'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Members" : ""}
             >
               <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={17} />
@@ -760,7 +760,7 @@ function TreasurerDashboard() {
 
             <div
               className={`tr-nav-item ${activeTab === 'meetings' ? 'tr-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('meetings')}
+              onClick={() => { setActiveTab('meetings'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Meetings" : ""}
             >
               <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={17} />
@@ -769,7 +769,7 @@ function TreasurerDashboard() {
 
             <div
               className={`tr-nav-item ${activeTab === 'loans' ? 'tr-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('loans')}
+              onClick={() => { setActiveTab('loans'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Loans" : ""}
             >
               <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={18} />
@@ -778,7 +778,7 @@ function TreasurerDashboard() {
 
             <div
               className={`tr-nav-item ${activeTab === 'reports' ? 'tr-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('reports')}
+              onClick={() => { setActiveTab('reports'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Reports" : ""}
             >
               <Icon d="M18 20V10M12 20V4M6 20v-6" size={17} />
@@ -787,7 +787,7 @@ function TreasurerDashboard() {
 
             <div
               className={`tr-nav-item ${activeTab === 'chat' ? 'tr-nav-item--active' : ''}`}
-              onClick={() => setActiveTab('chat')}
+              onClick={() => { setActiveTab('chat'); setMobileDrawerOpen(false); }}
               title={sidebarCollapsed ? "Chats" : ""}
             >
               <MessageSquare size={17} />
@@ -801,7 +801,7 @@ function TreasurerDashboard() {
 
           <div 
              className={`tr-nav-item ${activeTab === 'settings' ? 'tr-nav-item--active' : ''}`} 
-             onClick={() => setActiveTab('settings')}
+             onClick={() => { setActiveTab('settings'); setMobileDrawerOpen(false); }}
              title={sidebarCollapsed ? "Settings" : ""}
           >
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
@@ -1936,7 +1936,7 @@ function TreasurerDashboard() {
         {/* ── Footer ── */}
         <footer className="tr-footer">
           <div>
-            <div className="tr-footer-brand">SHAYI</div>
+            <div className="tr-footer-brand">SAHAYI</div>
             <div>&#169; 2026 Ayalkoottam Management System. Empowering local communities.</div>
           </div>
           <div className="tr-footer__links">

@@ -883,9 +883,10 @@ function SecretaryDashboard() {
           }}
           unitInfo={unitInfo}
           onLogout={handleLogout}
-          onOpenOwnSavings={() => setShowOwnSavingsModal(true)}
+          onOpenOwnSavings={() => { setShowOwnSavingsModal(true); setMobileDrawerOpen(false); }}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
+          onCloseMobileDrawer={() => setMobileDrawerOpen(false)}
         />
       </div>
 

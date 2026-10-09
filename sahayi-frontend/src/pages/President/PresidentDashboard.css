@@ -169,6 +169,13 @@
   gap: 10px;
 }
 
+.pres-header__subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
 .pres-search-bar {
   display: flex;
   align-items: center;
@@ -972,10 +979,23 @@
   .pres-sidebar-overlay {
     display: block;
   }
+  
+  .pres-sidebar-collapse-btn {
+    display: none !important;
+  }
+  
+  .pres-sidebar-close-btn {
+    display: flex !important;
+  }
+}
+
+.pres-sidebar-close-btn {
+  display: none !important;
 }
 
 @media (max-width: 480px) {
   .pres-metrics-grid { grid-template-columns: 1fr; }
   .pres-content { padding: 12px 10px; }
+  .pres-header__subtitle { max-width: 160px; }
 }
 
