@@ -90,7 +90,8 @@ namespace Sahayi.Api.Controllers
                 RoleId = user.RoleId,
                 UnitId = user.UnitId,
                 UnitName = user.AyalkoottamUnit?.UnitName,
-                IsPasswordChanged = user.IsPasswordChanged
+                IsPasswordChanged = user.IsPasswordChanged,
+                AvatarUrl = user.AvatarUrl
             });
         }
 
@@ -174,7 +175,8 @@ namespace Sahayi.Api.Controllers
                     fullName = user.FullName,
                     phoneNumber = user.PhoneNumber,
                     houseName = user.HouseName,
-                    username = user.Username
+                    username = user.Username,
+                    avatarUrl = user.AvatarUrl
                 }
             });
         }
@@ -309,6 +311,65 @@ namespace Sahayi.Api.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Password reset successful! You can now log in with your new password." });
+        }
+        [HttpPost("upload-avatar")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> UploadAvatar(IFormFile avatarFile)
+        {
+            if (avatarFile == null || avatarFile.Length == 0)
+            {
+                return BadRequest(new { message = "No file uploaded." });
+            }
+
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.ApplicationUsers.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            // Create avatars directory if it doesn't exist
+            var uploadsFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "avatars");
+            if (!Directory.Exists(uploadsFolderPath))
+            {
+                Directory.CreateDirectory(uploadsFolderPath);
+            }
+
+            // Generate unique filename
+            var fileExtension = Path.GetExtension(avatarFile.FileName);
+            var uniqueFileName = $"user_{userId}_{Guid.NewGuid().ToString("N").Substring(0, 8)}{fileExtension}";
+            var filePath = Path.Combine(uploadsFolderPath, uniqueFileName);
+
+            // Delete old avatar if it exists (optional but good for cleanup)
+            if (!string.IsNullOrEmpty(user.AvatarUrl))
+            {
+                var oldFileName = Path.GetFileName(user.AvatarUrl);
+                var oldFilePath = Path.Combine(uploadsFolderPath, oldFileName);
+                if (System.IO.File.Exists(oldFilePath))
+                {
+                    System.IO.File.Delete(oldFilePath);
+                }
+            }
+
+            // Save new avatar
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await avatarFile.CopyToAsync(stream);
+            }
+
+            // Generate URL
+            var request = HttpContext.Request;
+            var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+            user.AvatarUrl = $"{baseUrl}/avatars/{uniqueFileName}";
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Avatar uploaded successfully.", avatarUrl = user.AvatarUrl });
         }
     }
 }

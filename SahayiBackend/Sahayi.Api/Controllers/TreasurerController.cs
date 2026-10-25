@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Sahayi.Api.Data;
 using Sahayi.Api.Dtos;
 using Sahayi.Api.Entities;
+using Sahayi.Api.Helpers;
 using System;
 using System.Linq;
 using System.Security.Claims;
@@ -218,7 +219,9 @@ namespace Sahayi.Api.Controllers
                     return NotFound(new { message = "Loan application not found." });
 
                 decimal totalPrincipalPaid = loan.LoanRepayments.Sum(r => r.PrincipalComponent);
-                decimal remainingBalance = loan.AmountRequested - totalPrincipalPaid;
+                decimal fineAmount = LoanFineCalculator.CalculateFine(loan);
+                decimal totalLoanAmount = loan.AmountRequested + fineAmount;
+                decimal remainingBalance = Math.Max(0m, totalLoanAmount - totalPrincipalPaid);
 
                 if (remainingBalance <= 0)
                 {
@@ -226,6 +229,8 @@ namespace Sahayi.Api.Controllers
                     {
                         LoanId = loan.LoanId,
                         BorrowerName = loan.User?.FullName ?? "Unknown",
+                        FineAmount = fineAmount,
+                        TotalLoanAmount = totalLoanAmount,
                         RemainingBalance = 0m,
                         FixedPrincipalDue = 0m,
                         CurrentMonthInterestDue = 0m,
@@ -235,7 +240,7 @@ namespace Sahayi.Api.Controllers
                     });
                 }
 
-                decimal fixedPrincipal = Math.Round(loan.AmountRequested / Math.Max(1, loan.TenureMonths), 2);
+                decimal fixedPrincipal = Math.Round(totalLoanAmount / Math.Max(1, loan.TenureMonths), 2);
                 if (fixedPrincipal > remainingBalance)
                 {
                     fixedPrincipal = remainingBalance;
@@ -250,6 +255,8 @@ namespace Sahayi.Api.Controllers
                 {
                     LoanId = loan.LoanId,
                     BorrowerName = loan.User?.FullName ?? "Unknown",
+                    FineAmount = fineAmount,
+                    TotalLoanAmount = totalLoanAmount,
                     RemainingBalance = remainingBalance,
                     FixedPrincipalDue = fixedPrincipal,
                     CurrentMonthInterestDue = interestDue,
@@ -283,10 +290,12 @@ namespace Sahayi.Api.Controllers
                     return NotFound(new { message = "Loan application not found." });
 
                 int paidInstallmentsCount = loan.LoanRepayments.Count;
+                decimal fineAmount = LoanFineCalculator.CalculateFine(loan);
+                decimal totalLoanAmount = loan.AmountRequested + fineAmount;
 
                 var schedule = new List<RepaymentScheduleItemDto>();
-                decimal currentBalance = loan.AmountRequested;
-                decimal basePrincipal = Math.Round(loan.AmountRequested / Math.Max(1, loan.TenureMonths), 2);
+                decimal currentBalance = totalLoanAmount;
+                decimal basePrincipal = Math.Round(totalLoanAmount / Math.Max(1, loan.TenureMonths), 2);
 
                 for (int month = 1; month <= loan.TenureMonths; month++)
                 {
@@ -318,6 +327,8 @@ namespace Sahayi.Api.Controllers
                     loanId = loan.LoanId,
                     borrowerName = loan.User?.FullName ?? "Unknown",
                     amountRequested = loan.AmountRequested,
+                    fineAmount = fineAmount,
+                    totalLoanAmount = totalLoanAmount,
                     tenureMonths = loan.TenureMonths,
                     interestRate = loan.InterestRate,
                     status = loan.Status,
@@ -358,7 +369,9 @@ namespace Sahayi.Api.Controllers
                     return BadRequest(new { message = $"Cannot record repayment for a loan that is {loan.Status}." });
 
                 decimal totalPrincipalPaid = loan.LoanRepayments.Sum(r => r.PrincipalComponent);
-                decimal outstandingBalance = loan.AmountRequested - totalPrincipalPaid;
+                decimal fineAmount = LoanFineCalculator.CalculateFine(loan);
+                decimal totalLoanAmount = loan.AmountRequested + fineAmount;
+                decimal outstandingBalance = Math.Max(0m, totalLoanAmount - totalPrincipalPaid);
 
                 if (outstandingBalance <= 0)
                 {
@@ -367,25 +380,53 @@ namespace Sahayi.Api.Controllers
                     return BadRequest(new { message = "Loan is already fully repaid." });
                 }
 
-                // Kudumbashree standard: Monthly Reducing / Diminishing Balance Interest
-                // Monthly Interest Due = Math.Round(Outstanding Balance * (InterestRate / 100m), 2)
                 decimal monthlyInterestDue = Math.Round(outstandingBalance * (loan.InterestRate / 100m), 2);
                 
-                if (dto.AmountPaid < monthlyInterestDue)
+                decimal principalPaid = 0m;
+                decimal interestComponent = 0m;
+                decimal amountPaid = dto.AmountPaid;
+
+                string mode = (dto.RepaymentType ?? "Combined").Trim();
+
+                if (mode.Equals("PrincipalOnly", StringComparison.OrdinalIgnoreCase) || (dto.PrincipalComponent.HasValue && dto.InterestComponent.HasValue && dto.InterestComponent.Value == 0m))
                 {
-                    return BadRequest(new { message = $"Amount paid must be at least enough to cover the monthly interest of ₹{monthlyInterestDue:N2}." });
+                    interestComponent = 0m;
+                    principalPaid = Math.Min(outstandingBalance, dto.AmountPaid);
+                    amountPaid = principalPaid;
                 }
-
-                decimal interestComponent = Math.Min(monthlyInterestDue, dto.AmountPaid);
-                decimal principalPaid = dto.AmountPaid - interestComponent;
-
-                // Make sure principalPaid doesn't exceed outstandingBalance (prevent overpayment)
-                if (principalPaid > outstandingBalance)
+                else if (mode.Equals("InterestOnly", StringComparison.OrdinalIgnoreCase))
+                {
+                    interestComponent = monthlyInterestDue > 0 ? monthlyInterestDue : dto.AmountPaid;
+                    principalPaid = 0m;
+                    amountPaid = interestComponent;
+                }
+                else if (mode.Equals("FullPayoff", StringComparison.OrdinalIgnoreCase))
                 {
                     principalPaid = outstandingBalance;
-                    dto.AmountPaid = principalPaid + interestComponent;
+                    interestComponent = monthlyInterestDue;
+                    amountPaid = principalPaid + interestComponent;
+                }
+                else // Combined or Default
+                {
+                    if (dto.PrincipalComponent.HasValue && dto.InterestComponent.HasValue)
+                    {
+                        interestComponent = dto.InterestComponent.Value;
+                        principalPaid = Math.Min(outstandingBalance, dto.PrincipalComponent.Value);
+                        amountPaid = interestComponent + principalPaid;
+                    }
+                    else
+                    {
+                        interestComponent = Math.Min(monthlyInterestDue, amountPaid);
+                        principalPaid = Math.Max(0m, amountPaid - interestComponent);
+                        if (principalPaid > outstandingBalance)
+                        {
+                            principalPaid = outstandingBalance;
+                            amountPaid = interestComponent + principalPaid;
+                        }
+                    }
                 }
 
+                dto.AmountPaid = amountPaid;
                 string receiptNumber = $"REC-LN-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(1000, 9999)}";
 
                 var repayment = new LoanRepayment
@@ -396,7 +437,8 @@ namespace Sahayi.Api.Controllers
                     InterestComponent = interestComponent,
                     RepaymentDate = DateTime.UtcNow,
                     ReceiptNumber = receiptNumber,
-                    RecordedBy = currentUserId
+                    RecordedBy = currentUserId,
+                    PaymentMode = string.IsNullOrWhiteSpace(dto.PaymentMode) ? "Cash" : dto.PaymentMode
                 };
 
                 _context.LoanRepayments.Add(repayment);
@@ -407,36 +449,13 @@ namespace Sahayi.Api.Controllers
                     loan.Status = "Closed";
                 }
 
-                var unit = await _context.AyalkoottamUnits.FindAsync(loan.UnitId);
-                var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == loan.UnitId);
-                if (bankAccount == null)
-                {
-                    string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{loan.UnitId:D4}";
-                    string bankName = !string.IsNullOrWhiteSpace(unit?.BankName) ? unit.BankName : "Sahayi Co-operative Bank";
-                    string ifsc = !string.IsNullOrWhiteSpace(unit?.IFSCCode) ? unit.IFSCCode : "SHY0001001";
-
-                    bankAccount = new UnitBankAccount
-                    {
-                        UnitId = loan.UnitId,
-                        AccountNumber = accNum,
-                        BankName = bankName,
-                        IFSCCode = ifsc,
-                        Balance = dto.AmountPaid,
-                        LastUpdated = DateTime.UtcNow
-                    };
-                    _context.UnitBankAccounts.Add(bankAccount);
-                }
-                else
-                {
-                    bankAccount.Balance += dto.AmountPaid;
-                    bankAccount.LastUpdated = DateTime.UtcNow;
-                }
-
+                // Loan repayment amount goes to Treasury hand (In Hand collections).
+                // It will only be credited to UnitBankAccounts.Balance when the treasurer deposits it to the bank.
                 await _context.SaveChangesAsync();
 
                 return Ok(new
                 {
-                    message = "Repayment recorded successfully.",
+                    message = "Repayment recorded successfully (Collections In Hand).",
                     receiptNumber = receiptNumber,
                     borrowerName = loan.User?.FullName ?? "Member",
                     amountPaid = dto.AmountPaid,
@@ -444,12 +463,61 @@ namespace Sahayi.Api.Controllers
                     interestPaid = interestComponent,
                     newBalance = newBalance,
                     status = loan.Status,
+                    paymentMode = repayment.PaymentMode,
+                    isBankDeposited = false,
                     repaymentDate = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm")
                 });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Failed to record repayment.", details = ex.Message });
+            }
+        }
+
+        // GET: api/treasurer/unit-repayments
+        [HttpGet("unit-repayments")]
+        public async Task<IActionResult> GetUnitLoanRepayments()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+                {
+                    return Unauthorized("User ID not found in token.");
+                }
+
+                var user = await _context.ApplicationUsers.FindAsync(currentUserId);
+                if (user == null)
+                    return NotFound(new { message = "User not found." });
+
+                var repayments = await _context.LoanRepayments
+                    .Include(r => r.LoanApplication)
+                        .ThenInclude(l => l!.User)
+                    .Include(r => r.Recorder)
+                    .Where(r => r.LoanApplication != null && r.LoanApplication.UnitId == user.UnitId)
+                    .OrderByDescending(r => r.RepaymentDate)
+                    .Select(r => new
+                    {
+                        repaymentId = r.RepaymentId,
+                        loanId = r.LoanId,
+                        borrowerName = r.LoanApplication!.User != null ? r.LoanApplication.User.FullName : "Member",
+                        userId = r.LoanApplication.UserId,
+                        amountPaid = r.AmountPaid,
+                        principalComponent = r.PrincipalComponent,
+                        interestComponent = r.InterestComponent,
+                        repaymentDate = r.RepaymentDate,
+                        receiptNumber = r.ReceiptNumber,
+                        recordedByName = r.Recorder != null ? r.Recorder.FullName : "Treasurer",
+                        paymentMode = r.PaymentMode ?? "Cash",
+                        isBankDeposited = (r.PaymentMode ?? "").Contains("Bank Deposited")
+                    })
+                    .ToListAsync();
+
+                return Ok(repayments);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to fetch unit loan repayments.", details = ex.Message });
             }
         }
     }

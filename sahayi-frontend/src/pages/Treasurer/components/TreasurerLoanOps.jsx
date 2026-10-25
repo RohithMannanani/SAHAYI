@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import loanService from '../../../services/loanService';
+import { depositCashToBank } from '../../../services/api';
 import RepaymentScheduleModal from '../../../components/RepaymentScheduleModal';
 
-const TreasurerLoanOps = () => {
+const TreasurerLoanOps = ({ onDepositSuccess }) => {
   const [activeTab, setActiveTab] = useState('disburse');
   const [pendingLoans, setPendingLoans] = useState([]);
   const [approvedLoans, setApprovedLoans] = useState([]);
   const [activeLoans, setActiveLoans] = useState([]);
+  const [unitRepayments, setUnitRepayments] = useState([]);
+  const [depositLoading, setDepositLoading] = useState(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState(null);
@@ -41,6 +44,7 @@ const TreasurerLoanOps = () => {
   useEffect(() => {
     fetchPendingLoans();
     fetchApprovedLoans();
+    fetchUnitRepayments();
   }, []);
 
   useEffect(() => {
@@ -50,6 +54,7 @@ const TreasurerLoanOps = () => {
       fetchApprovedLoans();
     } else {
       fetchDisbursedLoans();
+      fetchUnitRepayments();
     }
   }, [activeTab]);
 
@@ -96,6 +101,39 @@ const TreasurerLoanOps = () => {
     }
   };
 
+  const fetchUnitRepayments = async () => {
+    try {
+      const data = await loanService.getUnitLoanRepayments();
+      if (Array.isArray(data)) {
+        setUnitRepayments(data);
+      }
+    } catch (e) {
+      console.error('Failed to load unit repayments:', e);
+    }
+  };
+
+  const handleDepositSingleRepayment = async (repayId, amount) => {
+    try {
+      setDepositLoading(repayId);
+      await depositCashToBank({
+        repaymentId: repayId,
+        amount: parseFloat(amount) || 0,
+        unitId: currentUser?.unitId || 1
+      });
+      alert('Loan repayment deposited into Unit Bank Account successfully!');
+      if (onDepositSuccess) onDepositSuccess();
+      fetchDisbursedLoans();
+      fetchUnitRepayments();
+      if (receipt && (receipt.repaymentId === repayId || receipt.receiptNumber)) {
+        setReceipt(prev => ({ ...prev, isBankDeposited: true, paymentMode: 'Cash (Bank Deposited)' }));
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Failed to deposit repayment to bank');
+    } finally {
+      setDepositLoading(null);
+    }
+  };
+
   const handleReview = async (loanId, status) => {
     try {
       setActionLoading(loanId);
@@ -125,38 +163,82 @@ const TreasurerLoanOps = () => {
     }
   };
 
-  const handleOpenRepayment = async (loan) => {
+  const [repaymentType, setRepaymentType] = useState('Combined'); // 'Combined', 'InterestOnly', 'PrincipalOnly', 'FullPayoff'
+
+  const handleOpenRepayment = async (loan, initialType = 'Combined') => {
     setSelectedLoan(loan);
+    setRepaymentType(initialType);
     setReceipt(null);
     try {
       const dueInfo = await loanService.getLoanInstallmentDue(loan.loanId);
       setInstallmentDueInfo(dueInfo);
-      setAmountPaid((dueInfo.totalInstallmentDue || 0).toString());
+
+      const outstanding = dueInfo.remainingBalance ?? loan.outstandingBalance ?? 0;
+      const interestDue = dueInfo.currentMonthInterestDue ?? Math.round(outstanding * 0.01);
+      const principalDue = dueInfo.fixedPrincipalDue ?? Math.round((loan.amountRequested || 0) / (loan.tenureMonths || 12));
+
+      if (initialType === 'InterestOnly') {
+        setAmountPaid(interestDue.toString());
+      } else if (initialType === 'PrincipalOnly') {
+        setAmountPaid(principalDue.toString());
+      } else if (initialType === 'FullPayoff') {
+        setAmountPaid((outstanding + interestDue).toString());
+      } else {
+        setAmountPaid((dueInfo.totalInstallmentDue || principalDue + interestDue).toString());
+      }
     } catch (err) {
-      const monthlyInterestDue = Math.round(loan.outstandingBalance * ((loan.interestRate || 1) / 100));
-      const monthlyPrincipal = Math.round(loan.amountRequested / loan.tenureMonths);
+      const monthlyInterestDue = Math.round((loan.outstandingBalance || 0) * ((loan.interestRate || 1) / 100));
+      const monthlyPrincipal = Math.round((loan.amountRequested || 0) / (loan.tenureMonths || 12));
       const suggestedTotal = monthlyPrincipal + monthlyInterestDue;
       
       setInstallmentDueInfo({
-        remainingBalance: loan.outstandingBalance,
+        remainingBalance: loan.outstandingBalance || 0,
         fixedPrincipalDue: monthlyPrincipal,
         currentMonthInterestDue: monthlyInterestDue,
         totalInstallmentDue: suggestedTotal,
         currentInstallmentNumber: 1,
-        totalTenureMonths: loan.tenureMonths
+        totalTenureMonths: loan.tenureMonths || 12
       });
-      setAmountPaid(suggestedTotal.toString());
+
+      if (initialType === 'InterestOnly') setAmountPaid(monthlyInterestDue.toString());
+      else if (initialType === 'PrincipalOnly') setAmountPaid(monthlyPrincipal.toString());
+      else if (initialType === 'FullPayoff') setAmountPaid(((loan.outstandingBalance || 0) + monthlyInterestDue).toString());
+      else setAmountPaid(suggestedTotal.toString());
     }
     setShowModal(true);
+  };
+
+  const handleRepaymentTypeSelect = (type) => {
+    setRepaymentType(type);
+    if (!selectedLoan) return;
+
+    const outstanding = installmentDueInfo?.remainingBalance ?? selectedLoan.outstandingBalance ?? 0;
+    const interestDue = installmentDueInfo?.currentMonthInterestDue ?? Math.round(outstanding * 0.01);
+    const principalDue = installmentDueInfo?.fixedPrincipalDue ?? Math.round(selectedLoan.amountRequested / selectedLoan.tenureMonths);
+
+    if (type === 'InterestOnly') setAmountPaid(interestDue.toString());
+    else if (type === 'PrincipalOnly') setAmountPaid(principalDue.toString());
+    else if (type === 'FullPayoff') setAmountPaid((outstanding + interestDue).toString());
+    else setAmountPaid((principalDue + interestDue).toString());
   };
 
   const handleRecordRepayment = async (e) => {
     e.preventDefault();
     try {
       setSubmitting(true);
-      const res = await loanService.recordRepayment(selectedLoan.loanId, parseFloat(amountPaid));
+      const amountPaidVal = parseFloat(amountPaid);
+      const payload = {
+        amountPaid: amountPaidVal,
+        repaymentType: repaymentType,
+        principalComponent: repaymentType === 'PrincipalOnly' ? amountPaidVal : null,
+        interestComponent: repaymentType === 'PrincipalOnly' ? 0 : (repaymentType === 'InterestOnly' ? amountPaidVal : null)
+      };
+
+      const res = await loanService.recordRepayment(selectedLoan.loanId, payload);
       setReceipt(res);
       fetchDisbursedLoans();
+      fetchUnitRepayments();
+      if (onDepositSuccess) onDepositSuccess();
     } catch (err) {
       alert(err.message || 'Failed to record repayment');
     } finally {
@@ -393,6 +475,76 @@ const TreasurerLoanOps = () => {
         {/* ── LOAN & REPAYMENT HISTORY TAB VIEW ── */}
         {activeTab === 'history' && (
           <div>
+            {/* Undeposited EMI in Treasurer Hand Alert Banner */}
+            {(() => {
+              const undepositedRepayments = unitRepayments.filter(r => !r.isBankDeposited && !(r.paymentMode || '').toLowerCase().includes('bank deposited'));
+              const totalUndeposited = undepositedRepayments.reduce((acc, r) => acc + (parseFloat(r.amountPaid) || 0), 0);
+
+              if (undepositedRepayments.length === 0) return null;
+
+              return (
+                <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <h5 style={{ margin: 0, color: '#92400e', fontWeight: 800, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>💼</span> EMI Repayments In Hand (₹{totalUndeposited.toLocaleString('en-IN', { minimumFractionDigits: 2 })})
+                      </h5>
+                      <p style={{ margin: '4px 0 0 0', color: '#78350f', fontSize: '0.84rem' }}>
+                        {undepositedRepayments.length} loan installment(s) collected from members are in Treasury custody. Deposit them to show in the official Unit Bank Account balance.
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '12px', overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', background: 'white', borderRadius: '8px', overflow: 'hidden' }}>
+                      <thead>
+                        <tr style={{ background: '#fef3c7', textAlign: 'left', color: '#78350f' }}>
+                          <th style={{ padding: '8px 12px' }}>Borrower</th>
+                          <th style={{ padding: '8px 12px' }}>Receipt #</th>
+                          <th style={{ padding: '8px 12px' }}>Amount</th>
+                          <th style={{ padding: '8px 12px' }}>Date</th>
+                          <th style={{ padding: '8px 12px' }}>Mode</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {undepositedRepayments.map(r => (
+                          <tr key={r.repaymentId} style={{ borderBottom: '1px solid #fed7aa' }}>
+                            <td style={{ padding: '8px 12px', fontWeight: 700 }}>{r.borrowerName}</td>
+                            <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{r.receiptNumber}</td>
+                            <td style={{ padding: '8px 12px', fontWeight: 800, color: '#059669' }}>₹{r.amountPaid}</td>
+                            <td style={{ padding: '8px 12px' }}>{new Date(r.repaymentDate).toLocaleDateString()}</td>
+                            <td style={{ padding: '8px 12px' }}>
+                              <span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontWeight: 600, fontSize: '0.75rem' }}>
+                                {r.paymentMode || 'Cash'} (In Hand)
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                              <button
+                                onClick={() => handleDepositSingleRepayment(r.repaymentId, r.amountPaid)}
+                                disabled={depositLoading === r.repaymentId}
+                                style={{
+                                  background: '#0f172a',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '5px 14px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {depositLoading === r.repaymentId ? 'Depositing...' : 'Deposit to Bank'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Metric Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
               <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #3b82f6' }}>
@@ -602,10 +754,23 @@ const TreasurerLoanOps = () => {
                       <span style={{ color: '#64748b' }}>Remaining Principal Balance:</span>
                       <span style={{ fontWeight: 800, color: receipt.newBalance > 0 ? '#ef4444' : '#15803d' }}>₹{receipt.newBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <span style={{ color: '#64748b' }}>Loan Status:</span>
                       <span style={{ background: receipt.status === 'Closed' ? '#f1f5f9' : '#dcfce7', color: receipt.status === 'Closed' ? '#475569' : '#15803d', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
                         {receipt.status}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Deposit Status:</span>
+                      <span style={{
+                        background: receipt.isBankDeposited ? '#dcfce7' : '#fef3c7',
+                        color: receipt.isBankDeposited ? '#15803d' : '#b45309',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700
+                      }}>
+                        {receipt.isBankDeposited ? '✓ In Bank' : 'In Hand (Treasury Custody)'}
                       </span>
                     </div>
                   </div>
@@ -617,6 +782,15 @@ const TreasurerLoanOps = () => {
                     >
                       🖨️ Print Receipt
                     </button>
+                    {!receipt.isBankDeposited && receipt.repaymentId && (
+                      <button
+                        onClick={() => handleDepositSingleRepayment(receipt.repaymentId, receipt.amountPaid)}
+                        disabled={depositLoading === receipt.repaymentId}
+                        style={{ flex: 1.5, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        {depositLoading === receipt.repaymentId ? 'Depositing...' : '🏦 Deposit to Bank'}
+                      </button>
+                    )}
                     <button 
                       onClick={() => setShowModal(false)}
                       style={{ flex: 1, padding: '12px', background: '#0c382e', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
@@ -637,8 +811,16 @@ const TreasurerLoanOps = () => {
                         <span style={{ color: '#64748b' }}>Borrower Name:</span>
                         <span style={{ fontWeight: 700, color: '#0f172a' }}>{selectedLoan.memberName}</span>
                       </div>
+                      {(installmentDueInfo?.fineAmount > 0 || selectedLoan?.fineAmount > 0) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.88rem', background: '#fef2f2', padding: '4px 8px', borderRadius: '4px' }}>
+                          <span style={{ color: '#b91c1c', fontWeight: 600 }}>Missed Payment Fine (₹50/mo):</span>
+                          <span style={{ fontWeight: 800, color: '#dc2626' }}>
+                            ₹{(installmentDueInfo?.fineAmount ?? selectedLoan?.fineAmount ?? 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.88rem' }}>
-                        <span style={{ color: '#64748b' }}>Remaining Principal Balance:</span>
+                        <span style={{ color: '#64748b' }}>Remaining Balance (Incl. Fine):</span>
                         <span style={{ fontWeight: 800, color: '#ef4444' }}>
                           ₹{(installmentDueInfo?.remainingBalance ?? selectedLoan.outstandingBalance ?? 0).toLocaleString('en-IN')}
                         </span>
@@ -654,6 +836,69 @@ const TreasurerLoanOps = () => {
                         <span style={{ fontWeight: 700, color: '#d97706' }}>
                           ₹{(installmentDueInfo?.currentMonthInterestDue ?? Math.round(selectedLoan.outstandingBalance * 0.01)).toLocaleString('en-IN')}
                         </span>
+                      </div>
+                    </div>
+                    {/* Repayment Option Cards */}
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                        Select Collection Mode
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div
+                          onClick={() => handleRepaymentTypeSelect('Combined')}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: repaymentType === 'Combined' ? '2px solid #059669' : '1px solid #cbd5e1',
+                            background: repaymentType === 'Combined' ? '#ecfdf5' : '#ffffff',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', display: 'block' }}>🟢 Combined EMI</span>
+                          <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Principal + Interest</span>
+                        </div>
+
+                        <div
+                          onClick={() => handleRepaymentTypeSelect('InterestOnly')}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: repaymentType === 'InterestOnly' ? '2px solid #d97706' : '1px solid #cbd5e1',
+                            background: repaymentType === 'InterestOnly' ? '#fffbeb' : '#ffffff',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b45309', display: 'block' }}>🟡 Interest Only</span>
+                          <span style={{ fontSize: '0.7rem', color: '#78350f' }}>Interest Only</span>
+                        </div>
+
+                        <div
+                          onClick={() => handleRepaymentTypeSelect('PrincipalOnly')}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: repaymentType === 'PrincipalOnly' ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                            background: repaymentType === 'PrincipalOnly' ? '#eff6ff' : '#ffffff',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1d4ed8', display: 'block' }}>🔵 Principal Only</span>
+                          <span style={{ fontSize: '0.7rem', color: '#1e40af' }}>Principal Repay Only</span>
+                        </div>
+
+                        <div
+                          onClick={() => handleRepaymentTypeSelect('FullPayoff')}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: repaymentType === 'FullPayoff' ? '2px solid #7c3aed' : '1px solid #cbd5e1',
+                            background: repaymentType === 'FullPayoff' ? '#f5f3ff' : '#ffffff',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#6d28d9', display: 'block' }}>⚡ Full Payoff</span>
+                          <span style={{ fontSize: '0.7rem', color: '#5b21b6' }}>Early Payoff / Settle</span>
+                        </div>
                       </div>
                     </div>
 

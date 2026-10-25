@@ -26,8 +26,10 @@ import {
   updateUserProfile,
   sendForgotPasswordOtp,
   verifyForgotPasswordOtp,
-  resetForgotPassword
+  resetForgotPassword,
+  uploadAvatar
 } from '../../../services/api';
+import ProfileImageUpload from '../../../components/Shared/ProfileImageUpload';
 import './CdsAdminSettingsView.css';
 
 function CdsAdminSettingsView({
@@ -45,7 +47,8 @@ function CdsAdminSettingsView({
     fullName: user?.fullName || '',
     phoneNumber: user?.phoneNumber || '',
     houseName: user?.houseName || '',
-    username: user?.username || user?.phoneNumber || ''
+    username: user?.username || user?.phoneNumber || '',
+    avatarUrl: user?.avatarUrl || ''
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
@@ -106,9 +109,33 @@ function CdsAdminSettingsView({
       fullName: user?.fullName || '',
       phoneNumber: user?.phoneNumber || '',
       houseName: user?.houseName || '',
-      username: user?.username || user?.phoneNumber || ''
+      username: user?.username || user?.phoneNumber || '',
+      avatarUrl: user?.avatarUrl || ''
     });
   }, [user]);
+
+  const handleAvatarUpload = async (formData) => {
+    try {
+      const response = await uploadAvatar(formData);
+      const newAvatarUrl = response.data.avatarUrl;
+
+      setProfileForm(prev => ({ ...prev, avatarUrl: newAvatarUrl }));
+
+      if (setUser) {
+        setUser(prev => ({ ...(prev || {}), avatarUrl: newAvatarUrl }));
+      }
+
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({ ...storedUser, avatarUrl: newAvatarUrl }));
+      } catch (err) {}
+
+      onShowToast && onShowToast('Admin profile picture updated successfully!');
+    } catch (error) {
+      console.error('Avatar upload failed', error);
+      onShowToast && onShowToast('Failed to upload profile picture.', 'error');
+    }
+  };
 
   // Handle Profile Form Submit
   const handleProfileSubmit = async (e) => {
@@ -351,13 +378,12 @@ function CdsAdminSettingsView({
       {activeTab === 'profile' && (
         <div className="cds-settings-grid">
           {/* Profile Overview Card */}
-          <div className="cds-card cds-profile-summary-card">
-            <div className="cds-profile-avatar-large">
-              <span>{initials}</span>
-              <div className="cds-avatar-badge" title="CDS Administrator Role">
-                <Shield size={14} />
-              </div>
-            </div>
+          <div className="cds-card cds-profile-summary-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <ProfileImageUpload
+              currentAvatarUrl={profileForm.avatarUrl || user?.avatarUrl}
+              onAvatarUpload={handleAvatarUpload}
+              userName={profileForm.fullName || user?.fullName || 'CDS Admin'}
+            />
 
             <div className="cds-profile-info">
               <h3>{user?.fullName || 'CDS Administrator'}</h3>
@@ -422,7 +448,7 @@ function CdsAdminSettingsView({
                     <Globe size={16} className="cds-input-icon" />
                     <input
                       type="text"
-                      value={profileForm.username}
+                      value={profileForm.username || profileForm.phoneNumber || user?.phoneNumber || ''}
                       disabled
                       readOnly
                       placeholder="Username for login"

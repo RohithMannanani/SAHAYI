@@ -23,6 +23,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2. Register Custom Services for Dependency Injection
 builder.Services.AddScoped<ITokenService, TokenService>(); // 👈 Added TokenService registration
 builder.Services.AddScoped<ISmsService, SmsService>();     // 👈 Added SmsService registration for OTP
+builder.Services.AddScoped<Sahayi.Api.Services.Interfaces.IChatService, Sahayi.Api.Services.Implementations.ChatService>(); // 👈 ChatService
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 // 3. Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "4hW5PbvO3ONDf2MWStoY/zUqUkIV060l1fhe37e3Lvc=";
@@ -40,6 +44,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"] ?? "Sahayi.Client",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
+        
+        // Support SignalR authentication via query string
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chathub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 // 4. Configure CORS Policy
@@ -47,9 +66,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://127.0.0.1:5173")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -60,6 +80,29 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Ensure DB Schema is up to date for LoanRepayments.PaymentMode
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (
+                SELECT 1 FROM sys.columns 
+                WHERE object_id = OBJECT_ID(N'[dbo].[LoanRepayments]') 
+                AND name = 'PaymentMode'
+            )
+            BEGIN
+                ALTER TABLE [dbo].[LoanRepayments] ADD [PaymentMode] varchar(50) NOT NULL DEFAULT 'Cash (Bank Deposited)';
+            END
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"DB Schema ensure notice: {ex.Message}");
+    }
+}
+
 // 6. HTTP Request Pipeline Configuration
 if (app.Environment.IsDevelopment())
 {
@@ -67,6 +110,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
@@ -75,5 +119,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<Sahayi.Api.Hubs.ChatHub>("/chathub");
 
 app.Run();

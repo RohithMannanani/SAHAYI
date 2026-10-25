@@ -231,6 +231,7 @@ function CdsAdminDashboard() {
             setActiveNav('settings');
             setSelectedUnit(null);
           }}
+          onLogout={handleLogout}
         />
 
         {/* Dynamic Content Views */}

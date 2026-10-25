@@ -45,6 +45,9 @@ namespace Sahayi.Api.Entities
 
         public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
 
+        [Column(TypeName = "varchar(500)")]
+        public string? AvatarUrl { get; set; }
+
         public bool IsActive { get; set; } = true;
     }
 }

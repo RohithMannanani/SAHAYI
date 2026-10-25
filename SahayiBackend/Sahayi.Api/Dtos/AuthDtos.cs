@@ -59,6 +59,7 @@ namespace Sahayi.Api.DTOs
         public int? UnitId { get; set; }
         public string? UnitName { get; set; }
         public bool IsPasswordChanged { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 
     // Request payload for updating user profile details

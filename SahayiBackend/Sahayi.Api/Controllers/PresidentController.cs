@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Sahayi.Api.Data;
 using Sahayi.Api.Dtos;
 using Sahayi.Api.Entities;
+using Sahayi.Api.Helpers;
 using System;
 using System.Linq;
 using System.Security.Claims;
@@ -51,7 +52,9 @@ namespace Sahayi.Api.Controllers
                 {
                     decimal totalPrincipalPaid = l.LoanRepayments.Sum(r => r.PrincipalComponent);
                     decimal totalInterestPaid = l.LoanRepayments.Sum(r => r.InterestComponent);
-                    decimal outstandingBalance = l.AmountRequested - totalPrincipalPaid;
+                    decimal fineAmount = LoanFineCalculator.CalculateFine(l);
+                    decimal totalLoanAmount = l.AmountRequested + fineAmount;
+                    decimal outstandingBalance = Math.Max(0m, totalLoanAmount - totalPrincipalPaid);
 
                     return new LoanSummaryDto
                     {
@@ -59,6 +62,8 @@ namespace Sahayi.Api.Controllers
                         UserId = l.UserId,
                         MemberName = l.User?.FullName ?? "Unknown",
                         AmountRequested = l.AmountRequested,
+                        FineAmount = fineAmount,
+                        TotalLoanAmount = totalLoanAmount,
                         Purpose = l.Purpose,
                         TenureMonths = l.TenureMonths,
                         InterestRate = l.InterestRate,
@@ -68,7 +73,21 @@ namespace Sahayi.Api.Controllers
                         DisbursedDate = l.DisbursedDate,
                         TotalPrincipalPaid = totalPrincipalPaid,
                         TotalInterestPaid = totalInterestPaid,
-                        OutstandingBalance = outstandingBalance
+                        OutstandingBalance = outstandingBalance,
+                        Repayments = l.LoanRepayments
+                            .OrderByDescending(r => r.RepaymentDate)
+                            .Select(r => new LoanRepaymentHistoryDto
+                            {
+                                RepaymentId = r.RepaymentId,
+                                AmountPaid = r.AmountPaid,
+                                PrincipalComponent = r.PrincipalComponent,
+                                InterestComponent = r.InterestComponent,
+                                RepaymentDate = r.RepaymentDate,
+                                ReceiptNumber = r.ReceiptNumber ?? string.Empty,
+                                RecordedByName = r.Recorder?.FullName ?? "Treasurer",
+                                PaymentMode = r.PaymentMode ?? "Cash",
+                                IsBankDeposited = (r.PaymentMode ?? "").Contains("Bank Deposited")
+                            }).ToList()
                     };
                 }).ToList();
 

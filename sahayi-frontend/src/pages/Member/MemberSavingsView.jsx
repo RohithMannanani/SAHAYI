@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import './MemberSavingsView.css';
 import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
+import { generateSavingsPassbookPdf, generateSingleReceiptPdf } from '../../utils/passbookPdfGenerator';
 
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -12,6 +13,8 @@ function MemberSavingsView({
   dashboardData,
   savingsWeeks = [],
   currentUser,
+  bankAccount,
+  loans = [],
   onPaySavings,
   onDownloadPassbook
 }) {
@@ -177,9 +180,34 @@ function MemberSavingsView({
     });
   }, [myPaymentsList, filterStatus, searchQuery]);
 
-  // Individual Receipt Download Handler
+  // Passbook PDF Download Handler
+  const handlePassbookDownload = async () => {
+    if (typeof onDownloadPassbook === 'function') {
+      onDownloadPassbook(myPaymentsList);
+    } else {
+      await generateSavingsPassbookPdf({
+        dashboardData,
+        currentUser,
+        savingsWeeks,
+        myPaymentsList,
+        bankAccount: bankAccount || dashboardData?.bankAccount,
+        loans
+      });
+    }
+  };
+
+  // Individual Receipt Download Handler (PDF Format)
   const handleDownloadSingleReceipt = (item) => {
-    const receiptContent = `
+    try {
+      generateSingleReceiptPdf({
+        item,
+        memberName,
+        unitName,
+        memberId: dashboardData?.memberIdStr || `AK-${currentUser?.userId || '001'}`
+      });
+    } catch (e) {
+      console.error('Error generating PDF receipt, falling back to text:', e);
+      const receiptContent = `
 ======================================================
                SAHAYI AYALKOOTTAM CONNECT
                WEEKLY SAVINGS PAYMENT RECEIPT
@@ -197,17 +225,18 @@ Status        : ${item.status.toUpperCase()}
 ======================================================
 Verified Digital Record from SahayiDb Database.
 ======================================================
-    `.trim();
+      `.trim();
 
-    const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Receipt_${item.receiptNumber}_${memberName.replace(/\s+/g, '_')}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Receipt_${item.receiptNumber}_${memberName.replace(/\s+/g, '_')}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   // Tab 2: Unit Weekly Overview Selector Data & Member Compliance List
@@ -300,7 +329,7 @@ Verified Digital Record from SahayiDb Database.
           </p>
         </div>
         <div className="mem-savings-hero__actions">
-          <button className="mem-btn-outline" style={{ borderColor: 'rgba(255,255,255,0.4)', color: '#ffffff' }} onClick={onDownloadPassbook}>
+          <button className="mem-btn-outline" onClick={handlePassbookDownload}>
             <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" size={15} />
             <span>Download Passbook</span>
           </button>

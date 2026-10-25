@@ -118,9 +118,25 @@ const RepaymentScheduleModal = ({ loanId, isOpen, onClose }) => {
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Loan Amount</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Requested Loan</span>
                   <div style={{ fontWeight: 800, color: '#059669', fontSize: '1rem', marginTop: '2px' }}>
                     ₹{scheduleData.amountRequested?.toLocaleString('en-IN')}
+                  </div>
+                </div>
+
+                {scheduleData.fineAmount > 0 && (
+                  <div style={{ background: '#fef2f2', padding: '12px 16px', borderRadius: '8px', border: '1px solid #fca5a5' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#b91c1c', fontWeight: 700, textTransform: 'uppercase' }}>Missed Payment Fine</span>
+                    <div style={{ fontWeight: 800, color: '#dc2626', fontSize: '1rem', marginTop: '2px' }}>
+                      ₹{scheduleData.fineAmount?.toLocaleString('en-IN')} <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>(₹50/mo)</span>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ background: scheduleData.fineAmount > 0 ? '#eff6ff' : '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: scheduleData.fineAmount > 0 ? '1px solid #93c5fd' : '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.75rem', color: scheduleData.fineAmount > 0 ? '#1d4ed8' : '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Total Loan (Incl. Fine)</span>
+                  <div style={{ fontWeight: 800, color: scheduleData.fineAmount > 0 ? '#1e40af' : '#0f172a', fontSize: '1rem', marginTop: '2px' }}>
+                    ₹{(scheduleData.totalLoanAmount || scheduleData.amountRequested)?.toLocaleString('en-IN')}
                   </div>
                 </div>
 
@@ -142,15 +158,15 @@ const RepaymentScheduleModal = ({ loanId, isOpen, onClose }) => {
               {/* 6-Column Schedule Table */}
               <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                  <thead style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
-                    <tr style={{ textAlign: 'left', color: '#334155' }}>
-                      <th style={{ padding: '12px 16px', fontWeight: 700 }}>Month</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700 }}>Opening Balance</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700 }}>Fixed Principal</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700 }}>1% Interest</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700 }}>Total Due</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700 }}>Closing Balance</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'center' }}>Status</th>
+                  <thead style={{ background: '#0c382e', color: '#ffffff', borderBottom: '2px solid #059669' }}>
+                    <tr style={{ textAlign: 'left', color: '#ffffff' }}>
+                      <th style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700 }}>Month</th>
+                      <th style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700 }}>Opening Balance</th>
+                      <th style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700 }}>Principal Repaid</th>
+                      <th style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700 }}>Interest Paid</th>
+                      <th style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700 }}>Total Due</th>
+                      <th style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700 }}>Remaining Balance</th>
+                      <th style={{ padding: '12px 14px', color: '#ffffff', fontWeight: 700, textAlign: 'center' }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>

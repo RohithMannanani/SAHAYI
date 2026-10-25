@@ -30,6 +30,9 @@ namespace Sahayi.Api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("varchar(500)");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("varchar(150)");

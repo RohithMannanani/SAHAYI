@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MemberDashboard.css';
-import { fetchMemberDashboard, applyMemberLoan, fetchSavingsWeeks } from '../../services/api';
+import { fetchMemberDashboard, applyMemberLoan, fetchSavingsWeeks, fetchUnitBankAccount } from '../../services/api';
 import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
 import MemberLoanPage from './MemberLoanPage';
 import MemberSavingsView from './MemberSavingsView';
+import UnitChat from '../../components/Chat/UnitChat';
+import MembersRegistryView from '../Secretary/components/views/MembersRegistryView';
+import MeetingsView from '../Secretary/components/views/MeetingsView';
+import SharedSettingsView from '../../components/Shared/SharedSettingsView';
+import loanService from '../../services/loanService';
+import { generateSavingsPassbookPdf } from '../../utils/passbookPdfGenerator';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -38,6 +44,8 @@ function MemberDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
   const [savingsWeeks, setSavingsWeeks] = useState([]);
+  const [unitBankAccount, setUnitBankAccount] = useState(null);
+  const [memberLoans, setMemberLoans] = useState([]);
   const [toast, setToast] = useState(null);
 
   // Current Logged In User
@@ -92,13 +100,44 @@ function MemberDashboard() {
     }
 
     try {
-      const [memRes, weeksRes] = await Promise.allSettled([
-        fetchMemberDashboard(userObj?.userId, userObj?.unitId),
-        fetchSavingsWeeks(userObj?.unitId || 1)
+      const targetUnitId = userObj?.unitId || 14;
+      const [memRes, weeksRes, bankRes, loansRes] = await Promise.allSettled([
+        fetchMemberDashboard(userObj?.userId, targetUnitId),
+        fetchSavingsWeeks(targetUnitId),
+        fetchUnitBankAccount(targetUnitId),
+        loanService.getMyLoans()
       ]);
 
+      if (bankRes.status === 'fulfilled' && bankRes.value?.data) {
+        setUnitBankAccount(bankRes.value.data);
+      }
+
+      let fetchedLoans = [];
+      if (loansRes.status === 'fulfilled' && Array.isArray(loansRes.value)) {
+        fetchedLoans = loansRes.value;
+        setMemberLoans(fetchedLoans);
+      }
+
       if (memRes.status === 'fulfilled' && memRes.value?.data) {
-        setDashboardData(memRes.value.data);
+        console.log("DASHBOARD DATA:", memRes.value.data);
+        const data = memRes.value.data;
+        if (bankRes.status === 'fulfilled' && bankRes.value?.data) {
+          data.bankAccount = bankRes.value.data;
+          data.bankName = bankRes.value.data.bankName;
+        }
+        if (fetchedLoans.length > 0) {
+          data.loans = fetchedLoans;
+        }
+        setDashboardData(data);
+        if (memRes.value.data.avatarUrl && (!currentUser?.avatarUrl || currentUser.avatarUrl !== memRes.value.data.avatarUrl)) {
+          setCurrentUser(prev => ({ ...(prev || {}), avatarUrl: memRes.value.data.avatarUrl }));
+          try {
+            const rawUser = localStorage.getItem('user');
+            const parsed = rawUser ? JSON.parse(rawUser) : {};
+            parsed.avatarUrl = memRes.value.data.avatarUrl;
+            localStorage.setItem('user', JSON.stringify(parsed));
+          } catch (e) {}
+        }
       }
 
       if (weeksRes.status === 'fulfilled' && weeksRes.value?.data) {
@@ -164,50 +203,23 @@ function MemberDashboard() {
     }
   };
 
-  // Download Passbook Receipt Summary
-  const handleDownloadPassbook = () => {
-    const totalSavingsVal = dashboardData?.savings?.totalSavings || 0;
-    const memberName = dashboardData?.fullName || currentUser?.fullName || 'Member';
-    const unitName = dashboardData?.unitName || 'Sahayi Ayalkoottam';
-    const memberIdStr = dashboardData?.memberIdStr || `AK-${currentUser?.userId || '001'}`;
-    const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-    const receiptContent = `
-======================================================
-               SAHAYI AYALKOOTTAM CONNECT
-               OFFICIAL SAVINGS PASSBOOK
-======================================================
-Member Name   : ${memberName}
-Member ID     : ${memberIdStr}
-Unit Name     : ${unitName}
-Generated On  : ${dateStr}
-
-------------------------------------------------------
-FINANCIAL SUMMARY:
-------------------------------------------------------
-Total Savings Balance : ₹${totalSavingsVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-Savings Goal          : ₹1,00,000.00
-Goal Achievement      : ${dashboardData?.savings?.progressPct || 0}%
-
-Active Loan Status    : ${dashboardData?.activeLoan?.status || 'No Active Loan'}
-Remaining Balance     : ₹${(dashboardData?.activeLoan?.remainingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-------------------------------------------------------
-This is a computer generated digital passbook statement
-verified from SahayiDb Database.
-======================================================
-    `.trim();
-
-    const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Passbook_${memberName.replace(/\s+/g, '_')}_${Date.now()}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    showToast(`Digital Passbook downloaded for ${memberName}!`);
+  // Download Official PDF Passbook (Savings + Loan)
+  const handleDownloadPassbook = async (customPaymentsList = null) => {
+    try {
+      const fileName = await generateSavingsPassbookPdf({
+        dashboardData,
+        currentUser,
+        savingsWeeks,
+        myPaymentsList: Array.isArray(customPaymentsList) ? customPaymentsList : [],
+        bankAccount: unitBankAccount || dashboardData?.bankAccount,
+        loans: memberLoans.length > 0 ? memberLoans : (dashboardData?.loans || [])
+      });
+      const memberName = dashboardData?.fullName || currentUser?.fullName || 'Member';
+      showToast(`Passbook PDF (${fileName}) downloaded successfully for ${memberName}!`);
+    } catch (err) {
+      console.error('Failed to generate Passbook PDF:', err);
+      showToast('Failed to generate Passbook PDF. Please try again.', 'error');
+    }
   };
 
   // Destructure Data for Clean Rendering
@@ -306,6 +318,14 @@ verified from SahayiDb Database.
               <Icon d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9zm2-4h16M12 12v4" size={17} />
               <span>Loans</span>
             </div>
+
+            <div
+              className={`mem-nav-item ${activeTab === 'chat' ? 'mem-nav-item--active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" size={17} />
+              <span>Chats</span>
+            </div>
           </nav>
         </div>
 
@@ -319,11 +339,6 @@ verified from SahayiDb Database.
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
             <span>Settings</span>
           </div>
-
-          <div className="mem-nav-item" onClick={handleLogout}>
-            <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={17} />
-            <span>Logout</span>
-          </div>
         </div>
       </aside>
 
@@ -333,7 +348,11 @@ verified from SahayiDb Database.
         <header className="mem-header">
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="mem-header__title">Member Dashboard</div>
-            <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+            <div
+              style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
+              onClick={() => setActiveTab('settings')}
+              title="Go to Settings"
+            >
               <span>{memberName}</span>
               <span style={{ opacity: 0.5 }}>•</span>
               <span style={{ color: '#059669' }}>{unitName}</span>
@@ -351,12 +370,19 @@ verified from SahayiDb Database.
               <span className="mem-header__badge" />
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              onClick={() => setActiveTab('settings')}
+              title="Go to Settings"
+            >
               <img
-                src={dashboardData?.avatarUrl || currentUser?.avatarUrl || "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=120"}
+                src={currentUser?.avatarUrl || dashboardData?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=0C382E&color=fff`}
                 alt="Member Avatar"
                 className="mem-user-avatar"
-                title={`${memberName} (${unitName})`}
+                onError={e => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=0C382E&color=fff`;
+                }}
               />
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0c382e' }}>
@@ -367,20 +393,76 @@ verified from SahayiDb Database.
                 </span>
               </div>
             </div>
+
+            <button
+              className="mem-header__logout-btn"
+              onClick={handleLogout}
+              title="Logout"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid #fee2e2',
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                marginLeft: '8px'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#fee2e2';
+                e.currentTarget.style.borderColor = '#fca5a5';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = '#fef2f2';
+                e.currentTarget.style.borderColor = '#fee2e2';
+              }}
+            >
+              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={15} />
+              <span>Logout</span>
+            </button>
           </div>
         </header>
 
         {/* ── Content ── */}
         <div className="mem-content">
-          {activeTab === 'loans' ? (
+          {activeTab === 'chat' ? (
+            <div style={{ margin: '-20px' }}>
+              <UnitChat unitId={currentUser?.unitId || dashboardData?.unitId || 1} currentUser={currentUser} />
+            </div>
+          ) : activeTab === 'loans' ? (
             <MemberLoanPage unitTotalSavings={dashboardData?.unitTotalSavings} />
           ) : activeTab === 'savings' ? (
             <MemberSavingsView
               dashboardData={dashboardData}
               savingsWeeks={savingsWeeks}
               currentUser={currentUser}
+              bankAccount={unitBankAccount}
+              loans={memberLoans}
               onPaySavings={() => setShowPaymentModal(true)}
               onDownloadPassbook={handleDownloadPassbook}
+            />
+          ) : activeTab === 'members' ? (
+            <MembersRegistryView
+              unitInfo={{ unitName: unitName }}
+              attendanceList={dashboardData?.members || dashboardData?.Members || []}
+              readOnly={true}
+            />
+          ) : activeTab === 'meetings' ? (
+            <MeetingsView
+              meetings={dashboardData?.meetings || dashboardData?.Meetings || []}
+              readOnly={true}
+            />
+          ) : activeTab === 'settings' ? (
+            <SharedSettingsView
+              currentUser={currentUser}
+              setCurrentUser={setCurrentUser}
+              onShowToast={showToast}
+              onReloadData={loadDashboardData}
             />
           ) : isLoading ? (
             <div className="mem-loading-container">

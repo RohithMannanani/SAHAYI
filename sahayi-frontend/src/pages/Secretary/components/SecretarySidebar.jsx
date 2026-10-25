@@ -8,7 +8,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  Banknote
+  Banknote,
+  MessageSquare
 } from 'lucide-react';
 
 function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenOwnSavings }) {
@@ -17,7 +18,14 @@ function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenO
       <div className="sec-sidebar__top">
         <div className="sec-sidebar__header">
           <h2 className="sec-sidebar__title">SAHAYI</h2>
-          <p className="sec-sidebar__subtitle">{unitInfo.secretaryName}</p>
+          <p
+            className="sec-sidebar__subtitle"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setActiveTab('settings')}
+            title="Go to Settings"
+          >
+            {unitInfo.secretaryName}
+          </p>
         </div>
 
         <nav className="sec-sidebar__nav">
@@ -93,6 +101,16 @@ function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenO
               <span>Reports</span>
             </div>
           </button>
+
+          <button
+            className={`sec-nav-item ${activeTab === 'chat' ? 'sec-nav-item--active' : ''}`}
+            onClick={() => setActiveTab('chat')}
+          >
+            <div className="sec-nav-item__left">
+              <MessageSquare size={19} />
+              <span>Chats</span>
+            </div>
+          </button>
         </nav>
       </div>
 
@@ -105,13 +123,6 @@ function SecretarySidebar({ activeTab, setActiveTab, unitInfo, onLogout, onOpenO
           <div className="sec-nav-item__left">
             <Settings size={19} />
             <span>Settings</span>
-          </div>
-        </button>
-
-        <button className="sec-nav-item sec-nav-item--logout" onClick={onLogout}>
-          <div className="sec-nav-item__left">
-            <LogOut size={19} />
-            <span>Logout</span>
           </div>
         </button>
       </div>

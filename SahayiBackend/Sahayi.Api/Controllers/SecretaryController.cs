@@ -200,9 +200,11 @@ namespace Sahayi.Api.Controllers
                         .Where(l => l.UnitId == targetUnitId && (l.Status == "Disbursed" || l.Status == "Closed"))
                         .SumAsync(l => (decimal?)l.AmountRequested) ?? 0.00m;
 
+                    // Only count loan repayments that have been explicitly deposited into the bank
                     decimal totalLoanRepayments = await _context.LoanApplications
                         .Where(l => l.UnitId == targetUnitId)
                         .SelectMany(l => l.LoanRepayments)
+                        .Where(r => r.PaymentMode != null && r.PaymentMode.Contains("Bank Deposited"))
                         .SumAsync(r => (decimal?)r.AmountPaid) ?? 0.00m;
 
                     string accNum = !string.IsNullOrWhiteSpace(unit?.AccountNumber) ? unit.AccountNumber : $"SB-UNIT-{targetUnitId:D4}";
@@ -270,6 +272,7 @@ namespace Sahayi.Api.Controllers
                     SecretaryName = secretaryUser?.FullName ?? "Unit Secretary",
                     SecretaryPhone = secretaryUser?.PhoneNumber ?? "",
                     SecretaryHouseName = secretaryUser?.HouseName ?? "",
+                    SecretaryAvatarUrl = secretaryUser?.AvatarUrl,
                     TotalWeeklyCollection = bankAccount?.Balance ?? totalCollection,
                     DisbursedLoansTotal = disbursedTotal,
                     PendingDuesCount = pendingDuesCount,
@@ -278,7 +281,24 @@ namespace Sahayi.Api.Controllers
                     AllSavingsLogs = allSavingsLogs,
                     Meetings = meetingItems,
                     PendingLoans = loanItems,
-                    Members = memberItems
+                    Members = memberItems,
+                    LoanRepayments = await _context.LoanApplications
+                        .Where(l => l.UnitId == targetUnitId)
+                        .SelectMany(l => l.LoanRepayments)
+                        .OrderByDescending(r => r.RepaymentDate)
+                        .Select(r => new LoanRepaymentHistoryDto
+                        {
+                            RepaymentId = r.RepaymentId,
+                            AmountPaid = r.AmountPaid,
+                            PrincipalComponent = r.PrincipalComponent,
+                            InterestComponent = r.InterestComponent,
+                            RepaymentDate = r.RepaymentDate,
+                            ReceiptNumber = r.ReceiptNumber ?? "",
+                            RecordedByName = r.Recorder != null ? r.Recorder.FullName : "Treasurer",
+                            PaymentMode = r.PaymentMode ?? "Cash",
+                            IsBankDeposited = (r.PaymentMode ?? "").Contains("Bank Deposited")
+                        })
+                        .ToListAsync()
                 };
 
                 return Ok(dto);

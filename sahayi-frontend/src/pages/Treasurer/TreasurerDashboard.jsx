@@ -19,7 +19,8 @@ import {
   BarChart2,
   ShieldCheck,
   Filter,
-  Search
+  Search,
+  MessageSquare
 } from 'lucide-react';
 import './TreasurerDashboard.css';
 
@@ -33,13 +34,16 @@ import {
   payOnlineSavings,
   depositCashToBank
 } from '../../services/api';
+import loanService from '../../services/loanService';
 import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHistoryModal';
 import FinancialsView from '../Secretary/components/views/FinancialsView';
 import TreasurerLoanOps from './components/TreasurerLoanOps';
 import MemberLoanPage from '../Member/MemberLoanPage';
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
+import UnitChat from '../../components/Chat/UnitChat';
 import { getWeeklyCollectionLogs } from '../Secretary/utils/weeklyCollectionUtils';
 import { formatDateToDDMMYYYY } from '../Secretary/utils/formatTime';
+import SharedSettingsView from '../../components/Shared/SharedSettingsView';
 
 // ── SVG Icon Helper ─────────────────────────────────────────
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 2, className = '' }) => (
@@ -61,6 +65,7 @@ function TreasurerDashboard() {
   const [unitBank, setUnitBank] = useState(null);
   const [savingsWeeks, setSavingsWeeks] = useState([]);
   const [savingsLogs, setSavingsLogs] = useState([]);
+  const [loanRepayments, setLoanRepayments] = useState([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showOwnSavingsModal, setShowOwnSavingsModal] = useState(false);
   const [paymentMemberItem, setPaymentMemberItem] = useState(null);
@@ -73,14 +78,14 @@ function TreasurerDashboard() {
   const [reportWeekFilter, setReportWeekFilter] = useState('all');
   const [reportSearchQuery, setReportSearchQuery] = useState('');
 
-  const currentUser = React.useMemo(() => {
+  const [currentUser, setCurrentUser] = useState(() => {
     try {
       const u = localStorage.getItem('user');
       return u ? JSON.parse(u) : null;
     } catch (e) {
       return null;
     }
-  }, []);
+  });
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -116,10 +121,11 @@ function TreasurerDashboard() {
     const userId = currentUser?.userId || 0;
 
     try {
-      const [dashRes, weeksRes, bankRes] = await Promise.allSettled([
+      const [dashRes, weeksRes, bankRes, repaymentsRes] = await Promise.allSettled([
         fetchSecretaryDashboard(unitId, userId),
         fetchSavingsWeeks(unitId),
-        fetchUnitBankAccount(unitId)
+        fetchUnitBankAccount(unitId),
+        loanService.getUnitLoanRepayments()
       ]);
 
       if (dashRes.status === 'fulfilled' && dashRes.value?.data) {
@@ -134,6 +140,19 @@ function TreasurerDashboard() {
           });
         }
         setSavingsLogs(combinedLogs);
+      }
+
+      let repList = [];
+      if (repaymentsRes.status === 'fulfilled') {
+        repList = Array.isArray(repaymentsRes.value)
+          ? repaymentsRes.value
+          : (Array.isArray(repaymentsRes.value?.data) ? repaymentsRes.value.data : []);
+      }
+      if ((!repList || repList.length === 0) && dashRes.status === 'fulfilled' && Array.isArray(dashRes.value?.data?.loanRepayments)) {
+        repList = dashRes.value.data.loanRepayments;
+      }
+      if (repList && repList.length > 0) {
+        setLoanRepayments(repList);
       }
 
       if (weeksRes.status === 'fulfilled' && weeksRes.value?.data) {
@@ -165,15 +184,18 @@ function TreasurerDashboard() {
     window.location.replace('/login');
   };
 
-  // Deposit single cash transaction to unit bank account
+  // Deposit single cash/online transaction (savings or loan repayment) to unit bank account
   const handleDepositCashToBank = async (item) => {
     try {
-      const depositAmount = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
-      const targetTxId = (item.id && !isNaN(Number(item.id))) ? Number(item.id) : null;
+      const depositAmount = parseFloat(item.amount || item.amountPaid) > 0 ? parseFloat(item.amount || item.amountPaid) : 100;
+      const isRepayment = item.isRepayment || !!item.repaymentId;
+      const targetTxId = (!isRepayment && item.id && !isNaN(Number(item.id))) ? Number(item.id) : null;
+      const targetRepayId = isRepayment ? (item.repaymentId || (typeof item.id === 'string' && item.id.startsWith('repay-') ? Number(item.id.replace('repay-', '')) : Number(item.id))) : null;
       const targetUnitId = currentUser?.unitId || 1;
 
       const payload = {
         transactionId: targetTxId,
+        repaymentId: targetRepayId,
         unitId: targetUnitId,
         amount: depositAmount,
         userId: item.userId || item.id || 0
@@ -197,16 +219,29 @@ function TreasurerDashboard() {
         }));
       }
 
-      setSavingsLogs(prev =>
-        prev.map(s => {
-          if (s.id === item.id || (s.userId && item.userId && s.userId === item.userId)) {
-            const currentMode = s.paymentMode || s.paymentMethod || 'Cash';
-            const isOnline = currentMode.toLowerCase().includes('online');
-            return { ...s, paymentMode: isOnline ? 'Online (Bank Deposited)' : 'Cash (Bank Deposited)' };
-          }
-          return s;
-        })
-      );
+      if (isRepayment) {
+        setLoanRepayments(prev =>
+          prev.map(r => {
+            if (r.repaymentId === targetRepayId) {
+              const currentMode = r.paymentMode || 'Cash';
+              const isOnline = currentMode.toLowerCase().includes('online');
+              return { ...r, paymentMode: isOnline ? 'Online (Bank Deposited)' : 'Cash (Bank Deposited)', isBankDeposited: true };
+            }
+            return r;
+          })
+        );
+      } else {
+        setSavingsLogs(prev =>
+          prev.map(s => {
+            if (s.id === item.id || (s.userId && item.userId && s.userId === item.userId)) {
+              const currentMode = s.paymentMode || s.paymentMethod || 'Cash';
+              const isOnline = currentMode.toLowerCase().includes('online');
+              return { ...s, paymentMode: isOnline ? 'Online (Bank Deposited)' : 'Cash (Bank Deposited)' };
+            }
+            return s;
+          })
+        );
+      }
 
       showToast(`₹${depositAmount.toFixed(2)} collection deposited into Unit Bank Account!`);
     } catch (err) {
@@ -215,17 +250,21 @@ function TreasurerDashboard() {
     }
   };
 
-  // Deposit all undeposited collections in hand to unit bank account
+  // Deposit all undeposited collections in hand (savings + loan repayments) to unit bank account
   const handleDepositAllCashToBank = async (cashItems) => {
     if (!cashItems || cashItems.length === 0) return;
     try {
       let totalAmount = 0;
       for (const item of cashItems) {
-        const depositAmount = parseFloat(item.amount) > 0 ? parseFloat(item.amount) : 100;
-        const targetTxId = (item.id && !isNaN(Number(item.id))) ? Number(item.id) : null;
+        const depositAmount = parseFloat(item.amount || item.amountPaid) > 0 ? parseFloat(item.amount || item.amountPaid) : 100;
+        const isRepayment = item.isRepayment || !!item.repaymentId;
+        const targetTxId = (!isRepayment && item.id && !isNaN(Number(item.id))) ? Number(item.id) : null;
+        const targetRepayId = isRepayment ? (item.repaymentId || (typeof item.id === 'string' && item.id.startsWith('repay-') ? Number(item.id.replace('repay-', '')) : Number(item.id))) : null;
+
         try {
           await depositCashToBank({
             transactionId: targetTxId,
+            repaymentId: targetRepayId,
             unitId: currentUser?.unitId || 1,
             amount: depositAmount,
             userId: item.userId || item.id || 0
@@ -238,12 +277,23 @@ function TreasurerDashboard() {
 
       setSavingsLogs(prev =>
         prev.map(s => {
-          if (cashItems.some(c => c.id === s.id || (c.userId && s.userId && c.userId === s.userId))) {
+          if (cashItems.some(c => !c.isRepayment && (c.id === s.id || (c.userId && s.userId && c.userId === s.userId)))) {
             const currentMode = s.paymentMode || s.paymentMethod || 'Cash';
             const isOnline = currentMode.toLowerCase().includes('online');
             return { ...s, paymentMode: isOnline ? 'Online (Bank Deposited)' : 'Cash (Bank Deposited)' };
           }
           return s;
+        })
+      );
+
+      setLoanRepayments(prev =>
+        prev.map(r => {
+          if (cashItems.some(c => c.isRepayment && (c.repaymentId === r.repaymentId || c.id === `repay-${r.repaymentId}`))) {
+            const currentMode = r.paymentMode || 'Cash';
+            const isOnline = currentMode.toLowerCase().includes('online');
+            return { ...r, paymentMode: isOnline ? 'Online (Bank Deposited)' : 'Cash (Bank Deposited)', isBankDeposited: true };
+          }
+          return r;
         })
       );
 
@@ -253,6 +303,7 @@ function TreasurerDashboard() {
       }));
 
       showToast(`All collections (₹${totalAmount.toFixed(2)}) deposited into Unit Bank Account!`);
+      loadTreasurerData();
     } catch (err) {
       console.error('Error depositing all cash:', err);
       showToast('Failed to deposit cash collections to bank', 'error');
@@ -326,13 +377,36 @@ function TreasurerDashboard() {
   const endDurationStr = formatDateToDDMMYYYY(currentWeekGroup.sundayStr || currentWeekGroup.weekKey);
   const durationText = `${startDurationStr} to ${endDurationStr}`;
 
-  // All paid payments that are NOT yet deposited into the bank show in "Collections In Hand"
-  const undepositedCashList = savingsLogs.filter(s =>
+  // All paid savings that are NOT yet deposited into the bank
+  const undepositedSavingsList = savingsLogs.filter(s =>
     s.status === 'Paid' &&
     !(s.paymentMode || '').toLowerCase().includes('bank deposited') &&
     !(s.paymentMode || '').toLowerCase().includes('in bank')
   );
+
+  // All loan repayments that are NOT yet deposited into the bank
+  const undepositedRepaymentsList = loanRepayments.filter(r =>
+    !(r.paymentMode || '').toLowerCase().includes('bank deposited') &&
+    !r.isBankDeposited
+  ).map(r => ({
+    id: `repay-${r.repaymentId}`,
+    repaymentId: r.repaymentId,
+    loanId: r.loanId,
+    userId: r.userId,
+    name: r.borrowerName || 'Member',
+    amount: r.amountPaid,
+    paymentMode: r.paymentMode || 'Cash',
+    date: r.repaymentDate ? r.repaymentDate.split('T')[0] : new Date().toISOString().split('T')[0],
+    paidDate: r.repaymentDate ? r.repaymentDate.split('T')[0] : new Date().toISOString().split('T')[0],
+    status: 'Paid',
+    isRepayment: true
+  }));
+
+  // Combined undeposited collections sitting in Treasurer's Hand
+  const undepositedCashList = [...undepositedSavingsList, ...undepositedRepaymentsList];
   const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+  const undepositedSavingsTotal = undepositedSavingsList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+  const undepositedRepaymentsTotal = undepositedRepaymentsList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
   const undepositedOnlineCount = undepositedCashList.filter(s => (s.paymentMode || '').toLowerCase().includes('online')).length;
   const undepositedCashCount = undepositedCashList.filter(s => !(s.paymentMode || '').toLowerCase().includes('online')).length;
 
@@ -358,16 +432,33 @@ function TreasurerDashboard() {
   const disbursedLoans = dashboardData?.disbursedLoansTotal || 0;
 
   const liveTransactions = React.useMemo(() => {
-    return savingsLogs.map((item, idx) => ({
+    const savingsTx = savingsLogs.map((item, idx) => ({
       id: item.id || idx + 1,
       name: item.name || 'Member',
       date: item.date || item.paidDate || new Date().toISOString().split('T')[0],
       type: item.paymentMode === 'Cash' ? 'Cash Savings' : 'Online Savings',
-      typeColor: item.paymentMode === 'Cash' ? 'fee' : 'repayment',
+      typeColor: 'fee',
       amount: `₹${parseFloat(item.amount || 100).toFixed(2)}`,
-      status: item.status || 'Paid'
+      status: item.status || 'Paid',
+      paymentMode: item.paymentMode || 'Cash',
+      isRepayment: false
     }));
-  }, [savingsLogs]);
+
+    const repaymentTx = loanRepayments.map(r => ({
+      id: `repay-${r.repaymentId}`,
+      repaymentId: r.repaymentId,
+      name: r.borrowerName || 'Member',
+      date: r.repaymentDate ? r.repaymentDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      type: (r.paymentMode || '').toLowerCase().includes('online') ? 'Online EMI' : 'Cash EMI',
+      typeColor: 'repayment',
+      amount: `₹${parseFloat(r.amountPaid || 0).toFixed(2)}`,
+      status: 'Paid',
+      paymentMode: r.paymentMode || 'Cash',
+      isRepayment: true
+    }));
+
+    return [...repaymentTx, ...savingsTx].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [savingsLogs, loanRepayments]);
 
   const filteredTransactions = liveTransactions.filter(tx =>
     tx.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -661,6 +752,14 @@ function TreasurerDashboard() {
               <Icon d="M18 20V10M12 20V4M6 20v-6" size={17} />
               <span>Reports</span>
             </div>
+
+            <div
+              className={`tr-nav-item ${activeTab === 'chat' ? 'tr-nav-item--active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              <MessageSquare size={17} />
+              <span>Chats</span>
+            </div>
           </nav>
         </div>
 
@@ -670,11 +769,6 @@ function TreasurerDashboard() {
           <div className={`tr-nav-item ${activeTab === 'settings' ? 'tr-nav-item--active' : ''}`} onClick={() => setActiveTab('settings')}>
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
             <span>Settings</span>
-          </div>
-
-          <div className="tr-nav-item" onClick={handleLogout}>
-            <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={17} />
-            <span>Logout</span>
           </div>
         </div>
       </aside>
@@ -692,7 +786,11 @@ function TreasurerDashboard() {
               {activeTab === 'reports' && 'Treasurer Dashboard'}
               {activeTab === 'settings' && 'Treasurer Dashboard'}
             </div>
-            <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+            <div
+              style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
+              onClick={() => setActiveTab('settings')}
+              title="Go to Settings"
+            >
               <span>{currentUser?.fullName || currentUser?.name || 'Treasurer'}</span>
               <span style={{ opacity: 0.5 }}>•</span>
               <span style={{ color: '#059669' }}>{dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}</span>
@@ -715,12 +813,19 @@ function TreasurerDashboard() {
               <span className="tr-header__badge" />
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              onClick={() => setActiveTab('settings')}
+              title="Go to Settings"
+            >
               <img
-                src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120"}
+                src={currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'Treasurer')}&background=0C382E&color=fff`}
                 alt="Treasurer Avatar"
                 className="tr-user-avatar"
-                title={`${currentUser?.fullName || currentUser?.name || 'Treasurer'} (${dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'})`}
+                onError={e => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'Treasurer')}&background=0C382E&color=fff`;
+                }}
               />
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0c382e' }}>
@@ -731,10 +836,49 @@ function TreasurerDashboard() {
                 </span>
               </div>
             </div>
+
+            <button
+              className="tr-header__logout-btn"
+              onClick={handleLogout}
+              title="Logout"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid #fee2e2',
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                marginLeft: '8px'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#fee2e2';
+                e.currentTarget.style.borderColor = '#fca5a5';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = '#fef2f2';
+                e.currentTarget.style.borderColor = '#fee2e2';
+              }}
+            >
+              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={15} />
+              <span>Logout</span>
+            </button>
           </div>
         </header>
 
         <div className="tr-content">
+          {/* ── UNIT CHAT TAB VIEW ── */}
+          {activeTab === 'chat' && (
+            <div style={{ margin: '-20px', height: 'calc(100vh - 80px)' }}>
+              <UnitChat unitId={currentUser?.unitId || dashboardData?.unitId || 1} currentUser={currentUser} />
+            </div>
+          )}
+
           {/* ── DASHBOARD OVERVIEW TAB VIEW ── */}
           {activeTab === 'dashboard' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -782,11 +926,15 @@ function TreasurerDashboard() {
                   <div>
                     <span style={{ fontSize: '0.7rem', opacity: 0.8, display: 'block', textTransform: 'uppercase' }}>Collections In Hand</span>
                     <strong style={{ fontSize: '1rem', color: '#fbbf24' }}>₹{undepositedTotal.toFixed(2)}</strong>
-                    {undepositedOnlineCount > 0 && (
+                    {undepositedRepaymentsTotal > 0 ? (
+                      <span style={{ fontSize: '0.65rem', color: '#fcd34d', display: 'block', marginTop: '2px' }}>
+                        Savings: ₹{undepositedSavingsTotal.toFixed(2)} • Loan EMI: ₹{undepositedRepaymentsTotal.toFixed(2)}
+                      </span>
+                    ) : undepositedOnlineCount > 0 ? (
                       <span style={{ fontSize: '0.65rem', color: '#fcd34d', display: 'block', marginTop: '2px' }}>
                         {undepositedCashCount > 0 ? `${undepositedCashCount} cash + ` : ''}{undepositedOnlineCount} online
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   {undepositedCashList.length > 0 && (
                     <button
@@ -1035,6 +1183,7 @@ function TreasurerDashboard() {
               unitBankAccount={unitBank}
               savingsLogs={savingsLogs}
               savingsWeeks={savingsWeeks}
+              loanRepayments={loanRepayments}
               allMembers={membersList}
               onDepositCashToBank={handleDepositCashToBank}
               onDepositAllCashToBank={handleDepositAllCashToBank}
@@ -1186,7 +1335,7 @@ function TreasurerDashboard() {
               {loanSubTab === 'personal' ? (
                 <MemberLoanPage unitTotalSavings={availableBalance} />
               ) : (
-                <TreasurerLoanOps />
+                <TreasurerLoanOps onDepositSuccess={loadTreasurerData} />
               )}
             </div>
           )}
@@ -1757,14 +1906,22 @@ function TreasurerDashboard() {
 
           {/* ── SETTINGS TAB VIEW ── */}
           {activeTab === 'settings' && (
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', maxWidth: '600px' }}>
-              <h3 style={{ margin: '0 0 16px 0', color: '#0c382e', fontSize: '1.2rem', fontWeight: 700 }}>Treasurer Unit Settings</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.9rem', color: '#334155' }}>
-                <div><strong>Unit Name:</strong> {dashboardData?.unitName || 'Sahayi Unit'}</div>
-                <div><strong>Bank Name:</strong> {unitBank?.bankName || 'South Indian Bank'}</div>
-                <div><strong>Account Number:</strong> {unitBank?.accountNumber || '705053000002165'}</div>
-                <div><strong>IFSC Code:</strong> {unitBank?.ifscCode || 'SIBL0000705'}</div>
-                <div><strong>Current Balance:</strong> ₹{availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <SharedSettingsView
+                currentUser={currentUser}
+                setCurrentUser={setCurrentUser}
+                onShowToast={showToast}
+                onReloadData={loadTreasurerData}
+              />
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', maxWidth: '100%' }}>
+                <h3 style={{ margin: '0 0 16px 0', color: '#0c382e', fontSize: '1.2rem', fontWeight: 700 }}>Treasurer Unit Context</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.9rem', color: '#334155' }}>
+                  <div><strong>Unit Name:</strong> {dashboardData?.unitName || 'Sahayi Unit'}</div>
+                  <div><strong>Bank Name:</strong> {unitBank?.bankName || 'South Indian Bank'}</div>
+                  <div><strong>Account Number:</strong> {unitBank?.accountNumber || '705053000002165'}</div>
+                  <div><strong>IFSC Code:</strong> {unitBank?.ifscCode || 'SIBL0000705'}</div>
+                  <div><strong>Current Balance:</strong> ₹{availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                </div>
               </div>
             </div>
           )}

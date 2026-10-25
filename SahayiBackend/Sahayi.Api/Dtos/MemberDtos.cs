@@ -107,5 +107,33 @@ namespace Sahayi.Api.DTOs
         public List<MemberRepaymentRowDto> RepaymentSchedule { get; set; } = new List<MemberRepaymentRowDto>();
         public MemberAttendanceSummaryDto Attendance { get; set; } = new MemberAttendanceSummaryDto();
         public List<MemberNotificationDto> Notifications { get; set; } = new List<MemberNotificationDto>();
+
+        // New properties for Members and Meetings tabs
+        public List<MemberRegistryItemDto> Members { get; set; } = new List<MemberRegistryItemDto>();
+        public List<MemberMeetingItemDto> Meetings { get; set; } = new List<MemberMeetingItemDto>();
+    }
+
+    public class MemberRegistryItemDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string MemberId { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string Status { get; set; } = "present";
+    }
+
+    public class MemberMeetingItemDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Date { get; set; } = string.Empty;
+        public string Time { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public string Tag { get; set; } = string.Empty;
+        public string TagType { get; set; } = string.Empty;
+        public bool IsCompleted { get; set; }
+        public string CompletedDate { get; set; } = string.Empty;
     }
 }

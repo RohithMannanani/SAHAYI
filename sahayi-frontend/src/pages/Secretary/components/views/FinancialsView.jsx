@@ -9,6 +9,7 @@ function FinancialsView({
   unitBankAccount,
   savingsLogs = [],
   savingsWeeks = [],
+  loanRepayments = [],
   allMembers = [],
   onDepositCashToBank,
   onDepositAllCashToBank,
@@ -26,14 +27,55 @@ function FinancialsView({
     catch { return null; }
   })();
 
-  const undepositedCashList = savingsLogs.filter(s =>
-    s.status === 'Paid' &&
-    !(s.paymentMode || '').toLowerCase().includes('bank deposited') &&
-    !(s.paymentMode || '').toLowerCase().includes('in bank')
-  );
-  const undepositedTotal = undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-  const undepositedOnlineCount = undepositedCashList.filter(s => (s.paymentMode || '').toLowerCase().includes('online')).length;
-  const undepositedCashCount = undepositedCashList.filter(s => !(s.paymentMode || '').toLowerCase().includes('online')).length;
+  const undepositedCashList = useMemo(() => {
+    return (savingsLogs || []).filter(s =>
+      s.status === 'Paid' &&
+      !(s.paymentMode || '').toLowerCase().includes('bank deposited') &&
+      !(s.paymentMode || '').toLowerCase().includes('in bank')
+    );
+  }, [savingsLogs]);
+
+  const undepositedRepaymentsList = useMemo(() => {
+    return (loanRepayments || []).filter(r =>
+      !r.isBankDeposited &&
+      !(r.paymentMode || '').toLowerCase().includes('bank deposited') &&
+      !(r.paymentMode || '').toLowerCase().includes('in bank')
+    ).map(r => ({
+      id: `repay-${r.repaymentId}`,
+      repaymentId: r.repaymentId,
+      loanId: r.loanId,
+      userId: r.userId,
+      name: r.borrowerName || 'Member',
+      memberName: r.borrowerName || 'Member',
+      memberId: r.receiptNumber || `Loan #${r.loanId || r.repaymentId}`,
+      amount: r.amountPaid,
+      amountPaid: r.amountPaid,
+      status: 'Paid',
+      paymentMode: r.paymentMode || 'Online',
+      paymentMethod: r.paymentMode || 'Online',
+      date: r.repaymentDate ? r.repaymentDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      paidDate: r.repaymentDate ? r.repaymentDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      receiptNumber: r.receiptNumber,
+      isRepayment: true,
+      type: 'Loan Repayment'
+    }));
+  }, [loanRepayments]);
+
+  const allUndepositedList = useMemo(() => {
+    return [...undepositedCashList, ...undepositedRepaymentsList];
+  }, [undepositedCashList, undepositedRepaymentsList]);
+
+  const undepositedSavingsTotal = useMemo(() => {
+    return undepositedCashList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+  }, [undepositedCashList]);
+
+  const undepositedRepaymentsTotal = useMemo(() => {
+    return undepositedRepaymentsList.reduce((acc, curr) => acc + (parseFloat(curr.amount || curr.amountPaid) || 0), 0);
+  }, [undepositedRepaymentsList]);
+
+  const undepositedTotal = undepositedSavingsTotal + undepositedRepaymentsTotal;
+  const undepositedOnlineCount = allUndepositedList.filter(s => (s.paymentMode || '').toLowerCase().includes('online')).length;
+  const undepositedCashCount = allUndepositedList.filter(s => !(s.paymentMode || '').toLowerCase().includes('online')).length;
 
   const depositedTotalFromLogs = savingsLogs
     .filter(s => s.status === 'Paid' && (
@@ -160,12 +202,17 @@ function FinancialsView({
               {undepositedCashCount > 0 && `${undepositedCashCount} cash`}
               {undepositedCashCount > 0 && undepositedOnlineCount > 0 && ' + '}
               {undepositedOnlineCount > 0 && `${undepositedOnlineCount} online`}
-              {undepositedCashList.length > 0 ? ' payment(s) pending bank deposit' : 'No pending deposits'}
+              {allUndepositedList.length > 0 ? ' payment(s) pending bank deposit' : 'No pending deposits'}
             </span>
-            {undepositedCashList.length > 0 && onDepositAllCashToBank && (
+            {undepositedRepaymentsList.length > 0 && (
+              <span style={{ fontSize: '0.74rem', color: '#b45309', fontWeight: 600, display: 'block', marginTop: '3px' }}>
+                • ₹{undepositedRepaymentsTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} from {undepositedRepaymentsList.length} Loan Repayment{undepositedRepaymentsList.length > 1 ? 's' : ''}
+              </span>
+            )}
+            {allUndepositedList.length > 0 && onDepositAllCashToBank && (
               <button
                 type="button"
-                onClick={() => onDepositAllCashToBank(undepositedCashList)}
+                onClick={() => onDepositAllCashToBank(allUndepositedList)}
                 style={{
                   marginTop: '0.5rem',
                   backgroundColor: '#0C382E',
@@ -182,7 +229,7 @@ function FinancialsView({
                 }}
               >
                 <Landmark size={13} />
-                <span>Deposit All Cash to Bank</span>
+                <span>Deposit All In-Hand Collections to Bank</span>
               </button>
             )}
           </div>
@@ -228,6 +275,138 @@ function FinancialsView({
           <span className="sec-stat-sub">Active Unit Accounts</span>
         </div>
       </div>
+
+      {/* In-Hand Collections Pending Deposit Panel */}
+      {showCollectionsInHand && allUndepositedList.length > 0 && (
+        <div style={{
+          marginTop: '1.5rem',
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          padding: '1.25rem 1.5rem',
+          border: '1.5px solid #f59e0b',
+          boxShadow: '0 4px 14px rgba(245, 158, 11, 0.08)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Landmark size={18} style={{ color: '#d97706' }} />
+                Collections In-Hand Pending Bank Deposit ({allUndepositedList.length})
+              </h3>
+              <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                These cash and online collections are currently held in Treasurer custody. Deposit them into the Unit Bank Account once verified or physically deposited.
+              </p>
+            </div>
+            {onDepositAllCashToBank && (
+              <button
+                type="button"
+                onClick={() => onDepositAllCashToBank(allUndepositedList)}
+                style={{
+                  backgroundColor: '#0c382e',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Landmark size={14} />
+                <span>Deposit All to Bank (₹{undepositedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })})</span>
+              </button>
+            )}
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#fffbeb', borderBottom: '1px solid #fde68a', color: '#92400e', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 10px' }}>Date</th>
+                  <th style={{ padding: '8px 10px' }}>Type</th>
+                  <th style={{ padding: '8px 10px' }}>Member / Borrower</th>
+                  <th style={{ padding: '8px 10px' }}>Reference / Receipt</th>
+                  <th style={{ padding: '8px 10px' }}>Amount</th>
+                  <th style={{ padding: '8px 10px' }}>Custody Status</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allUndepositedList.map(item => {
+                  const isRepay = item.isRepayment;
+                  const isOnline = (item.paymentMode || '').toLowerCase().includes('online');
+                  return (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 10px', color: '#475569' }}>
+                        {formatDateToDDMMYYYY(item.date || item.paidDate)}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          backgroundColor: isRepay ? '#eff6ff' : '#ecfdf5',
+                          color: isRepay ? '#1d4ed8' : '#047857',
+                          border: isRepay ? '1px solid #bfdbfe' : '1px solid #a7f3d0'
+                        }}>
+                          {isRepay ? 'Loan Repayment' : 'Weekly Savings'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>
+                        {item.name || item.memberName || 'Member'}
+                      </td>
+                      <td style={{ padding: '8px 10px', color: '#64748b', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                        {item.receiptNumber || item.memberId || '-'}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>
+                        ₹{parseFloat(item.amount || item.amountPaid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{
+                          color: isOnline ? '#0284c7' : '#d97706',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {isOnline ? 'Online (In Hand)' : 'Cash (In Hand)'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                        {onDepositCashToBank && (
+                          <button
+                            type="button"
+                            onClick={() => onDepositCashToBank(item)}
+                            style={{
+                              backgroundColor: isOnline ? '#0284c7' : '#0c382e',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '4px 10px',
+                              borderRadius: '5px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Landmark size={12} />
+                            <span>Deposit to Bank</span>
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Per Week Collection Log View */}
       <div style={{

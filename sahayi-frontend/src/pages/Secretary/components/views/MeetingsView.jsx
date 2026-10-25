@@ -8,7 +8,8 @@ function MeetingsView({
   onEditMeeting,
   onMarkMeetingCompleted,
   onDeleteMeeting,
-  onShowAttendanceModal
+  onShowAttendanceModal,
+  readOnly = false
 }) {
   const upcomingMeetings = (meetings || []).filter(m => !m.isCompleted && m.tag !== 'COMPLETED');
   const completedMeetings = (meetings || []).filter(m => m.isCompleted || m.tag === 'COMPLETED');
@@ -17,13 +18,15 @@ function MeetingsView({
     <div className="sec-subview">
       <div className="sec-subview-header">
         <h2>Meetings & Minutes Recorder</h2>
-        <button
-          className="sec-action-btn sec-action-btn--primary"
-          onClick={onShowMeetingModal}
-        >
-          <PlusCircle size={18} />
-          <span>Schedule Meeting</span>
-        </button>
+        {!readOnly && (
+          <button
+            className="sec-action-btn sec-action-btn--primary"
+            onClick={onShowMeetingModal}
+          >
+            <PlusCircle size={18} />
+            <span>Schedule Meeting</span>
+          </button>
+        )}
       </div>
 
       {/* Upcoming / Scheduled Sessions Section */}

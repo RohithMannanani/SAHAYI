@@ -33,6 +33,9 @@ namespace Sahayi.Api.Entities
         [Required]
         public int RecordedBy { get; set; }
 
+        [Column(TypeName = "varchar(50)")]
+        public string PaymentMode { get; set; } = "Cash";
+
         // Navigation Properties
         [ForeignKey("LoanId")]
         public virtual LoanApplication? LoanApplication { get; set; }

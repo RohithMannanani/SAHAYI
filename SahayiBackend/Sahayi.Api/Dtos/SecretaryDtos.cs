@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Sahayi.Api.Dtos;
 
 namespace Sahayi.Api.DTOs
 {
@@ -166,6 +167,7 @@ namespace Sahayi.Api.DTOs
         public string SecretaryName { get; set; } = string.Empty;
         public string SecretaryPhone { get; set; } = string.Empty;
         public string SecretaryHouseName { get; set; } = string.Empty;
+        public string? SecretaryAvatarUrl { get; set; }
         public decimal TotalWeeklyCollection { get; set; }
         public decimal DisbursedLoansTotal { get; set; }
         public int PendingDuesCount { get; set; }
@@ -175,6 +177,7 @@ namespace Sahayi.Api.DTOs
         public List<SecretaryMeetingItemDto> Meetings { get; set; } = new List<SecretaryMeetingItemDto>();
         public List<SecretaryLoanItemDto> PendingLoans { get; set; } = new List<SecretaryLoanItemDto>();
         public List<SecretaryMemberItemDto> Members { get; set; } = new List<SecretaryMemberItemDto>();
+        public List<LoanRepaymentHistoryDto> LoanRepayments { get; set; } = new List<LoanRepaymentHistoryDto>();
     }
 
     public class UpdateLateAttendanceDto

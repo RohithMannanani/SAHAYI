@@ -63,7 +63,9 @@ function Login() {
         roleId: data.roleId,
         unitId: data.unitId,
         unitName: data.unitName,
-        isPasswordChanged: data.isPasswordChanged
+        username: data.username || data.phoneNumber,
+        isPasswordChanged: data.isPasswordChanged,
+        avatarUrl: data.avatarUrl || data.AvatarUrl || ''
       }));
 
       // ── Force password change check ──────────────────────────────

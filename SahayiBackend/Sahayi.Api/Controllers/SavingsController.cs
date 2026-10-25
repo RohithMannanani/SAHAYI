@@ -388,9 +388,11 @@ namespace Sahayi.Api.Controllers
                     .Where(l => l.UnitId == unitId && (l.Status == "Disbursed" || l.Status == "Closed"))
                     .SumAsync(l => (decimal?)l.AmountRequested) ?? 0.00m;
 
+                // Only count loan repayments that have been explicitly deposited to the bank
                 decimal totalLoanRepayments = await _context.LoanApplications
                     .Where(l => l.UnitId == unitId)
                     .SelectMany(l => l.LoanRepayments)
+                    .Where(r => r.PaymentMode != null && r.PaymentMode.Contains("Bank Deposited"))
                     .SumAsync(r => (decimal?)r.AmountPaid) ?? 0.00m;
 
                 string accNum = !string.IsNullOrWhiteSpace(unitInfo?.AccountNumber) ? unitInfo.AccountNumber : $"SB-UNIT-{unitId:D4}";
@@ -455,6 +457,7 @@ namespace Sahayi.Api.Controllers
         public class DepositCashDto
         {
             public int? TransactionId { get; set; }
+            public int? RepaymentId { get; set; }
             public int UnitId { get; set; }
             public decimal Amount { get; set; }
         }
@@ -467,8 +470,28 @@ namespace Sahayi.Api.Controllers
             {
                 var targetUnitId = dto.UnitId;
                 SavingsTransaction? tx = null;
+                LoanRepayment? repayment = null;
+                string newStatus = "Cash (Bank Deposited)";
 
-                if (dto.TransactionId.HasValue && dto.TransactionId.Value > 0)
+                if (dto.RepaymentId.HasValue && dto.RepaymentId.Value > 0)
+                {
+                    repayment = await _context.LoanRepayments
+                        .Include(r => r.LoanApplication)
+                        .FirstOrDefaultAsync(r => r.RepaymentId == dto.RepaymentId.Value);
+
+                    if (repayment != null)
+                    {
+                        if (targetUnitId <= 0 && repayment.LoanApplication != null)
+                        {
+                            targetUnitId = repayment.LoanApplication.UnitId;
+                        }
+                        bool wasOnline = !string.IsNullOrWhiteSpace(repayment.PaymentMode) &&
+                                         repayment.PaymentMode.StartsWith("Online", StringComparison.OrdinalIgnoreCase);
+                        repayment.PaymentMode = wasOnline ? "Online (Bank Deposited)" : "Cash (Bank Deposited)";
+                        newStatus = repayment.PaymentMode;
+                    }
+                }
+                else if (dto.TransactionId.HasValue && dto.TransactionId.Value > 0)
                 {
                     tx = await _context.SavingsTransactions.FindAsync(dto.TransactionId.Value);
                     if (tx != null)
@@ -478,6 +501,7 @@ namespace Sahayi.Api.Controllers
                         bool wasOnline = !string.IsNullOrWhiteSpace(tx.PaymentMode) &&
                                          tx.PaymentMode.StartsWith("Online", StringComparison.OrdinalIgnoreCase);
                         tx.PaymentMode = wasOnline ? "Online (Bank Deposited)" : "Cash (Bank Deposited)";
+                        newStatus = tx.PaymentMode;
                     }
                 }
 
@@ -486,7 +510,7 @@ namespace Sahayi.Api.Controllers
                     return BadRequest(new { message = "Invalid Unit ID specified." });
                 }
 
-                var amountVal = dto.Amount > 0 ? dto.Amount : (tx?.Amount ?? 100m);
+                var amountVal = dto.Amount > 0 ? dto.Amount : (repayment?.AmountPaid ?? tx?.Amount ?? 100m);
 
                 var unitInfo = await _context.AyalkoottamUnits.FirstOrDefaultAsync(u => u.UnitId == targetUnitId);
                 var bankAccount = await _context.UnitBankAccounts.FirstOrDefaultAsync(b => b.UnitId == targetUnitId);
@@ -518,10 +542,11 @@ namespace Sahayi.Api.Controllers
 
                 return Ok(new
                 {
-                    message = $"Successfully deposited ₹{amountVal:F2} cash into Unit Bank Account!",
+                    message = $"Successfully deposited ₹{amountVal:F2} into Unit Bank Account!",
                     bankAccount = bankAccount,
                     transactionId = dto.TransactionId,
-                    status = "Cash (Bank Deposited)"
+                    repaymentId = dto.RepaymentId,
+                    status = newStatus
                 });
             }
             catch (Exception ex)

@@ -34,6 +34,7 @@ import ReportsView from './components/views/ReportsView';
 import SettingsView from './components/views/SettingsView';
 import SecretaryLoanReview from './components/SecretaryLoanReview';
 import MemberLoanPage from '../Member/MemberLoanPage';
+import UnitChat from '../../components/Chat/UnitChat';
 
 // Modal Components
 import RegisterMemberModal from './components/modals/RegisterMemberModal';
@@ -257,16 +258,19 @@ function SecretaryDashboard() {
           pendingDues: data.pendingDuesCount || 0
         });
         const activeHouseName = data.secretaryHouseName || userObj?.houseName || '';
+        const activeAvatarUrl = data.secretaryAvatarUrl || userObj?.avatarUrl || '';
         setUnitInfo({
           unitId: data.unitId,
           unitName: data.unitName || userObj?.unitName || '',
           secretaryName: data.secretaryName || userObj?.fullName || '',
           secretaryPhone: data.secretaryPhone || userObj?.phoneNumber || '',
-          secretaryHouseName: activeHouseName
+          secretaryHouseName: activeHouseName,
+          secretaryAvatarUrl: activeAvatarUrl
         });
 
-        if (activeHouseName && (!userObj?.houseName || userObj.houseName !== activeHouseName)) {
-          const updatedUserObj = { ...(userObj || {}), houseName: activeHouseName };
+        if ((activeHouseName && (!userObj?.houseName || userObj.houseName !== activeHouseName)) ||
+            (activeAvatarUrl && (!userObj?.avatarUrl || userObj.avatarUrl !== activeAvatarUrl))) {
+          const updatedUserObj = { ...(userObj || {}), houseName: activeHouseName, avatarUrl: activeAvatarUrl };
           setCurrentUser(updatedUserObj);
           try {
             localStorage.setItem('user', JSON.stringify(updatedUserObj));
@@ -825,14 +829,22 @@ function SecretaryDashboard() {
         {/* Top Navbar Header */}
         <SecretaryHeader
           unitInfo={unitInfo}
+          currentUser={currentUser}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onShowToast={showToast}
           onNavigateSettings={() => setActiveTab('settings')}
+          onLogout={handleLogout}
         />
 
         {/* Main Content Area Views */}
         <main className="sec-main-content">
+          {activeTab === 'chat' && (
+            <div style={{ margin: '-24px', height: 'calc(100vh - 72px)' }}>
+              <UnitChat unitId={unitInfo?.unitId || currentUser?.unitId || 1} currentUser={currentUser} />
+            </div>
+          )}
+
           {activeTab === 'dashboard' && (
             <OperationalOverview
               currentUser={currentUser}

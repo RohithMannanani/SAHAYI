@@ -9,37 +9,49 @@ const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidt
 
 function SecretaryHeader({
   unitInfo,
+  currentUser,
   searchQuery,
   setSearchQuery,
   onShowToast,
-  onNavigateSettings
+  onNavigateSettings,
+  onLogout
 }) {
-  // Retrieve member name loaded from database via unitInfo or fallback to logged in user details
-  const getMemberName = () => {
-    if (unitInfo?.secretaryName && unitInfo.secretaryName !== 'Unit Secretary') {
-      return unitInfo.secretaryName;
-    }
+  // Retrieve member name and avatar loaded from database via unitInfo or fallback to logged in user details
+  const getStoredUser = () => {
     try {
       const rawUser = localStorage.getItem('user');
-      if (rawUser) {
-        const parsed = JSON.parse(rawUser);
-        if (parsed?.fullName) return parsed.fullName;
-        if (parsed?.name) return parsed.name;
-      }
+      if (rawUser) return JSON.parse(rawUser);
     } catch (e) {
       console.error('Error reading logged in user:', e);
     }
-    return unitInfo?.secretaryName || 'Secretary';
+    return null;
+  };
+
+  const storedUser = getStoredUser();
+  const effectiveUser = currentUser || storedUser;
+
+  const getMemberName = () => {
+    if (effectiveUser?.fullName) return effectiveUser.fullName;
+    if (effectiveUser?.name) return effectiveUser.name;
+    if (unitInfo?.secretaryName && unitInfo.secretaryName !== 'Unit Secretary') {
+      return unitInfo.secretaryName;
+    }
+    return 'Secretary';
   };
 
   const memberName = getMemberName();
-  const unitName = unitInfo?.unitName || 'Ayalkoottam Unit';
+  const unitName = unitInfo?.unitName || effectiveUser?.unitName || 'Ayalkoottam Unit';
+  const avatarUrl = effectiveUser?.avatarUrl || unitInfo?.secretaryAvatarUrl || null;
 
   return (
     <header className="sec-header">
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div className="sec-header__title">Secretary Dashboard</div>
-        <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+        <div
+          style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
+          onClick={onNavigateSettings}
+          title="Go to Settings"
+        >
           <span>{memberName}</span>
           <span style={{ opacity: 0.5 }}>•</span>
           <span style={{ color: '#059669' }}>{unitName}</span>
@@ -65,10 +77,10 @@ function SecretaryHeader({
         <div
           style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
           onClick={onNavigateSettings}
-          title={`${memberName} (${unitName})`}
+          title="Go to Settings"
         >
           <img
-            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200"
+            src={avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=0C382E&color=fff`}
             alt={memberName}
             className="sec-user-avatar"
             onError={e => {
@@ -85,6 +97,40 @@ function SecretaryHeader({
             </span>
           </div>
         </div>
+
+        {onLogout && (
+          <button
+            className="sec-header__logout-btn"
+            onClick={onLogout}
+            title="Logout"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid #fee2e2',
+              backgroundColor: '#fef2f2',
+              color: '#dc2626',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              marginLeft: '8px'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#fee2e2';
+              e.currentTarget.style.borderColor = '#fca5a5';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#fef2f2';
+              e.currentTarget.style.borderColor = '#fee2e2';
+            }}
+          >
+            <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={15} />
+            <span>Logout</span>
+          </button>
+        )}
       </div>
     </header>
   );

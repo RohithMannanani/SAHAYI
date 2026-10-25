@@ -59,6 +59,15 @@ export const updateUserProfile = async (payload) => {
   return await api.post('/auth/update-profile', payload);
 };
 
+// Upload User Avatar API
+export const uploadAvatar = async (formData) => {
+  return await api.post('/auth/upload-avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 // Fetch all Ayalkoottam Units
 export const fetchShgUnits = async () => {
   return await api.get('/shg');

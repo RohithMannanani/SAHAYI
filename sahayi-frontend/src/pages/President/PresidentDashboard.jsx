@@ -6,6 +6,8 @@ import WeeklySavingsHistoryModal from '../../components/common/WeeklySavingsHist
 import PaymentMethodModal from '../Secretary/components/modals/PaymentMethodModal';
 import PresidentLoanMonitor from './components/PresidentLoanMonitor';
 import MemberLoanPage from '../Member/MemberLoanPage';
+import UnitChat from '../../components/Chat/UnitChat';
+import SharedSettingsView from '../../components/Shared/SharedSettingsView';
 
 import loanService from '../../services/loanService';
 
@@ -23,14 +25,14 @@ function PresidentDashboard() {
   });
   const [loanSubTab, setLoanSubTab] = useState('admin');
 
-  const currentUser = useMemo(() => {
+  const [currentUser, setCurrentUser] = useState(() => {
     try {
       const u = localStorage.getItem('user');
       return u ? JSON.parse(u) : null;
     } catch {
       return null;
     }
-  }, []);
+  });
 
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -307,6 +309,14 @@ function PresidentDashboard() {
             </div>
 
             <div
+              className={`pres-nav-item ${activeTab === 'chat' ? 'pres-nav-item--active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" size={17} />
+              <span>Chats</span>
+            </div>
+
+            <div
               className="pres-nav-item"
               onClick={() => setShowOwnSavingsModal(true)}
               title="View my own personal weekly savings history and dues"
@@ -324,11 +334,6 @@ function PresidentDashboard() {
             <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={17} />
             <span>Settings</span>
           </div>
-
-          <div className="pres-nav-item" onClick={handleLogout}>
-            <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={17} />
-            <span>Logout</span>
-          </div>
         </div>
       </aside>
 
@@ -338,7 +343,11 @@ function PresidentDashboard() {
         <header className="pres-header">
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="pres-header__title"> President Dashboard</div>
-            <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+            <div
+              style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', cursor: 'pointer' }}
+              onClick={() => setActiveTab('settings')}
+              title="Go to Settings"
+            >
               <span>{currentUser?.fullName || currentUser?.name || 'President'}</span>
               <span style={{ opacity: 0.5 }}>•</span>
               <span style={{ color: '#059669' }}>{dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'}</span>
@@ -356,12 +365,19 @@ function PresidentDashboard() {
               <span className="pres-header__badge" />
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              onClick={() => setActiveTab('settings')}
+              title="Go to Settings"
+            >
               <img
-                src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120"}
+                src={currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'President')}&background=0C382E&color=fff`}
                 alt="President Avatar"
                 className="pres-user-avatar"
-                title={`${currentUser?.fullName || currentUser?.name || 'President'} (${dashboardData?.unitName || currentUser?.unitName || 'Ayalkoottam Unit'})`}
+                onError={e => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.fullName || 'President')}&background=0C382E&color=fff`;
+                }}
               />
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0c382e' }}>
@@ -372,6 +388,38 @@ function PresidentDashboard() {
                 </span>
               </div>
             </div>
+
+            <button
+              className="pres-header__logout-btn"
+              onClick={handleLogout}
+              title="Logout"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid #fee2e2',
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                marginLeft: '8px'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#fee2e2';
+                e.currentTarget.style.borderColor = '#fca5a5';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = '#fef2f2';
+                e.currentTarget.style.borderColor = '#fee2e2';
+              }}
+            >
+              <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={15} />
+              <span>Logout</span>
+            </button>
           </div>
         </header>
 
@@ -400,7 +448,11 @@ function PresidentDashboard() {
           </div>
 
           {/* Render Views Based on Active Tab */}
-          {activeTab === 'members' ? (
+          {activeTab === 'chat' ? (
+            <div style={{ margin: '-20px' }}>
+              <UnitChat unitId={currentUser?.unitId || dashboardData?.unitId || 1} currentUser={currentUser} />
+            </div>
+          ) : activeTab === 'members' ? (
             /* ── MEMBERS TAB VIEW ── */
             <div className="pres-card">
               <div className="pres-card__head" style={{ marginBottom: '16px' }}>
@@ -563,6 +615,13 @@ function PresidentDashboard() {
                 <PresidentLoanMonitor />
               )}
             </div>
+          ) : activeTab === 'settings' ? (
+            <SharedSettingsView
+              currentUser={currentUser}
+              setCurrentUser={setCurrentUser}
+              onShowToast={showToast}
+              onReloadData={loadPresidentData}
+            />
           ) : activeTab === 'reports' || activeTab === 'financials' ? (
             /* ── FINANCIALS & REPORTS TAB VIEW ── */
             <div className="pres-financials-view" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

@@ -48,10 +48,6 @@ function CdsAdminSidebar({ activeNav, setActiveNav, setSelectedUnit, setIsRecord
           <Icon d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" size={16} />
           <span>Settings</span>
         </button>
-        <button className="cds-nav-item" onClick={handleLogout}>
-          <Icon d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" size={16} />
-          <span>Logout</span>
-        </button>
       </div>
     </aside>
   );

@@ -1,4 +1,4 @@
-import api from './api';
+import api from './api.js';
 
 const loanService = {
   // --- Member & Bearer Endpoints ---
@@ -21,9 +21,10 @@ const loanService = {
     }
   },
 
-  payInstallment: async (loanId, amountPaid) => {
+  payInstallment: async (loanId, payload) => {
     try {
-      const response = await api.post(`/member/pay-installment?loanId=${loanId}`, { amountPaid });
+      const data = typeof payload === 'number' ? { amountPaid: payload } : payload;
+      const response = await api.post(`/member/pay-installment?loanId=${loanId}`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -70,9 +71,10 @@ const loanService = {
     }
   },
 
-  recordRepayment: async (loanId, amountPaid) => {
+  recordRepayment: async (loanId, payload) => {
     try {
-      const response = await api.post(`/treasurer/record-repayment?loanId=${loanId}`, { amountPaid });
+      const data = typeof payload === 'number' ? { amountPaid: payload } : payload;
+      const response = await api.post(`/treasurer/record-repayment?loanId=${loanId}`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -94,6 +96,43 @@ const loanService = {
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
+    }
+  },
+
+  getUnitLoanRepayments: async () => {
+    try {
+      const response = await api.get('/treasurer/unit-repayments');
+      return response.data || [];
+    } catch (error) {
+      // Graceful fallback to monitor-loans if unit-repayments is 404 (e.g. pending backend rebuild/restart)
+      try {
+        const mon = await api.get('/president/monitor-loans');
+        if (mon.data && Array.isArray(mon.data.loans)) {
+          const flatRepayments = [];
+          mon.data.loans.forEach(loan => {
+            (loan.repayments || []).forEach(r => {
+              flatRepayments.push({
+                repaymentId: r.repaymentId,
+                loanId: loan.loanId,
+                borrowerName: loan.memberName,
+                userId: loan.userId,
+                amountPaid: r.amountPaid,
+                principalComponent: r.principalComponent,
+                interestComponent: r.interestComponent,
+                repaymentDate: r.repaymentDate,
+                receiptNumber: r.receiptNumber,
+                recordedByName: r.recordedByName,
+                paymentMode: r.paymentMode || 'Cash',
+                isBankDeposited: r.isBankDeposited || (r.paymentMode || '').toLowerCase().includes('bank deposited')
+              });
+            });
+          });
+          return flatRepayments;
+        }
+      } catch (fallbackErr) {
+        // Suppress and return empty array
+      }
+      return [];
     }
   },
 

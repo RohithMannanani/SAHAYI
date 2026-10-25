@@ -28,8 +28,10 @@ import {
   updateUserProfile,
   sendForgotPasswordOtp,
   verifyForgotPasswordOtp,
-  resetForgotPassword
+  resetForgotPassword,
+  uploadAvatar
 } from '../../../../services/api';
+import ProfileImageUpload from '../../../../components/Shared/ProfileImageUpload';
 
 function SettingsView({
   unitInfo,
@@ -49,8 +51,8 @@ function SettingsView({
     fullName: unitInfo?.secretaryName || currentUser?.fullName || '',
     phoneNumber: unitInfo?.secretaryPhone || currentUser?.phoneNumber || '',
     houseName: unitInfo?.secretaryHouseName || currentUser?.houseName || '',
-    username: currentUser?.username || unitInfo?.secretaryPhone || '',
-    avatarUrl: ''
+    username: currentUser?.username || unitInfo?.secretaryPhone || currentUser?.phoneNumber || '',
+    avatarUrl: currentUser?.avatarUrl || unitInfo?.secretaryAvatarUrl || ''
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
@@ -101,10 +103,37 @@ function SettingsView({
       fullName: unitInfo?.secretaryName || currentUser?.fullName || '',
       phoneNumber: unitInfo?.secretaryPhone || currentUser?.phoneNumber || '',
       houseName: unitInfo?.secretaryHouseName || currentUser?.houseName || '',
-      username: currentUser?.username || unitInfo?.secretaryPhone || '',
-      avatarUrl: ''
+      username: currentUser?.username || unitInfo?.secretaryPhone || currentUser?.phoneNumber || '',
+      avatarUrl: currentUser?.avatarUrl || unitInfo?.secretaryAvatarUrl || ''
     });
   }, [unitInfo, currentUser]);
+
+  const handleAvatarUpload = async (formData) => {
+    try {
+      const response = await uploadAvatar(formData);
+      const newAvatarUrl = response.data.avatarUrl;
+
+      setProfileForm(prev => ({ ...prev, avatarUrl: newAvatarUrl }));
+
+      if (setCurrentUser) {
+        setCurrentUser(prev => ({ ...(prev || {}), avatarUrl: newAvatarUrl }));
+      }
+
+      if (setUnitInfo) {
+        setUnitInfo(prev => ({ ...prev, secretaryAvatarUrl: newAvatarUrl }));
+      }
+
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({ ...storedUser, avatarUrl: newAvatarUrl }));
+      } catch (err) {}
+
+      onShowToast && onShowToast('Profile picture updated successfully!');
+    } catch (error) {
+      console.error('Avatar upload failed', error);
+      onShowToast && onShowToast('Failed to upload profile picture.', 'error');
+    }
+  };
 
   // Handle Profile Update Submit
   const handleProfileSubmit = async (e) => {
@@ -376,25 +405,20 @@ function SettingsView({
       {activeTab === 'profile' && (
         <div className="sec-settings-grid">
           {/* Profile Overview Card */}
-          <div className="sec-card sec-settings-card sec-profile-summary-card">
-            <div className="sec-profile-avatar-wrapper">
-              <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(unitInfo?.secretaryName || 'Secretary')}&background=0C382E&color=fff&size=200`}
-                alt="Secretary Profile"
-                className="sec-profile-large-avatar"
-              />
-              <div className="sec-avatar-badge" title="Unit Secretary Active Role">
-                <Shield size={14} />
-              </div>
-            </div>
+          <div className="sec-card sec-settings-card sec-profile-summary-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <ProfileImageUpload
+              currentAvatarUrl={profileForm.avatarUrl || currentUser?.avatarUrl || unitInfo?.secretaryAvatarUrl}
+              onAvatarUpload={handleAvatarUpload}
+              userName={profileForm.fullName || unitInfo?.secretaryName || 'Secretary'}
+            />
 
-            <div className="sec-profile-summary-info">
-              <h3>{unitInfo?.secretaryName || 'Unit Secretary'}</h3>
+            <div className="sec-profile-summary-info" style={{ textAlign: 'center', width: '100%' }}>
+              <h3>{unitInfo?.secretaryName || currentUser?.fullName || 'Unit Secretary'}</h3>
               <p className="sec-role-tag">Role: Unit Secretary ({unitInfo?.unitName || 'Ayalkoottam'})</p>
-              <div className="sec-profile-meta-list">
+              <div className="sec-profile-meta-list" style={{ justifyContent: 'center' }}>
                 <div className="sec-meta-item">
                   <Phone size={14} />
-                  <span>{unitInfo?.secretaryPhone || 'Not provided'}</span>
+                  <span>{unitInfo?.secretaryPhone || currentUser?.phoneNumber || 'Not provided'}</span>
                 </div>
                 <div className="sec-meta-item">
                   <MapPin size={14} />
@@ -402,7 +426,7 @@ function SettingsView({
                 </div>
                 <div className="sec-meta-item">
                   <Building size={14} />
-                  <span>Unit ID: #{unitInfo?.unitId || 1}</span>
+                  <span>Unit ID: #{unitInfo?.unitId || currentUser?.unitId || 1}</span>
                 </div>
               </div>
             </div>
@@ -451,7 +475,7 @@ function SettingsView({
                     <Globe size={16} className="sec-input-icon" />
                     <input
                       type="text"
-                      value={profileForm.username}
+                      value={profileForm.username || profileForm.phoneNumber || currentUser?.phoneNumber || unitInfo?.secretaryPhone || ''}
                       disabled
                       readOnly
                       placeholder="Username for login"

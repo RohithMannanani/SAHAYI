@@ -33,6 +33,35 @@ namespace Sahayi.Api.Dtos
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount paid must be greater than 0.")]
         public decimal AmountPaid { get; set; }
+
+        public string RepaymentType { get; set; } = "Combined"; // InterestOnly, PrincipalOnly, Combined, FullPayoff
+        public decimal? PrincipalComponent { get; set; }
+        public decimal? InterestComponent { get; set; }
+        public string? Notes { get; set; }
+        public string? PaymentMode { get; set; } = "Cash";
+    }
+
+    public class PassbookLedgerEntryDto
+    {
+        public int EntryId { get; set; }
+        public DateTime Date { get; set; }
+        public string EntryType { get; set; } = string.Empty; // Disbursement, Repayment
+        public decimal LoanDisbursed { get; set; }
+        public decimal PrincipalRepaid { get; set; }
+        public decimal InterestPaid { get; set; }
+        public decimal RemainingBalance { get; set; }
+        public string ReceiptNumber { get; set; } = string.Empty;
+        public string SecretarySignature { get; set; } = string.Empty;
+    }
+
+    public class EarlyPayoffNoticeDto
+    {
+        public bool IsLowUnitFunds { get; set; }
+        public decimal UnitAvailableSavings { get; set; }
+        public decimal PendingLoanRequested { get; set; }
+        public decimal DeficitAmount { get; set; }
+        public string ApplicantName { get; set; } = string.Empty;
+        public string NoticeMessage { get; set; } = string.Empty;
     }
 
     public class LoanSummaryDto
@@ -50,6 +79,8 @@ namespace Sahayi.Api.Dtos
         public DateTime? DisbursedDate { get; set; }
 
         // Computed Fields
+        public decimal FineAmount { get; set; }
+        public decimal TotalLoanAmount { get; set; }
         public decimal TotalPrincipalPaid { get; set; }
         public decimal OutstandingBalance { get; set; }
         public decimal TotalInterestPaid { get; set; }
@@ -65,6 +96,8 @@ namespace Sahayi.Api.Dtos
         public DateTime RepaymentDate { get; set; }
         public string ReceiptNumber { get; set; } = string.Empty;
         public string RecordedByName { get; set; } = string.Empty;
+        public string PaymentMode { get; set; } = "Cash";
+        public bool IsBankDeposited { get; set; }
     }
 
     public class LoanDetailsResponseDto
@@ -77,6 +110,8 @@ namespace Sahayi.Api.Dtos
     {
         public int LoanId { get; set; }
         public string BorrowerName { get; set; } = string.Empty;
+        public decimal FineAmount { get; set; }
+        public decimal TotalLoanAmount { get; set; }
         public decimal RemainingBalance { get; set; }
         public decimal FixedPrincipalDue { get; set; }
         public decimal CurrentMonthInterestDue { get; set; }

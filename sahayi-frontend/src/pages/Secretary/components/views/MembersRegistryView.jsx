@@ -6,19 +6,22 @@ function MembersRegistryView({
   attendanceList,
   onShowRegisterModal,
   onShowToast,
-  onSelectMemberDetail
+  onSelectMemberDetail,
+  readOnly = false
 }) {
   return (
     <div className="sec-subview">
       <div className="sec-subview-header">
         <h2>{unitInfo.unitName} Members Registry</h2>
-        <button
-          className="sec-action-btn sec-action-btn--primary"
-          onClick={onShowRegisterModal}
-        >
-          <UserPlus size={18} />
-          <span>Add New Member</span>
-        </button>
+        {!readOnly && (
+          <button
+            className="sec-action-btn sec-action-btn--primary"
+            onClick={onShowRegisterModal}
+          >
+            <UserPlus size={18} />
+            <span>Add New Member</span>
+          </button>
+        )}
       </div>
 
       <div className="sec-card">
@@ -29,13 +32,13 @@ function MembersRegistryView({
               <th>Member ID</th>
               <th>Phone</th>
               <th>Status</th>
-              <th className="sec-text-right">Actions</th>
+              {!readOnly && <th className="sec-text-right">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {attendanceList.length === 0 ? (
               <tr>
-                <td colSpan="5" className="sec-table-empty">
+                <td colSpan={readOnly ? "4" : "5"} className="sec-table-empty">
                   No members registered in this unit yet.
                 </td>
               </tr>
@@ -50,14 +53,16 @@ function MembersRegistryView({
                       Active
                     </span>
                   </td>
-                  <td className="sec-text-right">
-                    <button
-                      className="sec-card__link-btn"
-                      onClick={() => onSelectMemberDetail && onSelectMemberDetail(mem)}
-                    >
-                      View Details
-                    </button>
-                  </td>
+                  {!readOnly && (
+                    <td className="sec-text-right">
+                      <button
+                        className="sec-card__link-btn"
+                        onClick={() => onSelectMemberDetail && onSelectMemberDetail(mem)}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
